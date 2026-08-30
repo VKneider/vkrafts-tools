@@ -1,0 +1,118 @@
+/* All rules are scoped under the custom element so the dropdown styles stay
+   encapsulated and never leak into / collide with the rest of the app.
+
+   The trigger inherits its text color from the context (`currentColor`): on a
+   primary-colored surface like the Navbar it shows the contrast color, and
+   standalone on the page it shows the normal font color — so it never renders
+   white-on-white. The options menu is always a readable page surface because it
+   floats over page content, not over the trigger's background. */
+
+slice-dropdown {
+  position: relative; /* anchor for the absolutely-positioned options box */
+  display: inline-block;
+  font-family: var(--font-family);
+  color: inherit;
+}
+
+slice-dropdown .slice_dropdown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  user-select: none;
+  color: inherit;
+  border-radius: var(--border-radius-slice);
+  border: var(--slice-border) solid var(--primary-color);
+  background-color: transparent;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+slice-dropdown .slice_dropdown:hover {
+  background-color: color-mix(in srgb, var(--primary-color) 14%, transparent);
+}
+
+slice-dropdown .slice_dropdown_label {
+  cursor: pointer;
+  color: inherit;
+  white-space: nowrap;
+}
+
+slice-dropdown .caret {
+  margin-left: 2px;
+  border-top-color: currentColor;
+}
+
+slice-dropdown .slice_dropbox {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 100%;
+  width: max-content;
+  max-width: 280px;
+  padding: 4px;
+  list-style: none;
+  color: var(--font-primary-color);
+  background-color: var(--secondary-background-color);
+  border: var(--slice-border) solid color-mix(in srgb, var(--primary-color) 32%, transparent);
+  border-radius: var(--border-radius-slice);
+  box-shadow:
+    0 14px 30px -10px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.2);
+  /* closed state */
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-6px);
+  max-height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease,
+    visibility 0s linear 0.22s;
+}
+
+slice-dropdown .slice_dropbox_open {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+  max-height: 260px;
+  overflow-y: auto;
+  pointer-events: auto;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+}
+
+slice-dropdown .slice_dropbox div {
+  width: 100%;
+}
+
+slice-dropdown .slice_dropbox div a {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: calc(var(--border-radius-slice) * 0.8);
+  color: var(--font-primary-color);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+slice-dropdown .slice_dropbox div a:hover {
+  color: var(--primary-color-contrast);
+  background-color: var(--primary-color);
+}
+
+slice-dropdown .slice_dropbox::-webkit-scrollbar {
+  width: 6px;
+}
+
+slice-dropdown .slice_dropbox::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--primary-color) 35%, transparent);
+  border-radius: 999px;
+}

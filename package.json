@@ -1,0 +1,56 @@
+{
+  "name": "vkrafts-improved",
+  "version": "1.0.0",
+  "description": "Slice.js project",
+  "main": "api/index.js",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "node ./node_modules/slicejs-cli/client.js dev",
+    "build": "node ./node_modules/slicejs-cli/client.js build",
+    "start": "node ./node_modules/slicejs-cli/client.js start",
+    "component:create": "node ./node_modules/slicejs-cli/client.js component create",
+    "component:list": "node ./node_modules/slicejs-cli/client.js component list",
+    "component:delete": "node ./node_modules/slicejs-cli/client.js component delete",
+    "get": "node ./node_modules/slicejs-cli/client.js get",
+    "browse": "node ./node_modules/slicejs-cli/client.js browse",
+    "sync": "node ./node_modules/slicejs-cli/client.js sync",
+    "slice:init": "node ./node_modules/slicejs-cli/client.js init",
+    "slice:dev": "node ./node_modules/slicejs-cli/client.js dev",
+    "slice:build": "node ./node_modules/slicejs-cli/client.js build",
+    "slice:start": "node ./node_modules/slicejs-cli/client.js start",
+    "slice:create": "node ./node_modules/slicejs-cli/client.js component create",
+    "slice:list": "node ./node_modules/slicejs-cli/client.js component list",
+    "slice:delete": "node ./node_modules/slicejs-cli/client.js component delete",
+    "slice:get": "node ./node_modules/slicejs-cli/client.js get",
+    "slice:browse": "node ./node_modules/slicejs-cli/client.js browse",
+    "slice:sync": "node ./node_modules/slicejs-cli/client.js sync",
+    "slice:doctor": "node ./node_modules/slicejs-cli/client.js doctor",
+    "slice:version": "node ./node_modules/slicejs-cli/client.js version",
+    "slice:help": "node ./node_modules/slicejs-cli/client.js --help",
+    "slice:types": "node ./node_modules/slicejs-cli/client.js types generate",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src api",
+    "lint:fix": "eslint src api --fix",
+    "run": "node ./node_modules/slicejs-cli/client.js dev"
+  },
+  "packageManager": "pnpm@11.5.0",
+  "dependencies": {
+    "dompurify": "^3.4.14",
+    "fabric": "^7.4.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "lucide": "^1.33.0",
+    "slicejs-web-framework": "4.0.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.9.0",
+    "globals": "^17.11.0",
+    "slicejs-cli": "4.2.0",
+    "vitest": "^4.1.11"
+  }
+}

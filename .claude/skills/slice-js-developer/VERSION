@@ -1,0 +1,203 @@
+slice-js-developer
+version: 1.10.0
+targets: slicejs-web-framework ^4.0.x
+
+CHANGELOG
+=========
+
+1.10.0
+  Staleness guard + drift-trim of references:
+  - Every reference now carries a "Verified against v4.x" marker (authoritative
+    range lives in VERSION `targets`) with a rule to re-verify version-specific
+    details against the MCP/source on a framework major bump.
+  - Drift-trim (references hold concepts/traps, not enumerations that go stale):
+    visual-catalog.md is now names + intent only (removed per-component prop
+    lists — already flagged as unreliable); config-theming-cli.md's CLI table
+    dropped the exhaustive `slice build` flag soup (→ `slice --help`) and added
+    a `slice skill` row. Kept the recommended sliceConfig snippet, the trap-level
+    notes, and the non-interactive create/delete forms agents rely on.
+  Files touched: VERSION, references/core-model.md, references/state-and-routing.md,
+    references/config-theming-cli.md, references/gotchas-and-diagnostics.md,
+    references/visual-catalog.md.
+
+1.9.0
+  Orientation consistency + testing guidance + polish:
+  - Wired the Orientation protocol into Workflows (a lead line): every workflow
+    now starts by orienting (list_docs + read sliceConfig/components.js/routes.js)
+    instead of jumping to references — the protocol was previously stranded in
+    the MCP section.
+  - New-project branch: when slice init hasn't run there's nothing to read, so a
+    single get_llm_full_context (ask first) is justified, then scaffold.
+  - Testing: documented that Slice has NO official harness (test script is a
+    stub, no test utilities). New references/gotchas "Testing" section — keep
+    logic in Services for plain-JS unit tests, drive slice dev with Playwright
+    for Visual components; adding a runner needs user confirmation.
+  - get_doc_content array-batching tip; Component.js template now marks update()
+    as OPTIONAL (delete unless it's a cached MultiRoute view / async refresh).
+  Files touched: SKILL.md, VERSION, references/gotchas-and-diagnostics.md,
+    assets/visual-component/Component.js.
+
+1.8.0
+  MCP orientation protocol + smarter search:
+  - New "Orientation protocol" in SKILL.md: on any Slice task with the MCP
+    available, run list_docs() FIRST, then read the project (sliceConfig.json,
+    components.js, routes.js, framework version) so advice fits the actual app
+    — e.g. don't suggest context.watch when context.enabled is false. Offer
+    get_llm_full_context (ask first — it's costly) for large/unfamiliar work;
+    otherwise stay in the targeted search->read loop.
+  - Documented search_docs's new ranked output ({relevance_score, matched_terms,
+    snippets[] with line + section}) and the snippets_per_doc arg; list_docs is
+    now framed as the first-run orientation call. (Requires slicejs-mcp >= 1.1.0.)
+  Files touched: SKILL.md, VERSION.
+
+1.7.0
+  MCP-first depth model + stale-caveat fixes:
+  - Reframed the skill's depth layers: references are now explicitly the
+    DISTILLED, source-verified OFFLINE layer (mistake-prevention, decision
+    rules, canonical snippets) — NOT a mirror of the docs; the slicejs-mcp
+    server is the PRIMARY tool for authoritative/exhaustive depth and anything
+    version-specific (full prop lists, CLI flags, config fields, complete
+    guides). Order of preference for depth: MCP -> WebFetch -> reference ->
+    offline fallbacks; for a project's own specifics, the installed source wins.
+  - New SKILL.md section "Developing with the MCP" — a playbook: the four tools
+    (search_docs / get_doc_content / list_docs / get_llm_full_context), the
+    search->read->apply loop, how to phrase queries (symbol / concept / error),
+    in-session caching, and when get_llm_full_context is worth its cost.
+  - Fixed 3 now-false caveats that claimed the MCP could not serve certain docs
+    (project-architecture/*, external-dependencies, environment-variables) and
+    that per-file WebFetch was "more complete than the MCP". The MCP now serves
+    all 42 pages (a parser fix in slicejs-mcp recovered the dropped first doc,
+    api-reference); doc_id map updated to include api-reference + the slicejs-mcp
+    self-doc. Reference intros now point at the MCP for depth.
+  Files touched: SKILL.md, VERSION, references/core-model.md,
+    references/state-and-routing.md, references/config-theming-cli.md,
+    references/gotchas-and-diagnostics.md, references/visual-catalog.md.
+
+1.6.0
+  Precompression + bundling correctness (slicejs-cli 4.0.x):
+  - `slice build --compress` writes .gz + max-quality .br next to every text
+    asset in dist/; `slice start` serves the precompressed variant per the
+    client's Accept-Encoding (brotli preferred). Opt-in (brotli max is slow).
+    Node zlib only, no new deps. A 900 KB bundle → ~100 KB brotli on the wire.
+  - Bundle grouping fix: the budget rebalancer used to split a shared bundle
+    (shared-core) into parts by an INFLATED size (it counted every file in a
+    component folder, incl. non-code assets) and left the referrers pointing at
+    a bundle key that no longer existed → dead orphan bundles + a dangling ref
+    on every route using shared code. Now shared-core is pinned (never split),
+    budgeting uses code size (js/html/css only), and a referential-integrity
+    check warns on any dangling/orphan bundle. Runtime unchanged.
+  - Runtime load model (for reference): only the `critical` bundle blocks first
+    paint; a route's other bundles are idle-preloaded (requestIdleCallback) and
+    cached, with an individual-component fallback. So transfer size (→ compress)
+    matters more than splitting a shared bundle finer.
+  Files touched: references/config-theming-cli.md.
+
+1.5.0
+  Build parity with traditional bundlers (slicejs-cli 4.0.x):
+  - Relative `.json` imports work: default import = whole document, named
+    imports = top-level keys (like Vite/webpack).
+  - `slice build --sourcemap` emits a `.map` next to each minified bundle
+    (maps to the readable pre-minified bundle; off by default so source isn't
+    shipped unless asked).
+  - `slice build --hash-filenames` inserts a content hash into bundle filenames
+    (`slice-bundle.home.a1b2c3d4.js`) for immutable CDN caching; the runtime
+    loads every bundle by the config's filename, so hashing just works. Off by
+    default (stable names).
+  - Note (already true, reinforced): env vars are runtime, not build-time —
+    `SLICE_PUBLIC_*` from `.env`/`process.env`, served by the server and read via
+    `slice.env.*`. There is no `import.meta.env` build-time injection (and none is
+    needed): change config without rebuilding, secrets stay server-side.
+  Files touched: references/config-theming-cli.md.
+
+1.4.0
+  Build hardening (slicejs-cli 4.0.x):
+  - npm deps: a minimal runtime process/global shim now covers dynamic
+    references (process.platform, process.env[key], free global) that the
+    build-time defines can't fold — still no Node polyfill (no Buffer/stream/fs).
+    Text assets (.glsl/.vert/.frag/.txt) load as strings. Dev disk cache
+    (node_modules/.slice-deps) is pruned per package on version upgrade.
+  - Relative helper modules a component imports may now import AND re-export:
+    `export * from './x'` and `export { y } from './x'` / `export { z } from 'pkg'`
+    are inlined and wired (absolute/URL re-exports unsupported).
+  - `slice.build(<name>)` is resolved statically for a literal, an
+    expression-free template, or an identifier/config-member that resolves to
+    one (imported const, `viewMap[key]` with a literal map) — those get bundled.
+    A truly dynamic name warns (`⚠️ Dynamic slice.build(...)`) and loads
+    individually at runtime instead of failing silently.
+  - Reproducible builds: `SOURCE_DATE_EPOCH` (integer epoch seconds) fixes the
+    timestamps embedded in bundle metadata/config, so a clean rebuild is
+    byte-identical.
+  Files touched: references/config-theming-cli.md,
+    references/gotchas-and-diagnostics.md.
+
+1.3.0
+  External dependencies + public/ folder + build validation (slicejs-cli 3.8.x):
+  - npm packages via BARE IMPORTS now work (`import dayjs from 'dayjs'`),
+    resolved from node_modules with esbuild — same resolver in dev and build,
+    no config. CJS/ESM/UMD, exports maps, scoped, subpaths, transitive deps,
+    dynamic import('pkg'); package CSS injected, WASM/images/fonts inlined.
+    Dev rewrites bare specifiers to /@slice-modules/<pkg> (cached in
+    node_modules/.slice-deps); build bundles once (shared -> vendor-shared).
+    Replaces the old "vendor into src/libs + publicFolders" pattern.
+  - publicFolders REMOVED. Static assets live under src/public/ (served at the
+    root URL, copied into the build) — Themes/Styles/images moved there; no
+    config key. Absolute imports kept only when the file exists under public/.
+  - Build-time prop validation: `slice build` runs the doctor prop checks and
+    BLOCKS on definition errors (unknown type, schema/items/allowedValues
+    mismatch); style issues warn. Bypass with --no-validate.
+  - New flags: `slice build --strict-external` (fail on unresolved npm deps),
+    `--no-validate`. slice doctor also checks props + npm imports missing from
+    node_modules.
+  - Gotcha added: `context.enabled` requires `events.enabled` — build hard-fails
+    otherwise (ContextManager reactivity runs through EventManager).
+  Files touched: SKILL.md, references/config-theming-cli.md,
+    references/gotchas-and-diagnostics.md, assets/sliceConfig.json,
+    assets/visual-component/Component.css.
+
+1.2.0
+  Event Registry + pub/sub tracing (slicejs-web-framework 3.4.4):
+  - slice.events.register(catalog) / register(namespace, catalog): opt-in,
+    mergeable catalog of events. Declares 'domain:action' keys + payload
+    mini-schema. Dev validation is warn-only (undeclared + no-namespace),
+    never throws, silent in production. Loose mode unchanged when never called.
+  - Typed events: `slice types generate` reads the catalog -> SliceEventRegistry,
+    typing emit/subscribe (wrong payload fails tsc). Catalog arg must be an
+    object literal / imported literal (same rule as static props).
+  - Pub/sub tracing in two layers: STATIC (generate writes
+    src/slice-events.generated.js mapping each event to emitter/listener call
+    sites — documentation, no execution) + RUNTIME (emit attributed to its
+    component via bind, or a stack-trace file:line; recorded only while the
+    Events panel is open). Debugger Registry tab = static graph; Subscribers/
+    History = live. slice.events.loadGraph / staticEmittersOf / staticListenersOf.
+  - Leak Inspector (dev-only, config `debugger.leakInspector`, `alt+shift+k`):
+    surfaces components registered but detached from the DOM (the
+    innerHTML=''-without-destroyComponent leak), with retain chain, a per-row
+    destroy probe, and a growing-trend signal. Excludes cached Route/MultiRoute
+    (`__sliceCached`); extensible via slice.controller.registerLeakExclusion(fn);
+    programmatic slice.controller.findOrphans().
+  Files touched: SKILL.md, references/state-and-routing.md,
+    references/gotchas-and-diagnostics.md.
+
+1.1.0
+  In-place reactive refresh best practices (slicejs-web-framework 3.4.4):
+  - update() documented as the UNIVERSAL in-place refresh hook, called by the
+    Router / a parent / the component itself / a context.watch callback — and
+    OPTIONAL (most components refresh through their setters). The framework
+    WRAPS update(): serialize + coalesce re-entrance + liveness (skips the
+    commit if destroyed mid-refresh), so it is written plainly, no guards.
+  - setComponentProps now auto-detects build vs refresh. Refresh applies only
+    the passed props (no defaults, no required check, diff-guards honored,
+    omitted props kept). Added facade slice.setComponentProps + slice.isComponentAlive.
+  - Refresh-in-place guidance: setter (default) -> setComponentProps (many
+    props) -> update() (async/custom). Lists: reuse by stable sliceId
+    (build new / update existing / destroy gone). Total replacement:
+    build-then-swap. Never invent a render() method.
+  - Stronger leak rule: never innerHTML='' / replaceChildren / remove over
+    slice.build'd children without destroyComponent/destroyByContainer first;
+    release window/document listeners, timers, and observers in beforeDestroy().
+  Files touched: SKILL.md, references/core-model.md.
+
+1.0.0
+  Initial skill: critical mental model (attachTemplate ordering, setters,
+  await slice.build), construction patterns A/B, decision rules, reference
+  routing (local + WebFetch + MCP), workflows, assets, references/.

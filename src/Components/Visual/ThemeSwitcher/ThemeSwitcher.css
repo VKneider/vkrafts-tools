@@ -1,0 +1,109 @@
+slice-theme-switcher {
+  display: block;
+}
+
+/* ---------- Button variant — icon switch compacto para navbar/toolbar ---------- */
+
+slice-theme-switcher.theme-switcher--button .theme-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px;
+  border: none;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+slice-theme-switcher.theme-switcher--button .theme-switcher__track {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+slice-theme-switcher.theme-switcher--button .theme-switcher__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--primary-color-contrast);
+  color: var(--primary-color);
+  transform: translateX(10px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  transition: transform 0.25s ease, background 0.2s ease, color 0.2s ease;
+}
+
+slice-theme-switcher.theme-switcher--button .theme-switcher--to-dark .theme-switcher__icon {
+  transform: translateX(-10px);
+}
+
+slice-theme-switcher.theme-switcher--button .theme-switcher:hover .theme-switcher__track {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* En tema oscuro el track se oscurece y el knob se desplaza al otro lado. */
+[data-slice-theme="Dark"] slice-theme-switcher.theme-switcher--button .theme-switcher__track,
+html[data-slice-theme="Dark"] slice-theme-switcher.theme-switcher--button .theme-switcher__track {
+  background: var(--tertiary-background-color);
+}
+
+slice-theme-switcher.theme-switcher--button .theme-switcher:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+
+slice-theme-switcher.theme-switcher--button .theme-switcher__value {
+  display: none;
+}
+
+/* ---------- Menu-item variant — fila completa con label ---------- */
+
+slice-theme-switcher.theme-switcher--menu {
+  width: 100%;
+}
+
+slice-theme-switcher.theme-switcher--menu .theme-switcher {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  color: var(--font-primary-color);
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+slice-theme-switcher.theme-switcher--menu .theme-switcher:hover {
+  background: var(--tertiary-background-color);
+}
+
+slice-theme-switcher.theme-switcher--menu .theme-switcher__track {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--secondary-background-color);
+  color: var(--font-secondary-color);
+}
+
+slice-theme-switcher.theme-switcher--menu .theme-switcher__value {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--medium-color);
+}

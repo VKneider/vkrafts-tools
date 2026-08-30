@@ -1,0 +1,70 @@
+slice-designer-section {
+  display: block;
+}
+
+slice-designer-section .designer {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 14px 16px 40px;
+}
+
+slice-designer-section .designer__panel {
+  background: var(--primary-background-color);
+  border: 1px solid rgba(var(--primary-color-rgb), 0.15);
+  border-radius: 12px;
+  box-shadow: var(--box-shadow-primary);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ---------- cabecera compacta de categoría + tabs ---------- */
+
+slice-designer-section .designer__cat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding: 8px 4px;
+}
+
+slice-designer-section .designer__cat-info {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+slice-designer-section .designer__cat-info h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--font-secondary-color);
+}
+
+slice-designer-section .designer__cat-info p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--medium-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+slice-designer-section .designer__tabs {
+  display: inline-flex;
+}
+
+/* Tabs más compactas dentro de la cabecera */
+slice-designer-section .designer__tabs .slice_tab_button {
+  padding: 5px 14px;
+  font-size: 12.5px;
+}
+
+/* ---------- grid ---------- */
+
+slice-designer-section .designer__gridslot {
+  padding-top: 6px;
+}

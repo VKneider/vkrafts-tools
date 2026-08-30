@@ -1,0 +1,48 @@
+/* Tema Dark — slate azulado suave (contraparte nocturna de la paleta krafts). */
+:root {
+  /* Tipografía */
+  --font-primary-color: #EDF2FB;
+  --font-secondary-color: #93BBFF;
+
+  /** Primary - Krafts Blue (nocturno) **/
+  --primary-color: #4F8DF9;
+  --primary-color-rgb: 79, 141, 249;
+  --primary-background-color: #1B2436;
+  --primary-color-contrast: #ffffff;
+  --primary-color-shade: #3B6FD4;
+
+  /** Secondary - Krafts Light Blue **/
+  --secondary-color: #7CA8FF;
+  --secondary-color-rgb: 124, 168, 255;
+  --secondary-background-color: #232E45;
+  --secondary-color-contrast: #10203F;
+
+  /** Tertiary - Superficie azul elevada **/
+  --tertiary-background-color: #2C3954;
+
+  /** Success **/
+  --success-color: #34D399;
+  --success-contrast: #0B291F;
+
+  /** Warning **/
+  --warning-color: #FBBF24;
+  --warning-contrast: #3B2F0B;
+
+  /** Danger **/
+  --danger-color: #F87171;
+  --danger-contrast: #38100F;
+
+  /** Medium - Gris azulado para texto secundario **/
+  --medium-color: #A5B4CC;
+  --medium-contrast: #1B2436;
+
+  /** Disabled **/
+  --disabled-color: #3D4A66;
+
+  /** Accent **/
+  --accent-color: #4CC9E8;
+
+  /* Sombras */
+  --box-shadow-primary: 0px 4px 16px rgba(11, 18, 32, 0.55);
+  --box-shadow-secondary: 0px 3px 10px rgba(79, 141, 249, 0.28);
+}

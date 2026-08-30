@@ -1,0 +1,46 @@
+slice-notfound {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 100vh;
+    background: var(--primary-color);
+}
+slice-notfound .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4em 2em;
+    text-align: center;
+}
+slice-notfound .error-code {
+    font-size: clamp(5rem, 15vw, 10rem);
+    font-weight: 800;
+    color: var(--primary-color-contrast);
+    margin: 0;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    opacity: 0.35;
+    user-select: none;
+}
+slice-notfound .error-subtitle {
+    font-size: clamp(1.5rem, 4vw, 2.25rem);
+    font-weight: 600;
+    color: var(--primary-color-contrast);
+    margin: 0.5em 0 0;
+    line-height: 1.3;
+}
+slice-notfound .message {
+    color: var(--primary-color-contrast);
+    font-size: clamp(0.95rem, 1.5vw, 1.1rem);
+    margin: 1.5em 0 2.5em;
+    text-align: center;
+    opacity: 0.75;
+    font-family: var(--font-family);
+    max-width: 26em;
+    line-height: 1.6;
+}
+slice-notfound .home-btn-container {
+    display: flex;
+    justify-content: center;
+}

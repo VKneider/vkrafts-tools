@@ -1,0 +1,59 @@
+<div class="canvassection">
+  <div class="canvassection__toolbar"></div>
+
+  <div class="canvassection__body">
+    <aside class="canvassection__sidebar">
+      <div class="canvassection__tabs"></div>
+
+      <div class="canvassection__panel" data-panel="texto">
+        <h3 class="canvassection__panel-title canvassection__texto-title">Agregar Texto</h3>
+        <div class="canvassection__field canvassection__text-input"></div>
+        <label class="canvassection__label">Fuente</label>
+        <div class="canvassection__font-select"></div>
+        <label class="canvassection__label">Tamaño: <span class="canvassection__size-value">48</span>px</label>
+        <input type="range" min="12" max="200" value="48" class="canvassection__size-range" />
+        <label class="canvassection__label">Color</label>
+        <div class="canvassection__swatches canvassection__swatches--text"></div>
+        <input type="color" value="#000000" class="canvassection__custom-text-color" title="Color personalizado" />
+        <div class="canvassection__row canvassection__text-toggles"></div>
+        <div class="canvassection__add-slot"></div>
+      </div>
+
+      <div class="canvassection__panel" data-panel="figuras" hidden>
+        <h3 class="canvassection__panel-title canvassection__fig-title">Agregar Figura</h3>
+        <div class="canvassection__shape-grid"></div>
+        <label class="canvassection__label">Color de relleno</label>
+        <div class="canvassection__swatches canvassection__swatches--fill"></div>
+        <label class="canvassection__label">Color de borde</label>
+        <div class="canvassection__swatches canvassection__swatches--stroke"></div>
+        <label class="canvassection__label">Grosor de borde: <span class="canvassection__stroke-value">2</span>px</label>
+        <input type="range" min="0" max="20" value="2" class="canvassection__stroke-range" />
+        <div class="canvassection__radius-row" hidden>
+          <label class="canvassection__label">Radio de esquina: <span class="canvassection__radius-value">0</span>px</label>
+          <input type="range" min="0" max="50" value="0" class="canvassection__radius-range" />
+        </div>
+      </div>
+
+      <div class="canvassection__panel" data-panel="dibujo" hidden>
+        <h3 class="canvassection__panel-title">Herramientas de Dibujo</h3>
+        <div class="canvassection__brush-toggle"></div>
+        <label class="canvassection__label">Color del pincel</label>
+        <div class="canvassection__swatches canvassection__swatches--brush"></div>
+        <input type="color" value="#000000" class="canvassection__custom-brush-color" title="Color personalizado" />
+        <label class="canvassection__label">Grosor del pincel: <span class="canvassection__brush-value">5</span>px</label>
+        <input type="range" min="1" max="50" value="5" class="canvassection__brush-range" />
+      </div>
+
+      <div class="canvassection__transform" hidden></div>
+    </aside>
+
+    <main class="canvassection__stage">
+      <div class="canvassection__checker">
+        <canvas class="canvassection__canvas"></canvas>
+      </div>
+      <div class="canvassection__menu" hidden>
+        <div class="canvassection__menu-slot"></div>
+      </div>
+    </main>
+  </div>
+</div>

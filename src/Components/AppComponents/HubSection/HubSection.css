@@ -1,0 +1,129 @@
+slice-hub-section {
+  display: block;
+}
+
+slice-hub-section .hubsection {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+/* ── Hero ─────────────────────────────────────────────────────── */
+
+slice-hub-section .hubsection__hero {
+  position: relative;
+  text-align: center;
+  margin-bottom: 48px;
+  padding: 56px 32px 48px;
+  border-radius: 24px;
+  color: var(--primary-color-contrast);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  box-shadow: 0 12px 40px rgba(var(--primary-color-rgb), 0.25);
+  overflow: hidden;
+}
+
+slice-hub-section .hubsection__hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 80%, rgba(255,255,255,0.12) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+slice-hub-section .hubsection__hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+slice-hub-section .hubsection__eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  margin-bottom: 12px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.1);
+}
+
+slice-hub-section .hubsection__welcome {
+  margin: 0 0 12px;
+  font-size: clamp(26px, 5vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+slice-hub-section .hubsection__tagline {
+  margin: 0 auto 24px;
+  max-width: 560px;
+  font-size: 16px;
+  line-height: 1.6;
+  opacity: 0.92;
+}
+
+slice-hub-section .hubsection__badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+slice-hub-section .hubsection__badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(4px);
+}
+
+/* ── Modules ──────────────────────────────────────────────────── */
+
+slice-hub-section .hubsection__modules {
+  margin-top: 8px;
+}
+
+slice-hub-section .hubsection__header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+slice-hub-section .hubsection__header h3 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--font-secondary-color);
+}
+
+slice-hub-section .hubsection__header p {
+  margin: 0;
+  color: var(--medium-color);
+  font-size: 14px;
+}
+
+/* ── Grid slot ────────────────────────────────────────────────── */
+
+slice-hub-section .hubsection__gridslot {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+
+@media (max-width: 680px) {
+  slice-hub-section .hubsection__hero {
+    padding: 40px 20px 36px;
+    border-radius: 18px;
+  }
+
+  slice-hub-section .hubsection__gridslot {
+    grid-template-columns: 1fr;
+  }
+}

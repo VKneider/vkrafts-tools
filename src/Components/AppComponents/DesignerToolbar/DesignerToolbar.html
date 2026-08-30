@@ -1,0 +1,60 @@
+<div class="designertoolbar">
+  <!-- Fila 1: contenido + espaciado fino -->
+  <div class="designertoolbar__row designertoolbar__row--top">
+    <div class="designertoolbar__input"></div>
+
+    <div class="tb-group tb-group--track">
+      <span class="tb-group__label">Espaciado</span>
+      <span class="tb-group__body designertoolbar__spacing-wrap">
+        <input type="range" min="-5" max="30" value="0" class="designertoolbar__spacing" />
+        <span class="designertoolbar__spacing-value">0px</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Fila 2: grupos de estilo + acciones -->
+  <div class="designertoolbar__row">
+    <div class="tb-group">
+      <span class="tb-group__label">Tamaño</span>
+      <span class="tb-group__body">
+        <span class="designertoolbar__size">
+          <span class="designertoolbar__minus"></span>
+          <span class="designertoolbar__size-value">48</span>
+          <span class="designertoolbar__plus"></span>
+        </span>
+      </span>
+    </div>
+
+    <div class="tb-group">
+      <span class="tb-group__label">Texto</span>
+      <span class="tb-group__body designertoolbar__styles-text"></span>
+    </div>
+
+    <div class="tb-group">
+      <span class="tb-group__label">Alinear</span>
+      <span class="tb-group__body designertoolbar__styles-align"></span>
+    </div>
+
+    <div class="tb-group">
+      <span class="tb-group__label">Transformar</span>
+      <span class="tb-group__body designertoolbar__styles-transform"></span>
+    </div>
+
+    <span class="designertoolbar__spacer"></span>
+
+    <span class="designertoolbar__reset"></span>
+
+    <span class="designertoolbar__color-trigger"></span>
+  </div>
+
+  <div class="designertoolbar__popover">
+    <div class="designertoolbar__popover-section">
+      <label class="designertoolbar__label">Color de texto</label>
+      <div class="designertoolbar__swatches designertoolbar__swatches--text"></div>
+    </div>
+    <div class="designertoolbar__popover-section">
+      <label class="designertoolbar__label">Color de fondo (simulación)</label>
+      <div class="designertoolbar__swatches designertoolbar__swatches--bg"></div>
+    </div>
+  </div>
+</div>

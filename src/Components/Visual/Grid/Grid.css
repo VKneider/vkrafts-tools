@@ -1,0 +1,17 @@
+/* Encapsulated under the custom element so the grid styles never leak. */
+
+slice-grid {
+  display: block;
+  background: none;
+  background-color: transparent;
+}
+
+slice-grid .grid-container {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  grid-template-rows: repeat(1, 1fr);
+  gap: 10px;
+  margin: 0 auto;
+  background: none;
+  background-color: transparent;
+}

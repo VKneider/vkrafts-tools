@@ -1,0 +1,249 @@
+slice-layouts-panel {
+  display: block;
+}
+
+slice-layouts-panel .layoutspanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--primary-background-color);
+  border: 1px solid rgba(var(--primary-color-rgb), 0.15);
+  box-shadow: var(--box-shadow-primary);
+}
+
+slice-layouts-panel .layoutspanel__group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+slice-layouts-panel .layoutspanel__label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--medium-color);
+}
+
+slice-layouts-panel slice-select { width: 100%; }
+
+/* ---------- template picker ---------- */
+
+slice-layouts-panel .layoutspanel__tplpicker {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+slice-layouts-panel .layoutspanel__tpl-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px;
+  border-radius: 10px;
+  border: 2px solid rgba(var(--primary-color-rgb), 0.15);
+  background: var(--secondary-background-color);
+  cursor: pointer;
+  transition: border-color 150ms ease, transform 120ms ease;
+}
+
+slice-layouts-panel .layoutspanel__tpl-mini:hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--primary-color-rgb), 0.45);
+}
+
+slice-layouts-panel .layoutspanel__tpl-mini.is-active {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.18);
+}
+
+slice-layouts-panel .layoutspanel__tpl-sheet {
+  display: grid;
+  gap: 2px;
+  width: 34px;
+  padding: 2px;
+  border-radius: 3px;
+  background: #fff;
+  outline: 1px solid rgba(var(--primary-color-rgb), 0.25);
+}
+
+slice-layouts-panel .layoutspanel__tpl-sheet i {
+  background: rgba(var(--primary-color-rgb), 0.35);
+  border-radius: 1px;
+}
+
+slice-layouts-panel .layoutspanel__tpl-mini.is-active .layoutspanel__tpl-sheet i {
+  background: var(--primary-color);
+}
+
+slice-layouts-panel .layoutspanel__tpl-name {
+  font-size: 9.5px;
+  color: var(--medium-color);
+  white-space: nowrap;
+}
+
+/* ---------- chips (presets / fit) ---------- */
+
+slice-layouts-panel .layoutspanel__preset,
+slice-layouts-panel .layoutspanel__fit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+slice-layouts-panel .layoutspanel__chip,
+slice-layouts-panel .layoutspanel__fit slice-button .slice_button {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+slice-layouts-panel .layoutspanel__chip {
+  border-radius: 999px;
+  border: 1.5px solid rgba(var(--primary-color-rgb), 0.3);
+  background: var(--secondary-background-color);
+  color: var(--font-secondary-color);
+  cursor: pointer;
+  transition: all 130ms ease;
+}
+
+slice-layouts-panel .layoutspanel__chip:hover {
+  border-color: var(--primary-color);
+}
+
+slice-layouts-panel .layoutspanel__chip.is-active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: var(--primary-color-contrast);
+}
+
+slice-layouts-panel .layoutspanel__chip--expand {
+  align-self: flex-start;
+  font-weight: 700;
+}
+
+slice-layouts-panel .layoutspanel__chip--expand.is-active {
+  background: var(--secondary-color);
+  border-color: var(--secondary-color);
+  color: var(--secondary-color-contrast);
+}
+
+slice-layouts-panel .layoutspanel__fit { gap: 2px; padding: 2px; border-radius: 8px; background: var(--tertiary-background-color); width: fit-content; }
+slice-layouts-panel .layoutspanel__fit slice-button .slice_button { height: 26px; padding: 0 8px; font-size: 11.5px; background: transparent; border-color: transparent; color: var(--font-secondary-color); min-width: 0; }
+slice-layouts-panel .layoutspanel__fit [data-fit].layoutspanel__fit--on .slice_button {
+  background: var(--primary-color) !important;
+  color: var(--primary-color-contrast) !important;
+}
+
+/* ---------- scale ---------- */
+
+slice-layouts-panel .layoutspanel__scale {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+slice-layouts-panel .layoutspanel__scale-slider {
+  flex: 1;
+  height: 4px;
+  accent-color: var(--primary-color);
+  cursor: pointer;
+}
+
+slice-layouts-panel .layoutspanel__scale-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--font-secondary-color);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* ---------- acciones ---------- */
+
+slice-layouts-panel .layoutspanel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+slice-layouts-panel .layoutspanel__actions slice-button { min-width: 0; }
+slice-layouts-panel .layoutspanel__actions .slice_button { box-sizing: border-box; justify-content: center; }
+
+/* ---------- pool / biblioteca ---------- */
+
+slice-layouts-panel .layoutspanel__gallery-wrap {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--primary-color-rgb), 0.15);
+  background: var(--primary-background-color);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+slice-layouts-panel .layoutspanel__gallery-wrap[hidden] { display: none; }
+
+slice-layouts-panel .layoutspanel__gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+slice-layouts-panel .layoutspanel__pool-item {
+  position: relative;
+}
+
+slice-layouts-panel .layoutspanel__thumb {
+  width: 52px; height: 52px; border-radius: 8px;
+  border: 2px solid transparent;
+  background-size: cover; background-position: center;
+  cursor: pointer; padding: 0;
+  transition: transform 120ms ease, border-color 120ms ease;
+}
+slice-layouts-panel .layoutspanel__thumb:hover { transform: scale(1.06); }
+slice-layouts-panel .layoutspanel__thumb.is-pending {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.25);
+}
+
+slice-layouts-panel .layoutspanel__pool-dot {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+}
+
+slice-layouts-panel .layoutspanel__pool-dot.is-used {
+  background: var(--success-color);
+}
+
+slice-layouts-panel .layoutspanel__pool-del {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: none;
+  background: var(--danger-color);
+  color: var(--danger-contrast);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  z-index: 2;
+}
+
+slice-layouts-panel .layoutspanel__pool-item:hover .layoutspanel__pool-del {
+  opacity: 1;
+}
+
+slice-layouts-panel .layoutspanel__pool-item--dragging {
+  opacity: 0.4;
+}

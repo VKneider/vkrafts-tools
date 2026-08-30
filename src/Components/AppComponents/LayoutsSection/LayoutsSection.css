@@ -1,0 +1,272 @@
+slice-layouts-section {
+  display: block;
+}
+
+slice-layouts-section .layoutssection {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 20px;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 14px 16px 48px;
+  align-items: start;
+}
+
+@media (max-width: 980px) {
+  slice-layouts-section .layoutssection { grid-template-columns: 1fr; }
+}
+
+/* ---------- panel ---------- */
+
+slice-layouts-section .layoutssection__side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+/* ---------- columna derecha ---------- */
+
+slice-layouts-section .layoutssection__right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+slice-layouts-section .layoutssection__sheetsbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+slice-layouts-section .layoutssection__zoominfo {
+  display: block;
+  text-align: right;
+  font-size: 11px;
+  color: var(--medium-color);
+  margin-bottom: 2px;
+}
+
+slice-layouts-section .layoutssection__sheetchip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1.5px solid rgba(var(--primary-color-rgb), 0.3);
+  background: var(--primary-background-color);
+}
+
+slice-layouts-section .layoutssection__sheetchip.is-active {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.18);
+}
+
+slice-layouts-section .layoutssection__sheetchip-main {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--font-primary-color);
+  cursor: pointer;
+}
+
+slice-layouts-section .layoutssection__sheetchip-del {
+  padding: 4px 9px;
+  border: none;
+  background: transparent;
+  color: var(--danger-color);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+slice-layouts-section .layoutssection__sheetchip-add {
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1.5px dashed rgba(var(--primary-color-rgb), 0.4);
+  background: transparent;
+  color: var(--font-secondary-color);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+slice-layouts-section .layoutssection__sheetchip-add:hover {
+  border-style: solid;
+  border-color: var(--primary-color);
+}
+
+/* ---------- hoja ---------- */
+
+slice-layouts-section .layoutssection__stage {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: auto;
+  padding: 8px 0 24px;
+  flex: 1;
+  min-height: 0;
+}
+
+slice-layouts-section .layoutssection__sheet {
+  position: relative;
+  display: grid;
+  background: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(var(--primary-color-rgb), 0.15);
+}
+
+slice-layouts-section .layoutssection__cell {
+  position: relative;
+  border-radius: 4px;
+  min-width: 0;
+  min-height: 0;
+  transition: box-shadow 150ms ease, transform 150ms ease;
+}
+
+slice-layouts-section .sheetcell--drop-hover {
+  box-shadow: 0 0 0 3px var(--primary-color), inset 0 0 20px rgba(var(--primary-color-rgb), 0.15);
+  transform: scale(1.02);
+}
+
+/* Celdas planas solo para la rama de exportación (PNG/PDF) */
+slice-layouts-section .layoutssection__cell--img {
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* ---------- splitters de resize ---------- */
+
+slice-layouts-section .layoutssection__splitter {
+  position: absolute;
+  z-index: 5;
+  cursor: col-resize;
+}
+
+slice-layouts-section .layoutssection__splitter--h { cursor: row-resize; }
+
+slice-layouts-section .layoutssection__splitter::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 4px;
+  height: 34px;
+  transform: translate(-50%, -50%);
+  border-radius: 4px;
+  background: rgba(var(--primary-color-rgb), 0);
+  transition: background 150ms ease;
+}
+
+slice-layouts-section .layoutssection__splitter--h::after {
+  width: 34px;
+  height: 4px;
+}
+
+slice-layouts-section .layoutssection__splitter:hover::after {
+  background: var(--primary-color);
+}
+
+/* ---------- menú contextual de medidas ---------- */
+
+slice-layouts-section .layoutssection__infomenu {
+  position: fixed;
+  z-index: 220;
+  width: 230px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--primary-background-color);
+  border: 1px solid rgba(var(--primary-color-rgb), 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+slice-layouts-section .layoutssection__infomenu p {
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--font-primary-color);
+  line-height: 1.5;
+}
+
+slice-layouts-section .layoutssection__infomenu strong {
+  display: inline-block;
+  min-width: 70px;
+  font-weight: 700;
+  color: var(--font-secondary-color);
+}
+
+slice-layouts-section .layoutssection__infomenu em {
+  color: var(--medium-color);
+  font-style: normal;
+  font-size: 11px;
+  word-break: break-all;
+}
+
+slice-layouts-section .layoutssection__menu-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 6px 0;
+  font-size: 12px;
+  color: var(--medium-color);
+}
+
+slice-layouts-section .layoutssection__menu-field input {
+  width: 84px;
+  padding: 5px 8px;
+  font-size: 13px;
+  text-align: right;
+  border-radius: 7px;
+  border: 1.5px solid rgba(var(--primary-color-rgb), 0.3);
+  background: var(--secondary-background-color);
+  color: var(--font-primary-color);
+}
+
+slice-layouts-section .layoutssection__menu-field input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+slice-layouts-section .layoutssection__menu-apply {
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px 0;
+  border-radius: 8px;
+  border: none;
+  background: var(--primary-color);
+  color: var(--primary-color-contrast);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 130ms ease;
+}
+
+slice-layouts-section .layoutssection__menu-apply:hover { filter: brightness(1.08); }
+
+/* ---------- print ---------- */
+
+@media print {
+  body > *:not(.print-portal) {
+    display: none !important;
+  }
+
+  .print-portal {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  .print-portal > * {
+    width: 100% !important;
+    height: auto !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+}
+

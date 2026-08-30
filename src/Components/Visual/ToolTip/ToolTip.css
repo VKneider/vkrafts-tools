@@ -1,0 +1,108 @@
+slice-tooltip {
+  display: inline-flex;
+  align-items: center;
+}
+
+slice-tooltip .tooltip-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+}
+
+/* NOTE: `.slice-tooltip-bubble` is appended to document.body (not inside the
+   component), so it intentionally stays a globally-unique class — see §8. */
+.slice-tooltip-bubble {
+  position: fixed;
+  background: var(--tt-bg, var(--accent, #334155));
+  color: var(--tt-text, var(--on-accent, #f1f5f9));
+  border: 1px solid var(--tt-border, transparent);
+  padding: 0.48rem 0.82rem;
+  border-radius: 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 480;
+  letter-spacing: 0.005em;
+  max-width: 300px;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(5px) scale(0.96);
+  transform-origin: center top;
+  transition: opacity 0.14s ease, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow:
+    0 10px 30px -8px color-mix(in srgb, var(--tt-bg, var(--accent, #334155)) 55%, transparent),
+    0 3px 12px -4px rgba(0, 0, 0, 0.32);
+  line-height: 1.4;
+  text-align: left;
+  word-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+}
+
+.slice-tooltip-bubble[data-placement="bottom"] {
+  transform: translateY(-5px) scale(0.96);
+  transform-origin: center bottom;
+}
+
+.slice-tooltip-bubble[data-placement="left"] {
+  transform: translateX(5px) scale(0.96);
+  transform-origin: right center;
+}
+
+.slice-tooltip-bubble[data-placement="right"] {
+  transform: translateX(-5px) scale(0.96);
+  transform-origin: left center;
+}
+
+.slice-tooltip-bubble.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.slice-tooltip-bubble::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+  pointer-events: none;
+}
+
+.slice-tooltip-bubble[data-placement="top"]::after {
+  top: 100%;
+  left: calc(50% - 6px);
+  border-top-color: var(--tt-bg, var(--accent, #334155));
+  border-bottom: none;
+}
+
+.slice-tooltip-bubble[data-placement="bottom"]::after {
+  bottom: 100%;
+  left: calc(50% - 6px);
+  border-bottom-color: var(--tt-bg, var(--accent, #334155));
+  border-top: none;
+}
+
+.slice-tooltip-bubble[data-placement="left"]::after {
+  left: 100%;
+  top: calc(50% - 6px);
+  border-left-color: var(--tt-bg, var(--accent, #334155));
+  border-right: none;
+}
+
+.slice-tooltip-bubble[data-placement="right"]::after {
+  right: 100%;
+  top: calc(50% - 6px);
+  border-right-color: var(--tt-bg, var(--accent, #334155));
+  border-left: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slice-tooltip-bubble {
+    transition: opacity 0.1s ease;
+    transform: none !important;
+  }
+
+  .slice-tooltip-bubble.visible {
+    transform: none !important;
+  }
+}

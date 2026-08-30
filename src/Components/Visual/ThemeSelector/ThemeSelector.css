@@ -1,0 +1,52 @@
+slice-theme-selector {
+  display: inline-block;
+}
+
+slice-theme-selector .theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 3px;
+  border: 1px solid var(--primary-color-shade);
+  border-radius: 999px;
+  background: var(--secondary-background-color);
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+slice-theme-selector .theme-toggle:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 20%, transparent);
+}
+
+slice-theme-selector .toggle-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--font-secondary-color);
+  transition: background 0.2s, color 0.2s;
+}
+
+slice-theme-selector .toggle-option svg {
+  width: 16px;
+  height: 16px;
+}
+
+slice-theme-selector .toggle-option.active {
+  background: var(--primary-color);
+  color: var(--primary-color-contrast);
+}
+
+slice-theme-selector .theme-toggle.loading {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+slice-theme-selector .theme-toggle:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}

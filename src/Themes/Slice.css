@@ -1,0 +1,47 @@
+:root {
+  /* Tipografía */
+  --font-primary-color: #2E1A47; /* Uva oscuro, elegante para lectura */
+  --font-secondary-color: #7D3AC1; /* Uva brillante para títulos y resaltes */
+
+  /** Primary - Uva intenso **/
+  --primary-color: #7D3AC1;
+  --primary-color-rgb: 125, 58, 193;
+  --primary-background-color: #F8F4FF; /* Lila muy claro como fondo principal */
+  --primary-color-contrast: #ffffff;
+  --primary-color-shade: #4E2279;
+
+  /** Secondary - Lima vibrante **/
+  --secondary-color: #C6FF00; /* Amarillo lima brillante, capta la atención */
+  --secondary-color-rgb: 198, 255, 0;
+  --secondary-background-color: #F9FFE1;
+  --secondary-color-contrast: #2E2E2E;
+
+  /** Tertiary - Turquesa suave **/
+  --tertiary-background-color: #D0F4F2; /* Fondo suave, fresco y moderno */
+
+  /** Success - Verde esmeralda claro **/
+  --success-color: #00B894;
+  --success-contrast: #ffffff;
+
+  /** Warning - Amarillo más tradicional pero suave **/
+  --warning-color: #FFD54F;
+  --warning-contrast: #3E2723;
+
+  /** Danger - Coral vibrante (sin caer en rojo tradicional) **/
+  --danger-color: #FF6F61;
+  --danger-contrast: #ffffff;
+
+  /** Medium - Gris lavanda para texto secundario **/
+  --medium-color: #A89FB5;
+  --medium-contrast: #000000;
+
+  /** Disabled - Gris pastel lavanda **/
+  --disabled-color: #E6E0F1;
+
+  /** Accent - Turquesa brillante para detalles elegantes **/
+  --accent-color: #00CFC1;
+
+  /* Sombras */
+  --box-shadow-primary: 0px 4px 12px rgba(125, 58, 193, 0.15);
+  --box-shadow-secondary: 0px 3px 8px rgba(198, 255, 0, 0.1);
+}

@@ -1,0 +1,120 @@
+slice-modal {
+  display: contents;
+}
+
+/* A closed native <dialog> is hidden by the UA rule dialog:not([open]){display:none},
+   but the unconditional `display:flex` below is author CSS and would override it —
+   leaving the dialog rendered in flow after .close(). Re-assert the hidden state. */
+slice-modal .slice-modal:not([open]) {
+  display: none;
+}
+
+slice-modal .slice-modal {
+  padding: 0;
+  border: none;
+  border-top: 4px solid var(--modal-accent, var(--primary-color, #9333ea));
+  border-radius: var(--border-radius-slice, 0.75rem);
+  background: var(--modal-bg, var(--primary-background-color, #fefbff));
+  color: var(--modal-text, var(--font-primary-color, #1a0b2e));
+  box-shadow:
+    0 20px 60px -16px rgba(0, 0, 0, 0.4),
+    0 6px 20px -8px rgba(0, 0, 0, 0.15);
+  max-width: var(--modal-max-width, 520px);
+  width: var(--modal-width, min(90vw, 520px));
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  animation: slice-modal_enter 0.2s ease;
+  position: relative;
+}
+
+slice-modal .slice-modal::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+  animation: slice-modal_backdrop 0.2s ease;
+}
+
+@keyframes slice-modal_enter {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slice-modal_backdrop {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+slice-modal .slice-modal__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.25rem 1.5rem 0.75rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border-bottom: 1px solid color-mix(in srgb, var(--modal-text, var(--font-primary-color, #1a0b2e)) 10%, transparent);
+}
+
+slice-modal.is-draggable .slice-modal__header {
+  cursor: grab;
+}
+
+slice-modal.is-draggable .slice-modal__header:active {
+  cursor: grabbing;
+}
+
+slice-modal .slice-modal__title {
+  flex: 1;
+  min-width: 0;
+}
+
+slice-modal .slice-modal__body {
+  padding: 1rem 1.5rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+slice-modal .slice-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem 1.25rem;
+  border-top: 1px solid color-mix(in srgb, var(--modal-text, var(--font-primary-color, #1a0b2e)) 10%, transparent);
+}
+
+slice-modal .slice-modal__close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  opacity: 0.5;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.1rem;
+  transition: opacity 0.15s ease;
+  margin-left: auto;
+}
+
+slice-modal .slice-modal__close:hover {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  slice-modal .slice-modal {
+    animation: none;
+  }
+
+  slice-modal .slice-modal::backdrop {
+    animation: none;
+  }
+}

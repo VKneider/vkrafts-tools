@@ -1,0 +1,119 @@
+/* Encapsulated under the custom element so the input styles never leak. */
+
+slice-input {
+  display: block;
+}
+
+slice-input .slice_eye_icon {
+  /* Hidden by default; shown only for secret password inputs (see setupSecretToggle). */
+  display: none;
+  color: var(--primary-color);
+  position: absolute;
+  user-select: none;
+  cursor: pointer;
+  right: 10px;
+}
+
+slice-input .input_area::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+slice-input .input_area {
+  color: var(--font-primary-color);
+  width: 100%;
+  background: none;
+  outline: none;
+  border: none;
+}
+
+slice-input .slice_input {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  max-width: 100%;
+  border-radius: var(--border-radius-slice);
+  font-family: var(--font-family);
+  border: var(--slice-border) solid var(--primary-color);
+  background-color: var(--primary-background-color);
+  margin-bottom: 25px;
+  margin-top: 25px;
+  position: relative;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+slice-input .slice_input:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+slice-input .slice_input_placeholder {
+  color: var(--primary-color);
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.2s ease;
+  user-select: none;
+  cursor: text;
+  pointer-events: none;
+}
+
+slice-input .slice_input_value,
+slice-input .slice_input_focus {
+  top: -0.25rem;
+  transform: translateY(0) scale(0.8);
+  transition: all 0.2s ease;
+}
+
+slice-input .required,
+slice-input .required label,
+slice-input .required input {
+  border-color: var(--danger-color);
+  --primary-color: var(--danger-color);
+}
+
+slice-input .disabled,
+slice-input .disabled label {
+  border-color: var(--disabled-color);
+  cursor: not-allowed;
+  pointer-events: none;
+  color: var(--disabled-color);
+}
+
+slice-input .disabled div {
+  background-color: var(--primary-color-shade);
+}
+
+slice-input .color_input {
+  border-radius: 100%;
+  height: 50px;
+  width: 50px;
+}
+
+slice-input .message {
+  color: var(--danger-color);
+  font-size: small;
+}
+
+@keyframes slice_input_shake {
+  0% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px) rotate(0.5deg);
+  }
+  50% {
+    transform: translateX(5px) rotate(-0.5deg);
+  }
+  75% {
+    transform: translateX(-3px) rotate(0.3deg);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+slice-input .error {
+  --primary-color: var(--danger-color);
+  animation: slice_input_shake 0.5s infinite;
+}

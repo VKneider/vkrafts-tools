@@ -1,0 +1,54 @@
+slice-context-menu {
+  display: block;
+}
+
+slice-context-menu .contextmenu {
+  position: fixed;
+  z-index: 300;
+  min-width: 190px;
+  padding: 6px;
+  border-radius: 10px;
+  background: var(--primary-background-color);
+  border: 1px solid rgba(var(--primary-color-rgb), 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+}
+
+slice-context-menu .contextmenu[hidden] { display: none; }
+
+slice-context-menu .contextmenu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--font-primary-color);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+slice-context-menu .contextmenu__item:hover,
+slice-context-menu .contextmenu__item.is-focused {
+  background: rgba(var(--primary-color-rgb), 0.12);
+}
+
+slice-context-menu .contextmenu__item--danger { color: var(--danger-color); }
+
+slice-context-menu .contextmenu__item--danger:hover,
+slice-context-menu .contextmenu__item--danger.is-focused {
+  background: rgba(var(--danger-color-rgb, 239, 68, 68), 0.14);
+}
+
+slice-context-menu .contextmenu__item slice-icon {
+  flex-shrink: 0;
+  color: var(--font-secondary-color);
+}
+
+slice-context-menu .contextmenu__sep {
+  height: 1px;
+  margin: 5px 4px;
+  background: rgba(var(--primary-color-rgb), 0.18);
+}

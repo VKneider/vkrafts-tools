@@ -1,0 +1,11 @@
+/* App-level base styles. Component styles live in each component's own .css. */
+* {
+  box-sizing: border-box;
+  font-family: var(--font-family, system-ui, -apple-system, Segoe UI, Roboto, sans-serif);
+}
+
+body {
+  margin: 0;
+  background: var(--primary-background-color);
+  color: var(--font-primary-color);
+}

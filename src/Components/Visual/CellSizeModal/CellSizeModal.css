@@ -1,0 +1,69 @@
+slice-cell-size-modal {
+  display: block;
+}
+
+slice-cell-size-modal .csm__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+slice-cell-size-modal .csm__info {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--secondary-background-color);
+  border: 1px solid rgba(var(--primary-color-rgb), 0.15);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--font-primary-color);
+}
+
+slice-cell-size-modal .csm__info strong {
+  display: inline-block;
+  min-width: 68px;
+  color: var(--font-secondary-color);
+}
+
+slice-cell-size-modal .csm__info em {
+  color: var(--medium-color);
+  font-style: normal;
+  font-size: 11px;
+  word-break: break-all;
+}
+
+slice-cell-size-modal .csm__field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--medium-color);
+}
+
+slice-cell-size-modal .csm__field input {
+  width: 92px;
+  padding: 7px 10px;
+  font-size: 14px;
+  text-align: right;
+  border-radius: 8px;
+  border: 1.5px solid rgba(var(--primary-color-rgb), 0.3);
+  background: var(--secondary-background-color);
+  color: var(--font-primary-color);
+  transition: border-color 130ms ease;
+}
+
+slice-cell-size-modal .csm__field input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+slice-cell-size-modal .csm__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+slice-cell-size-modal .csm__footer slice-button .slice_button {
+  min-width: 0;
+}

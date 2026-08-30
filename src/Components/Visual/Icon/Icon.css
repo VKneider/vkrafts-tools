@@ -1,0 +1,14 @@
+slice-icon {
+  display: inline-flex;
+  line-height: 0;
+  vertical-align: middle;
+}
+
+slice-icon .icon {
+  display: inline-flex;
+  line-height: 0;
+}
+
+slice-icon svg {
+  display: block;
+}

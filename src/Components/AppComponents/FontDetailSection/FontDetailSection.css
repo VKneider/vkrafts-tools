@@ -1,0 +1,167 @@
+slice-font-detail-section {
+  display: block;
+}
+
+slice-font-detail-section .fontdetailsection {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 28px 16px 48px;
+}
+
+slice-font-detail-section .fontdetailsection__notfound {
+  text-align: center;
+  padding: 48px 24px;
+  border-radius: 14px;
+  background: var(--primary-background-color);
+  border: 1px solid rgba(var(--primary-color-rgb), 0.2);
+}
+
+slice-font-detail-section .fontdetailsection__notfound h2 {
+  margin: 0 0 8px;
+  color: var(--danger-color);
+}
+
+slice-font-detail-section .fontdetailsection__notfound p {
+  margin: 0 0 16px;
+  color: var(--medium-color);
+}
+
+slice-font-detail-section .fontdetailsection__head {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+slice-font-detail-section .fontdetailsection__code {
+  display: inline-block;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--medium-color);
+  margin-bottom: 6px;
+}
+
+slice-font-detail-section .fontdetailsection__family-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+slice-font-detail-section .fontdetailsection__family {
+  margin: 0 0 4px;
+  font-size: clamp(22px, 4vw, 30px);
+  font-weight: 700;
+  color: var(--font-secondary-color);
+  filter: blur(7px);
+  opacity: 0.55;
+  transition: filter 0.28s ease, opacity 0.28s ease;
+}
+
+slice-font-detail-section .fontdetailsection__family-wrap.is-revealed .fontdetailsection__family {
+  filter: blur(0);
+  opacity: 1;
+}
+
+slice-font-detail-section .fontdetailsection__family-lock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--tertiary-background-color);
+  color: var(--medium-color);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+slice-font-detail-section .fontdetailsection__family-wrap.is-revealed .fontdetailsection__family-lock {
+  background: rgba(var(--success-color), 0.18);
+  color: var(--success-color);
+}
+
+slice-font-detail-section .fontdetailsection__hint {
+  margin: 0;
+  font-size: 14px;
+  color: var(--medium-color);
+}
+
+slice-font-detail-section .fontdetailsection__preview {
+  min-height: 180px;
+  padding: 32px;
+  border-radius: 16px;
+  border: 1px solid rgba(var(--primary-color-rgb), 0.15);
+  box-shadow: var(--box-shadow-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary-background-color);
+}
+
+slice-font-detail-section .fontdetailsection__preview--checker {
+  background-image:
+    linear-gradient(45deg, rgba(var(--primary-color-rgb), 0.08) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(var(--primary-color-rgb), 0.08) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(var(--primary-color-rgb), 0.08) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(var(--primary-color-rgb), 0.08) 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+}
+
+slice-font-detail-section .fontdetailsection__text {
+  margin: 0;
+  width: 100%;
+  word-break: break-word;
+  line-height: 1.25;
+}
+
+slice-font-detail-section .fontdetailsection__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+  padding: 0;
+}
+
+slice-font-detail-section .fontdetailsection__meta > div {
+  background: var(--secondary-background-color);
+  border: 1px solid rgba(var(--primary-color-rgb), 0.12);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+slice-font-detail-section dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--medium-color);
+  margin-bottom: 4px;
+}
+
+slice-font-detail-section dd {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--font-primary-color);
+}
+
+slice-font-detail-section .fontdetailsection__chip {
+  display: inline-block;
+  font-size: 11.5px;
+  padding: 2px 9px;
+  margin: 2px 4px 2px 0;
+  border-radius: 999px;
+  color: var(--font-secondary-color);
+  background: rgba(var(--primary-color-rgb), 0.08);
+  border: 1px solid rgba(var(--primary-color-rgb), 0.2);
+}
+
+slice-font-detail-section .fontdetailsection__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+slice-font-detail-section .fontdetailsection__actions slice-button {
+  min-width: 0;
+}

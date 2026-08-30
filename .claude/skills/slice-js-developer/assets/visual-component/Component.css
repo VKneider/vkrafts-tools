@@ -1,0 +1,48 @@
+/*
+  SLICE_TEMPLATE: Visual Component CSS
+
+  Use CSS variables (var(--name)) instead of hardcoded colors.
+  This is what makes theme switching work across light/dark/custom themes.
+
+  Available variables (defined in src/public/Themes/<ThemeName>.css):
+    --primary-color, --primary-color-rgb, --primary-color-contrast
+    --secondary-color, --secondary-color-rgb
+    --primary-background-color, --secondary-background-color, --tertiary-background-color
+    --font-primary-color, --font-secondary-color, --font-disabled-color
+    --success-color, --warning-color, --error-color, --info-color
+    --border-color, --border-radius
+    --shadow-sm, --shadow-md
+*/
+
+.my-component {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--secondary-background-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  color: var(--font-primary-color);
+}
+
+.my-component__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.my-component__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.my-component__list li {
+  padding: 0.5rem 0.75rem;
+  background: var(--primary-background-color);
+  border-radius: calc(var(--border-radius) / 2);
+  color: var(--font-secondary-color);
+}

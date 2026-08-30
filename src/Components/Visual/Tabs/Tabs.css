@@ -1,0 +1,77 @@
+slice-tabs {
+  display: block;
+}
+
+slice-tabs .slice_tabs {
+  width: 100%;
+}
+
+slice-tabs .slice_tabs_list {
+  display: flex;
+  border-bottom: 1px solid var(--border-color, #d1d5db);
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+slice-tabs .slice_tabs_list::-webkit-scrollbar {
+  display: none;
+}
+
+slice-tabs .slice_tab_button {
+  background: none;
+  border: none;
+  padding: 10px 16px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--font-secondary-color, #6b7280);
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+}
+
+slice-tabs .slice_tab_button::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--primary-color, #2563eb);
+  transform: scaleX(0);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+slice-tabs .slice_tab_button:hover {
+  color: var(--primary-color, #2563eb);
+}
+
+slice-tabs .slice_tab_button:focus-visible {
+  outline: 2px solid var(--primary-color, #2563eb);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+
+slice-tabs .slice_tab_button.active {
+  color: var(--primary-color, #2563eb);
+}
+
+slice-tabs .slice_tab_button.active::after {
+  transform: scaleX(1);
+}
+
+slice-tabs .slice_tabs_panels {
+  padding: 16px 0;
+}
+
+slice-tabs .slice_tab_panel {
+  display: none;
+}
+
+slice-tabs .slice_tab_panel.active {
+  display: block;
+}

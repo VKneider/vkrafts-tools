@@ -1,0 +1,48 @@
+/* Tema Light — paleta krafts migrada desde vkrafts2 (antes VKrafts.css). */
+:root {
+  /* Tipografía */
+  --font-primary-color: #0F172A;
+  --font-secondary-color: #1D4ED8;
+
+  /** Primary - Krafts Blue **/
+  --primary-color: #2563EB;
+  --primary-color-rgb: 37, 99, 235;
+  --primary-background-color: #F7FAFF;
+  --primary-color-contrast: #ffffff;
+  --primary-color-shade: #1E40AF;
+
+  /** Secondary - Krafts Light Blue **/
+  --secondary-color: #60A5FA;
+  --secondary-color-rgb: 96, 165, 250;
+  --secondary-background-color: #EFF6FF;
+  --secondary-color-contrast: #0C2D6B;
+
+  /** Tertiary - Azul muy suave para superficies **/
+  --tertiary-background-color: #E8F0FE;
+
+  /** Success **/
+  --success-color: #22C55E;
+  --success-contrast: #ffffff;
+
+  /** Warning **/
+  --warning-color: #F59E0B;
+  --warning-contrast: #3E2723;
+
+  /** Danger - Rojo krafts **/
+  --danger-color: #EF4444;
+  --danger-contrast: #ffffff;
+
+  /** Medium - Gris azulado para texto secundario **/
+  --medium-color: #64748B;
+  --medium-contrast: #ffffff;
+
+  /** Disabled - Azul grisáceo pastel **/
+  --disabled-color: #DBEAFE;
+
+  /** Accent **/
+  --accent-color: #38BDF8;
+
+  /* Sombras */
+  --box-shadow-primary: 0px 4px 12px rgba(37, 99, 235, 0.15);
+  --box-shadow-secondary: 0px 3px 8px rgba(96, 165, 250, 0.18);
+}

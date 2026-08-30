@@ -1,0 +1,5 @@
+allowBuilds:
+  canvas: false
+  core-js: false
+  esbuild: false
+  slicejs-cli: true
