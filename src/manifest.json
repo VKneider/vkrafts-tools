@@ -1,11 +1,18 @@
 {
-  "name": "Slice.js Web Framework",
-  "short_name": "Slice.js",
+  "name": "VKRAFTS — Diseñador de Productos Personalizados",
+  "short_name": "VKRAFTS",
+  "description": "Herramientas online para diseñar productos personalizados. Diseña vinilos, stickers y productos únicos.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F8F4FF",
-  "theme_color": "#F8F4FF",
+  "theme_color": "#7C3AED",
   "icons": [
+    {
+      "src": "/images/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
     {
       "src": "/images/favicon.ico",
       "sizes": "192x192 512x512",
