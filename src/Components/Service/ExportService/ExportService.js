@@ -20,8 +20,8 @@ export default class ExportService {
       for (const sheet of sheets) {
          const tmp = document.createElement('div');
          Object.assign(tmp.style, {
-            position: 'fixed', left: '0', top: '0',
-            zIndex: '-1', opacity: '0', pointerEvents: 'none',
+            position: 'fixed', left: '-99999px', top: '0',
+            pointerEvents: 'none',
             background: '#ffffff'
          });
          document.body.appendChild(tmp);
@@ -95,6 +95,21 @@ export default class ExportService {
    printSheet(sheetElement) {
       const clone = sheetElement.cloneNode(true);
 
+      // Inline computed styles so the clone survives in a new document
+      // (CSS variables and inherited styles are lost across documents).
+      const inlineStyles = (el) => {
+         const cs = getComputedStyle(el);
+         for (const key of ['width', 'height', 'padding', 'gap',
+            'gridTemplateColumns', 'gridTemplateRows', 'background',
+            'backgroundImage', 'backgroundSize', 'backgroundPosition',
+            'backgroundRepeat', 'border', 'borderRadius', 'overflow',
+            'display', 'position', 'boxSizing']) {
+            if (cs[key]) el.style[key] = cs[key];
+         }
+      };
+      inlineStyles(clone);
+      clone.querySelectorAll('*').forEach(inlineStyles);
+
       const sheetStyles = `
         .layoutssection__sheet {
           position: relative;
@@ -141,8 +156,27 @@ export default class ExportService {
       };
       window.addEventListener('afterprint', onAfterPrint);
 
-      setTimeout(() => {
-         printWindow.print();
-      }, 200);
+      // Wait for images (background-image blob URLs) to render before printing.
+      const images = clone.querySelectorAll('[style*="background-image"]');
+      const waitForImages = images.length > 0
+         ? new Promise((resolve) => {
+            let loaded = 0;
+            const check = () => { if (++loaded >= images.length) resolve(); };
+            images.forEach((el) => {
+               const url = getComputedStyle(el).backgroundImage.match(/url\("?([^"]+)"?\)/)?.[1];
+               if (url) {
+                  const img = new Image();
+                  img.onload = img.onerror = check;
+                  img.src = url;
+               } else {
+                  check();
+               }
+            });
+            // Fallback timeout.
+            setTimeout(resolve, 2000);
+         })
+         : Promise.resolve();
+
+      waitForImages.then(() => printWindow.print());
    }
 }

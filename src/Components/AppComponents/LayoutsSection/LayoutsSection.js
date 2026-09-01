@@ -454,7 +454,7 @@ export default class LayoutsSection extends HTMLElement {
          gap: `${preset.gapMm * scale}px`,
          gridTemplateColumns: geo.colWmm.map((w) => `${Math.round(w * scale)}px`).join(' '),
          gridTemplateRows: geo.rowHmm.map((h) => `${Math.round(h * scale)}px`).join(' '),
-         transform: `scale(${this._state.zoom ?? 0.7})`,
+         transform: interactive ? `scale(${this._state.zoom ?? 0.7})` : 'none',
          transformOrigin: 'top center'
       });
 
