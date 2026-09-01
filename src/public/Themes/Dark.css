@@ -1,24 +1,24 @@
-/* Tema Dark — Coral & Turquesa nocturno: cálido sobre fondo oscuro */
+/* Tema Dark — Navy & Gold nocturno: elegancia sobre fondo oscuro */
 :root {
   /* Tipografía */
-  --font-primary-color: #F5F0EB;
-  --font-secondary-color: #FFB4A8;
+  --font-primary-color: #F1F5F9;
+  --font-secondary-color: #94A3B8;
 
-  /** Primary - Coral luminoso **/
-  --primary-color: #FF7F6B;
-  --primary-color-rgb: 255, 127, 107;
-  --primary-background-color: #1A1412;
-  --primary-color-contrast: #1A1412;
-  --primary-color-shade: #E8634A;
+  /** Primary - Navy claro **/
+  --primary-color: #5B8ABF;
+  --primary-color-rgb: 91, 138, 191;
+  --primary-background-color: #0F172A;
+  --primary-color-contrast: #0F172A;
+  --primary-color-shade: #3B6A9F;
 
-  /** Secondary - Turquesa claro **/
-  --secondary-color: #2DD4BF;
-  --secondary-color-rgb: 45, 212, 191;
-  --secondary-background-color: #1F2A28;
-  --secondary-color-contrast: #0A3D35;
+  /** Secondary - Gold cálido **/
+  --secondary-color: #E8C36A;
+  --secondary-color-rgb: 232, 195, 106;
+  --secondary-background-color: #1A2332;
+  --secondary-color-contrast: #3D2E0A;
 
-  /** Tertiary - Superficie cálida elevada **/
-  --tertiary-background-color: #2A201A;
+  /** Tertiary - Superficie oscura elevada **/
+  --tertiary-background-color: #1E293B;
 
   /** Success - Esmeralda clara **/
   --success-color: #34D399;
@@ -32,17 +32,17 @@
   --danger-color: #F87171;
   --danger-contrast: #38100F;
 
-  /** Medium - Gris cálido para texto secundario **/
-  --medium-color: #A89E94;
-  --medium-contrast: #1A1412;
+  /** Medium - Slate claro **/
+  --medium-color: #94A3B8;
+  --medium-contrast: #0F172A;
 
-  /** Disabled - Gris cálido oscuro **/
-  --disabled-color: #3D332B;
+  /** Disabled - Gris oscuro **/
+  --disabled-color: #334155;
 
-  /** Accent - Turquesa brillante **/
-  --accent-color: #5EEAD4;
+  /** Accent - Gold brillante **/
+  --accent-color: #F0D78C;
 
   /* Sombras */
-  --box-shadow-primary: 0px 4px 16px rgba(0, 0, 0, 0.45);
-  --box-shadow-secondary: 0px 3px 10px rgba(45, 212, 191, 0.2);
+  --box-shadow-primary: 0px 4px 16px rgba(0, 0, 0, 0.5);
+  --box-shadow-secondary: 0px 3px 10px rgba(232, 195, 106, 0.15);
 }

@@ -1,48 +1,48 @@
-/* Tema Light — Coral & Turquesa: cálido, artesanal, moderno */
+/* Tema Light — Navy & Gold: elegante, limpio, premium */
 :root {
   /* Tipografía */
-  --font-primary-color: #2D2013;
-  --font-secondary-color: #C94530;
+  --font-primary-color: #0F172A;
+  --font-secondary-color: #1E3A5F;
 
-  /** Primary - Coral salmón creativo **/
-  --primary-color: #E8634A;
-  --primary-color-rgb: 232, 99, 74;
-  --primary-background-color: #FFFBF5;
+  /** Primary - Navy profundo **/
+  --primary-color: #1E3A5F;
+  --primary-color-rgb: 30, 58, 95;
+  --primary-background-color: #FAFAFA;
   --primary-color-contrast: #ffffff;
-  --primary-color-shade: #C94530;
+  --primary-color-shade: #152C49;
 
-  /** Secondary - Turquesa vibrante **/
-  --secondary-color: #00BFA6;
-  --secondary-color-rgb: 0, 191, 166;
-  --secondary-background-color: #E6F7F5;
-  --secondary-color-contrast: #0A3D35;
+  /** Secondary - Gold dorado **/
+  --secondary-color: #D4A853;
+  --secondary-color-rgb: 212, 168, 83;
+  --secondary-background-color: #FBF7EE;
+  --secondary-color-contrast: #3D2E0A;
 
-  /** Tertiary - Menta suave para superficies **/
-  --tertiary-background-color: #EDF8F6;
+  /** Tertiary - Superficie gris azulado **/
+  --tertiary-background-color: #F1F5F9;
 
   /** Success - Esmeralda **/
-  --success-color: #10B981;
+  --success-color: #059669;
   --success-contrast: #ffffff;
 
-  /** Warning - Ámbar dorado **/
-  --warning-color: #F59E0B;
+  /** Warning - Ámbar **/
+  --warning-color: #D97706;
   --warning-contrast: #422006;
 
-  /** Danger - Rojo cálido **/
-  --danger-color: #EF4444;
+  /** Danger - Rojo **/
+  --danger-color: #DC2626;
   --danger-contrast: #ffffff;
 
-  /** Medium - Gris cálido para texto secundario **/
-  --medium-color: #8B7E74;
+  /** Medium - Slate para texto secundario **/
+  --medium-color: #64748B;
   --medium-contrast: #ffffff;
 
-  /** Disabled - Beige cálido **/
-  --disabled-color: #F0E6DC;
+  /** Disabled - Gris frío **/
+  --disabled-color: #E2E8F0;
 
-  /** Accent - Turquesa brillante **/
-  --accent-color: #14B8A6;
+  /** Accent - Gold brillante **/
+  --accent-color: #B8941F;
 
   /* Sombras */
-  --box-shadow-primary: 0px 4px 12px rgba(232, 99, 74, 0.12);
-  --box-shadow-secondary: 0px 3px 8px rgba(0, 191, 166, 0.15);
+  --box-shadow-primary: 0px 4px 12px rgba(30, 58, 95, 0.1);
+  --box-shadow-secondary: 0px 3px 8px rgba(212, 168, 83, 0.12);
 }

@@ -4,8 +4,8 @@
   "description": "Herramientas online para diseñar productos personalizados. Diseña vinilos, stickers y productos únicos.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FFFBF5",
-  "theme_color": "#E8634A",
+  "background_color": "#FAFAFA",
+  "theme_color": "#1E3A5F",
   "icons": [
     {
       "src": "/images/favicon.svg",
