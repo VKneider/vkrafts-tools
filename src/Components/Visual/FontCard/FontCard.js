@@ -7,7 +7,7 @@ export default class FontCard extends HTMLElement {
 
    /** Resuelve un color de texto para render: auto → token del tema. */
    static resolveTextColor(textColor) {
-      return !textColor || textColor === FontCard.DEFAULT_TEXT
+      return !textColor || textColor === this.DEFAULT_TEXT
          ? 'var(--font-primary-color)'
          : textColor;
    }
@@ -117,9 +117,9 @@ export default class FontCard extends HTMLElement {
 
    /** Color concreto para exportar (SVG no entiende var()). */
    _resolvedExportColor() {
-      const raw = this._textColor || FontCard.DEFAULT_TEXT;
-      if (raw !== FontCard.DEFAULT_TEXT) return raw;
-      return getComputedStyle(this.$text).color || FontCard.DEFAULT_TEXT;
+      const raw = this._textColor || this.constructor.DEFAULT_TEXT;
+      if (raw !== this.constructor.DEFAULT_TEXT) return raw;
+      return getComputedStyle(this.$text).color || this.constructor.DEFAULT_TEXT;
    }
 
    render() {
@@ -139,7 +139,7 @@ export default class FontCard extends HTMLElement {
          textDecoration: styles.underline ? 'underline' : 'none',
          letterSpacing: `${styles.letterSpacing || 0}px`,
          textAlign: styles.align || 'center',
-         color: FontCard.resolveTextColor(this._textColor),
+         color: this.constructor.resolveTextColor(this._textColor),
          transform: [
             styles.mirrored ? 'scaleX(-1)' : '',
             styles.rotation ? `rotate(${styles.rotation}deg)` : ''
@@ -202,7 +202,7 @@ export default class FontCard extends HTMLElement {
    }
 
    async downloadPNG(scale = 4) {
-      const exportStage = FontCard.buildExportStage(this.$text, this._bgColor);
+      const exportStage = this.constructor.buildExportStage(this.$text, this._bgColor);
       try {
          const canvas = await html2canvas(exportStage.stage, {
             backgroundColor: null,

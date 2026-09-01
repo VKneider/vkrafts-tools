@@ -1,5 +1,47 @@
 import html2canvas from 'html2canvas';
-import FontCard from '../../Visual/FontCard/FontCard.js';
+
+const DEFAULT_TEXT = '#000000';
+
+function resolveTextColor(textColor) {
+   return !textColor || textColor === DEFAULT_TEXT
+      ? 'var(--font-primary-color)'
+      : textColor;
+}
+
+function buildExportStage(textEl, bgColor = 'transparent') {
+   const cs = getComputedStyle(textEl);
+   const stage = document.createElement('div');
+
+   Object.assign(stage.style, {
+      position: 'fixed',
+      left: '-10000px',
+      top: '0',
+      boxSizing: 'border-box',
+      padding: '32px',
+      width: `${textEl.clientWidth + 64}px`,
+      background: bgColor === 'transparent' ? 'transparent' : bgColor
+   });
+
+   const p = document.createElement('p');
+   [
+      'fontFamily', 'fontSize', 'fontWeight', 'fontStyle',
+      'letterSpacing', 'textAlign', 'lineHeight'
+   ].forEach((k) => {
+      if (cs[k]) p.style[k] = cs[k];
+   });
+   if (cs.transform && cs.transform !== 'none') p.style.transform = cs.transform;
+   p.style.color = textEl.style.color || getComputedStyle(textEl).color;
+   p.style.margin = '0';
+   p.style.wordBreak = 'break-word';
+   p.textContent = textEl.textContent;
+
+   stage.appendChild(p);
+   document.body.appendChild(stage);
+   return {
+      stage,
+      cleanup() { stage.remove(); }
+   };
+}
 
 export default class FontDetailSection extends HTMLElement {
 
@@ -173,7 +215,7 @@ export default class FontDetailSection extends HTMLElement {
          textDecoration: d.underline ? 'underline' : 'none',
          letterSpacing: `${d.letterSpacing ?? 0}px`,
          textAlign: d.align ?? 'center',
-         color: FontCard.resolveTextColor(d.textColor),
+         color: resolveTextColor(d.textColor),
          transform: [
             d.mirrored ? 'scaleX(-1)' : '',
             d.rotation ? `rotate(${d.rotation}deg)` : ''
@@ -207,7 +249,7 @@ export default class FontDetailSection extends HTMLElement {
    }
 
    async downloadPNG() {
-      const exportStage = FontCard.buildExportStage(this.$text, (this._currentDesign || {}).bgColor);
+      const exportStage = buildExportStage(this.$text, (this._currentDesign || {}).bgColor);
       try {
          const canvas = await html2canvas(exportStage.stage, {
             backgroundColor: null,
@@ -235,10 +277,10 @@ export default class FontDetailSection extends HTMLElement {
          d.rotation ? `rotate(${d.rotation})` : ''
       ].filter(Boolean).join(' ');
       const anchor = d.align === 'left' ? 'start' : d.align === 'right' ? 'end' : 'middle';
-      const rawColor = d.textColor ?? FontCard.DEFAULT_TEXT;
-      const fillColor = rawColor !== FontCard.DEFAULT_TEXT
+      const rawColor = d.textColor ?? DEFAULT_TEXT;
+      const fillColor = rawColor !== DEFAULT_TEXT
          ? rawColor
-         : (getComputedStyle(this.$text).color || FontCard.DEFAULT_TEXT);
+         : (getComputedStyle(this.$text).color || DEFAULT_TEXT);
 
       const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="800" height="200" viewBox="0 0 800 200">
