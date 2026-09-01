@@ -24,12 +24,78 @@ const PRESETS = [
    { id: 'wide', name: 'Amplio', marginMm: 16, gapMm: 12 }
 ];
 
+// Medidas reales de producto. Elegir una fija el tamaño de celda en mm y calcula
+// cuántas entran en la hoja — a diferencia de las plantillas, donde las celdas
+// se estiran para llenar la página.
+const PRODUCTS = [
+   { id: 'foto-10x15', name: 'Foto 10×15', wMm: 100, hMm: 150 },
+   { id: 'foto-13x18', name: 'Foto 13×18', wMm: 130, hMm: 180 },
+   { id: 'foto-9x13', name: 'Foto 9×13', wMm: 90, hMm: 130 },
+   { id: 'sticker-5', name: 'Sticker 5×5', wMm: 50, hMm: 50 },
+   { id: 'sticker-7', name: 'Sticker 7×7', wMm: 70, hMm: 70 },
+   { id: 'tarjeta', name: 'Tarjeta 9×5', wMm: 90, hMm: 50 },
+   { id: 'credencial', name: 'Credencial 8,6×5,4', wMm: 86, hMm: 54 },
+   { id: 'etiqueta', name: 'Etiqueta 6×4', wMm: 60, hMm: 40 }
+];
+
 export default class LayoutTemplates {
    constructor(props = {}) {
       this.props = props || {};
       this.pageSizes = PAGE_SIZES;
-      this.templates = TEMPLATES;
+      // Copia propia: `ensureGrid` agrega plantillas derivadas de un producto.
+      this.templates = [...TEMPLATES];
       this.presets = PRESETS;
+      this.products = PRODUCTS;
+   }
+
+   /** Catálogo de tamaños de producto. */
+   allProducts() {
+      return this.products;
+   }
+
+   product(id) {
+      return this.products.find((p) => p.id === id) || null;
+   }
+
+   /**
+    * Devuelve (creándola si hace falta) una plantilla con esta grilla. Los
+    * productos necesitan grillas arbitrarias — 4×5 stickers, por ejemplo — que
+    * no están en el catálogo fijo. Al registrarla acá, todo lo demás
+    * (capacidad, geometría, splitters) sigue funcionando vía `get(id)`.
+    */
+   ensureGrid(cols, rows) {
+      const c = Math.max(1, Math.round(cols));
+      const r = Math.max(1, Math.round(rows));
+      const id = `grid-${c}x${r}`;
+
+      let tpl = this.templates.find((t) => t.id === id);
+      if (!tpl) {
+         tpl = { id, name: `${c} × ${r}`, cols: c, rows: r, derived: true };
+         this.templates.push(tpl);
+      }
+      return tpl;
+   }
+
+   /**
+    * Cuántas piezas de este producto entran en la hoja, respetando márgenes y
+    * separación del preset.
+    * @returns {{cols:number, rows:number, total:number, fits:boolean}}
+    */
+   gridForProduct(product, pageId, presetId) {
+      const page = this.page(pageId);
+      const preset = this.preset(presetId);
+
+      const usableW = page.w - preset.marginMm * 2;
+      const usableH = page.h - preset.marginMm * 2;
+
+      // n piezas ocupan n*lado + (n-1)*gap, así que se despeja n.
+      const fit = (usable, side) =>
+         Math.max(0, Math.floor((usable + preset.gapMm) / (side + preset.gapMm)));
+
+      const cols = fit(usableW, product.wMm);
+      const rows = fit(usableH, product.hMm);
+
+      return { cols, rows, total: cols * rows, fits: cols > 0 && rows > 0 };
    }
 
    preset(id) {
@@ -43,7 +109,10 @@ export default class LayoutTemplates {
          templateId: 'm2x2',
          presetId: 'normal',
          fitMode: 'smart',
-         imageScale: 1
+         imageScale: 1,
+         // Sin esto, toda hoja nueva llega con `placement` undefined y el primer
+         // render (`sheet.placement[idx]`) revienta la vista entera.
+         placement: {}
       };
    }
 

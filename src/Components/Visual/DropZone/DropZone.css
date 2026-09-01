@@ -20,27 +20,33 @@ slice-drop-zone .dropzone__body {
   justify-content: center;
   gap: 6px;
   padding: 26px 20px;
-  border-radius: 14px;
+  border-radius: var(--vk-radius);
   border: 2px dashed rgba(var(--primary-color-rgb), 0.35);
   background: var(--secondary-background-color);
   cursor: pointer;
   text-align: center;
-  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  transition: border-color 200ms ease, background 200ms ease,
+    scale 200ms var(--vk-bounce);
 }
 
 slice-drop-zone .dropzone__body:hover {
   border-color: var(--primary-color);
 }
 
+/* Al arrastrar encima aparece la trama de rayas: confirma la zona activa sin
+   depender solo del color. */
 slice-drop-zone.dropzone--over .dropzone__body {
-  border-color: var(--primary-color);
-  background: rgba(var(--primary-color-rgb), 0.1);
-  transform: scale(1.01);
+  border-color: var(--secondary-color);
+  border-style: solid;
+  color: var(--secondary-color);
+  background-color: rgba(var(--secondary-color-rgb), 0.12);
+  background-image: var(--vk-stripes);
+  scale: 1.02;
 }
 
 slice-drop-zone .dropzone__icon {
   display: inline-flex;
-  color: var(--font-secondary-color);
+  color: var(--accent-text-color);
 }
 
 slice-drop-zone .dropzone__title {

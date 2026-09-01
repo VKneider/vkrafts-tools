@@ -25,12 +25,16 @@ slice-button .slice_button {
   min-width: 0;
   background-color: var(--primary-color);
   color: var(--primary-color-contrast);
-  border-radius: var(--border-radius-slice);
+  /* Píldora: en Memphis los controles son formas limpias y rotundas. */
+  border-radius: 999px;
   border: var(--slice-border) solid var(--primary-color);
+  font-family: var(--vk-font-ui);
   font-weight: 800;
-  padding: 10px 14px;
-  -webkit-transition-duration: 0.4s; /* Safari */
-  transition-duration: 0.4s;
+  letter-spacing: 0.01em;
+  padding: 10px 18px;
+  /* 0.4s era el doble del techo recomendado para feedback de control. */
+  transition: background-color 180ms ease, color 180ms ease,
+    border-color 180ms ease, translate 180ms var(--vk-bounce);
 }
 
 slice-button .slice_button:focus-visible {
@@ -52,7 +56,7 @@ slice-button .slice_button:after {
 }
 
 slice-button .slice_button:active {
-  transform: translateY(5px);
+  translate: 0 2px;
 }
 
 slice-button .slice_button:active:after {
@@ -110,7 +114,7 @@ slice-button .slice_button--danger {
 
 /* Compact size for toolbars and dense UIs (ported from conclave). */
 slice-button .slice_button--sm {
-  padding: 6px 10px;
+  padding: 6px 13px;
   font-size: 12px;
   gap: 4px;
 }

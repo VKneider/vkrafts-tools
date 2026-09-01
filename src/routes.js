@@ -7,8 +7,8 @@ const routes = [
    { path: '/canvas', component: 'AppShell', metadata: { title: 'VKRAFTS · Canvas' } },
    { path: '/layouts', component: 'AppShell', metadata: { title: 'VKRAFTS · Plantillas de Hoja' } },
    { path: '/font/${id}', component: 'AppShell', metadata: { title: 'VKRAFTS · Fuente' } },
-   { path: '/about', component: 'AppShell', metadata: { title: 'About' } },
-   { path: '/404', component: 'NotFound', metadata: { title: 'Not Found' } }
+   { path: '/about', component: 'AppShell', metadata: { title: 'VKRAFTS · Acerca de' } },
+   { path: '/404', component: 'NotFound', metadata: { title: 'VKRAFTS · Página no encontrada' } }
 ];
 
 export default routes;

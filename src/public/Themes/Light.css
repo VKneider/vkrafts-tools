@@ -1,48 +1,63 @@
-/* Tema Light — Navy & Gold: elegante, limpio, premium */
+/* Tema Light — Memphis 80s sobre un primario verde-azulado (teal).
+   Color plano y formas geométricas; la personalidad viene de la FORMA y el
+   COLOR, no del borde ni de la sombra.
+   Contrastes verificados: ver el comentario de cada token. */
 :root {
   /* Tipografía */
-  --font-primary-color: #0F172A;
-  --font-secondary-color: #1E3A5F;
+  --font-primary-color: #15201D;   /* 16.16:1 sobre el fondo */
+  --font-secondary-color: #2E403B; /* 10.62:1 */
 
-  /** Primary - Navy profundo **/
-  --primary-color: #1E3A5F;
-  --primary-color-rgb: 30, 58, 95;
-  --primary-background-color: #FAFAFA;
-  --primary-color-contrast: #ffffff;
-  --primary-color-shade: #152C49;
+  /** Primary - Teal (verde azulado) **/
+  --primary-color: #0F7A73;        /* 5.01:1 como texto */
+  --primary-color-rgb: 15, 122, 115;
+  --primary-background-color: #FCFBF9;
+  --primary-color-contrast: #FFFFFF; /* 5.18:1 sobre el primario */
+  --primary-color-shade: #0B5F59;
 
-  /** Secondary - Gold dorado **/
-  --secondary-color: #D4A853;
-  --secondary-color-rgb: 212, 168, 83;
-  --secondary-background-color: #FBF7EE;
-  --secondary-color-contrast: #3D2E0A;
+  /** Secondary - Rosa Memphis. RELLENO, NUNCA TEXTO: da 2.39:1 sobre el
+      fondo. Para el rosa como tinta está --accent-text-color. **/
+  --secondary-color: #FF71CE;
+  --secondary-color-rgb: 255, 113, 206;
+  --secondary-background-color: #F2F5F3;
+  --secondary-color-contrast: #2B0A21; /* 7.28:1 sobre el rosa */
 
-  /** Tertiary - Superficie gris azulado **/
-  --tertiary-background-color: #F1F5F9;
+  /** Tertiary - Superficie **/
+  --tertiary-background-color: #E8EEEB;
 
-  /** Success - Esmeralda **/
-  --success-color: #059669;
-  --success-contrast: #ffffff;
+  /** Success - Verde franco. Está oscurecido a propósito: con un verde más
+      claro quedaba con la MISMA luminancia que el teal primario y los dos
+      colores se volvían indistinguibles (sobre todo para daltonismo). **/
+  --success-color: #166534;   /* 6.89:1 como texto */
+  --success-contrast: #FFFFFF; /* 7.13:1 */
 
-  /** Warning - Ámbar **/
-  --warning-color: #D97706;
-  --warning-contrast: #422006;
+  /** Warning - Ámbar, sin el naranja de antes **/
+  --warning-color: #A16207;   /* 4.76:1 */
+  --warning-contrast: #FFFFFF; /* 4.92:1 */
 
-  /** Danger - Rojo **/
-  --danger-color: #DC2626;
-  --danger-contrast: #ffffff;
+  /** Danger **/
+  --danger-color: #DC2626;    /* 4.67:1 */
+  --danger-contrast: #FFFFFF; /* 4.83:1 */
 
-  /** Medium - Slate para texto secundario **/
-  --medium-color: #64748B;
-  --medium-contrast: #ffffff;
+  /** Medium - texto secundario **/
+  --medium-color: #566661;    /* 5.85:1 sobre fondo, 5.51:1 sobre superficie */
+  --medium-contrast: #FFFFFF;
 
-  /** Disabled - Gris frío **/
-  --disabled-color: #E2E8F0;
+  /** Disabled **/
+  --disabled-color: #E2E8E5;
 
-  /** Accent - Gold brillante **/
-  --accent-color: #B8941F;
+  /** Accent - Amarillo limón Memphis. DECORATIVO: solo relleno. **/
+  --accent-color: #FFE066;
+  --accent-color-rgb: 255, 224, 102;
+  --accent-contrast: #15201D; /* 12.82:1 sobre el amarillo */
 
-  /* Sombras */
-  --box-shadow-primary: 0px 4px 12px rgba(30, 58, 95, 0.1);
-  --box-shadow-secondary: 0px 3px 8px rgba(212, 168, 83, 0.12);
+  /** El acento cuando tiene que LEERSE: magenta profundo, 6.09:1. **/
+  --accent-text-color: #B01E7E;
+
+  /** Papel de las previsualizaciones (fuentes, lienzo). Blanco puro, no el
+      fondo de la app: lo que se ve ahí es el producto impreso. **/
+  --paper-color: #FFFFFF;
+
+  /* Sombras suaves: en Memphis la profundidad la dan las formas. */
+  --box-shadow-primary: 0 4px 14px rgba(21, 32, 29, 0.10);
+  --box-shadow-secondary: 0 3px 10px rgba(255, 113, 206, 0.18);
 }

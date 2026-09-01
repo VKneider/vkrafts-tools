@@ -40,14 +40,14 @@ slice-select .slice_select {
 slice-select .slice_select_label {
   color: var(--primary-color);
   position: absolute;
-  transition: all 0.5s;
+  transition: all 200ms ease;
   user-select: none;
 }
 
 slice-select .slice_select_value {
   scale: 0.8;
   transform: translateY(-200%);
-  transition: all 0.5s;
+  transition: all 200ms ease;
 }
 
 slice-select .slice_select_menu {
@@ -65,7 +65,7 @@ slice-select .slice_select_menu {
   z-index: 50;
   background-color: var(--primary-background-color);
   border-radius: var(--border-radius-slice);
-  box-shadow: 0 0 10px 0 #00000050;
+  box-shadow: var(--box-shadow-primary);
 }
 
 slice-select .slice_select_menu div {

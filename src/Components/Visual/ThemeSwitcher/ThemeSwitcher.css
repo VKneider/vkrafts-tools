@@ -22,7 +22,7 @@ slice-theme-switcher.theme-switcher--button .theme-switcher__track {
   width: 46px;
   height: 26px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.22);
+  background: color-mix(in srgb, var(--primary-color-contrast) 25%, transparent);
   transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -36,7 +36,7 @@ slice-theme-switcher.theme-switcher--button .theme-switcher__icon {
   background: var(--primary-color-contrast);
   color: var(--primary-color);
   transform: translateX(10px);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  box-shadow: var(--box-shadow-primary);
   transition: transform 0.25s ease, background 0.2s ease, color 0.2s ease;
 }
 
@@ -45,7 +45,7 @@ slice-theme-switcher.theme-switcher--button .theme-switcher--to-dark .theme-swit
 }
 
 slice-theme-switcher.theme-switcher--button .theme-switcher:hover .theme-switcher__track {
-  background: rgba(255, 255, 255, 0.35);
+  background: color-mix(in srgb, var(--primary-color-contrast) 38%, transparent);
 }
 
 /* En tema oscuro el track se oscurece y el knob se desplaza al otro lado. */
@@ -77,7 +77,7 @@ slice-theme-switcher.theme-switcher--menu .theme-switcher {
   justify-content: space-between;
   gap: 12px;
   padding: 9px 10px;
-  border-radius: 8px;
+  border-radius: var(--vk-radius);
   background: transparent;
   border: none;
   font: inherit;
@@ -97,7 +97,7 @@ slice-theme-switcher.theme-switcher--menu .theme-switcher__track {
   justify-content: center;
   width: 26px;
   height: 26px;
-  border-radius: 8px;
+  border-radius: var(--vk-radius);
   background: var(--secondary-background-color);
   color: var(--font-secondary-color);
 }

@@ -12,13 +12,15 @@ slice-modal .slice-modal:not([open]) {
 slice-modal .slice-modal {
   padding: 0;
   border: none;
-  border-top: 4px solid var(--modal-accent, var(--primary-color, #9333ea));
-  border-radius: var(--border-radius-slice, 0.75rem);
-  background: var(--modal-bg, var(--primary-background-color, #fefbff));
-  color: var(--modal-text, var(--font-primary-color, #1a0b2e));
-  box-shadow:
-    0 20px 60px -16px rgba(0, 0, 0, 0.4),
-    0 6px 20px -8px rgba(0, 0, 0, 0.15);
+  /* Franja de acento gruesa arriba: el modal es de los pocos elementos
+     "uno por vez" que se bancan un bloque de color fuerte. */
+  border-top: 8px solid var(--modal-accent, var(--secondary-color));
+  border-radius: var(--vk-radius-lg);
+  background: var(--modal-bg, var(--secondary-background-color));
+  color: var(--modal-text, var(--font-primary-color));
+  /* Más profunda que --box-shadow-primary a propósito: el diálogo flota sobre
+     un backdrop y necesita despegarse más que una card. Igual sale del tema. */
+  box-shadow: 0 24px 60px -18px color-mix(in srgb, var(--font-primary-color) 55%, transparent);
   max-width: var(--modal-max-width, 520px);
   width: var(--modal-width, min(90vw, 520px));
   display: flex;
@@ -57,7 +59,7 @@ slice-modal .slice-modal__header {
   font-size: 1.15rem;
   font-weight: 600;
   letter-spacing: -0.01em;
-  border-bottom: 1px solid color-mix(in srgb, var(--modal-text, var(--font-primary-color, #1a0b2e)) 10%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--modal-text, var(--font-primary-color)) 10%, transparent);
 }
 
 slice-modal.is-draggable .slice-modal__header {
@@ -88,7 +90,7 @@ slice-modal .slice-modal__footer {
   justify-content: flex-end;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem 1.25rem;
-  border-top: 1px solid color-mix(in srgb, var(--modal-text, var(--font-primary-color, #1a0b2e)) 10%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--modal-text, var(--font-primary-color)) 10%, transparent);
 }
 
 slice-modal .slice-modal__close {

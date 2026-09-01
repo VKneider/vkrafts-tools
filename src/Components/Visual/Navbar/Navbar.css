@@ -6,11 +6,14 @@ slice-nav-bar .slice_nav_header {
   font-family: var(--font-family);
   width: 100%;
   z-index: 1;
-  box-shadow: 0px 0px 10px #00000050;
+  /* La sombra negra fija se veía sucia sobre el fondo violáceo del tema. */
+  box-shadow: var(--box-shadow-primary);
   background-color: var(--primary-color);
   display: flex;
   justify-content: space-around;
   align-items: center;
+  /* Franja de acento al pie: la firma del sistema, sin agregar un elemento. */
+  border-bottom: 3px solid var(--secondary-color);
 }
 slice-nav-bar .direction-row-reverse {
   flex-direction: row-reverse;

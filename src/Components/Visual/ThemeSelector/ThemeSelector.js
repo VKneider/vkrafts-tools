@@ -15,10 +15,17 @@ export default class ThemeSelector extends HTMLElement {
 
     this.$toggle.addEventListener('click', () => this.toggle());
 
-    document.addEventListener('themeChanged', (event) => {
-      this.currentTheme = event.detail.themeName;
+    // El handler se guarda para poder removerlo: con una función anónima el
+    // listener quedaba enganchado al documento por cada instancia creada.
+    this._onThemeChanged = (event) => {
+      this.currentTheme = event.detail?.themeName ?? this.currentTheme;
       this.syncActive();
-    });
+    };
+    document.addEventListener('themeChanged', this._onThemeChanged);
+  }
+
+  beforeDestroy() {
+    document.removeEventListener('themeChanged', this._onThemeChanged);
   }
 
   syncActive() {

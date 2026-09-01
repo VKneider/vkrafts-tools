@@ -29,10 +29,15 @@ export default class DesignerSection extends HTMLElement {
 
       this._cards = [];
       this._selectedFontId = null;
-      this._builtCategory = null;
 
       await this._buildToolbar();
       await this._buildTabs();
+
+      // Set _builtCategory BEFORE binding the watcher so the initial context
+      // change doesn't trigger _onStateChange() → _syncCategory() (which
+      // would build cards before the explicit _syncCategory(true) below,
+      // resulting in duplicates).
+      this._builtCategory = this._ctx.get().category || 'corrido';
 
       // Reacción al contexto: sincroniza cards / categoría.
       this._ctx.bind(this, () => this._onStateChange());

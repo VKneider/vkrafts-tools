@@ -257,10 +257,12 @@ export default class FontDetailSection extends HTMLElement {
             useCORS: true,
             logging: false
          });
-         const link = document.createElement('a');
-         link.download = `${this._currentFont.codigo}-${this._currentTexto.slice(0, 20)}.png`;
-         link.href = canvas.toDataURL('image/png', 1.0);
-         link.click();
+         await slice.getComponent('DownloadService')?.canvas(
+            canvas,
+            `${this._currentFont.codigo}-${this._currentTexto.slice(0, 20)}.png`,
+            'image/png',
+            1.0
+         );
          this._toasts?.show('PNG descargado en alta resolución (escala 4x)', { type: 'success' });
       } catch {
          this._toasts?.show('Error al descargar PNG', { type: 'error' });
@@ -303,12 +305,13 @@ export default class FontDetailSection extends HTMLElement {
   >${this._html.escape(this._currentTexto)}</text>
 </svg>`;
 
-      const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-      const link = document.createElement('a');
-      link.download = `${font.codigo}-${this._currentTexto.slice(0, 20)}.svg`;
-      link.href = URL.createObjectURL(blob);
-      link.click();
-      URL.revokeObjectURL(link.href);
+      // Vía DownloadService: el anchor tiene que estar en el documento y la
+      // object URL no se puede revocar en la línea siguiente al click.
+      slice.getComponent('DownloadService')?.text(
+         svgContent,
+         `${font.codigo}-${this._currentTexto.slice(0, 20)}.svg`,
+         'image/svg+xml;charset=utf-8'
+      );
       this._toasts?.show('SVG descargado', { type: 'success' });
    }
 

@@ -19,8 +19,8 @@ slice-notfound .error-code {
     color: var(--primary-color-contrast);
     margin: 0;
     line-height: 1;
-    letter-spacing: -0.03em;
-    opacity: 0.35;
+    letter-spacing: -0.04em;
+    opacity: 0.4;
     user-select: none;
 }
 slice-notfound .error-subtitle {

@@ -11,10 +11,9 @@ slice-cell-size-modal .csm__body {
 slice-cell-size-modal .csm__info {
   margin: 0;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--vk-radius);
   background: var(--secondary-background-color);
-  border: 1px solid rgba(var(--primary-color-rgb), 0.15);
-  font-size: 12.5px;
+    font-size: 12.5px;
   line-height: 1.6;
   color: var(--font-primary-color);
 }
@@ -46,7 +45,7 @@ slice-cell-size-modal .csm__field input {
   padding: 7px 10px;
   font-size: 14px;
   text-align: right;
-  border-radius: 8px;
+  border-radius: var(--vk-radius);
   border: 1.5px solid rgba(var(--primary-color-rgb), 0.3);
   background: var(--secondary-background-color);
   color: var(--font-primary-color);

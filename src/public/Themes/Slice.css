@@ -40,6 +40,15 @@
 
   /** Accent - Turquesa brillante para detalles elegantes **/
   --accent-color: #00CFC1;
+  /* Tokens que el resto de la app ya consume (LayoutsPanel, PoolCard,
+     SheetCell, DropZone, HubSection, LayoutsSection). Sin ellos, con este tema
+     activo esas etiquetas quedaban sin color. Este tema es previo al rediseño
+     y hoy no se alcanza desde la UI —ThemeSwitcher solo cicla Light/Dark—,
+     pero sigue en /Themes y el themeManager podría cargarlo. */
+  --accent-color-rgb: 0, 207, 193;
+  --accent-text-color: #00847B;
+  --accent-contrast: #2E1A47;
+  --paper-color: #FFFFFF;
 
   /* Sombras */
   --box-shadow-primary: 0px 4px 12px rgba(125, 58, 193, 0.15);

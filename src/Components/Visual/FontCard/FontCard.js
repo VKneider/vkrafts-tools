@@ -210,10 +210,12 @@ export default class FontCard extends HTMLElement {
             useCORS: true,
             logging: false
          });
-         const link = document.createElement('a');
-         link.download = `${this._font.codigo}-${this.displayText.slice(0, 20)}.png`;
-         link.href = canvas.toDataURL('image/png', 1.0);
-         link.click();
+         await slice.getComponent('DownloadService')?.canvas(
+            canvas,
+            `${this._font.codigo}-${this.displayText.slice(0, 20)}.png`,
+            'image/png',
+            1.0
+         );
          return true;
       } catch {
          this._toasts?.show('Error al descargar PNG', { type: 'error' });
@@ -253,12 +255,11 @@ export default class FontCard extends HTMLElement {
    >${this._html?.escape(this.displayText) ?? this.displayText}</text>
 </svg>`;
 
-      const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-      const link = document.createElement('a');
-      link.download = `${this._font.codigo}-${this.displayText.slice(0, 20)}.svg`;
-      link.href = URL.createObjectURL(blob);
-      link.click();
-      URL.revokeObjectURL(link.href);
+      slice.getComponent('DownloadService')?.text(
+         svgContent,
+         `${this._font.codigo}-${this.displayText.slice(0, 20)}.svg`,
+         'image/svg+xml;charset=utf-8'
+      );
       return true;
    }
 

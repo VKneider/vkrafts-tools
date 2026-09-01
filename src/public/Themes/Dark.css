@@ -1,48 +1,62 @@
-/* Tema Dark — Navy & Gold nocturno: elegancia sobre fondo oscuro */
+/* Tema Dark — Memphis nocturno sobre verde azulado profundo.
+   Los tokens de contraste son OSCUROS acá, porque en Dark los colores de
+   estado son claros. */
 :root {
   /* Tipografía */
-  --font-primary-color: #F1F5F9;
-  --font-secondary-color: #94A3B8;
+  --font-primary-color: #EEF5F3;   /* 16.08:1 */
+  --font-secondary-color: #C0D2CD; /* 11.29:1 — separado de --medium-color a
+                                      propósito, para no aplanar la jerarquía */
 
-  /** Primary - Navy claro **/
-  --primary-color: #5B8ABF;
-  --primary-color-rgb: 91, 138, 191;
-  --primary-background-color: #0F172A;
-  --primary-color-contrast: #0F172A;
-  --primary-color-shade: #3B6A9F;
+  /** Primary - Teal claro **/
+  --primary-color: #4ECDC4;        /* 9.19:1 como texto */
+  --primary-color-rgb: 78, 205, 196;
+  --primary-background-color: #0F1A18;
+  --primary-color-contrast: #0B1513; /* 9.60:1 sobre el primario */
+  --primary-color-shade: #35A79F;
 
-  /** Secondary - Gold cálido **/
-  --secondary-color: #E8C36A;
-  --secondary-color-rgb: 232, 195, 106;
-  --secondary-background-color: #1A2332;
-  --secondary-color-contrast: #3D2E0A;
+  /** Secondary - Rosa Memphis. Acá SÍ es legible (8.61:1), pero se sigue
+      usando como relleno por consistencia con Light. **/
+  --secondary-color: #FF8FD8;
+  --secondary-color-rgb: 255, 143, 216;
+  --secondary-background-color: #182724;
+  --secondary-color-contrast: #0F1A18; /* 8.61:1 */
 
-  /** Tertiary - Superficie oscura elevada **/
-  --tertiary-background-color: #1E293B;
+  /** Tertiary - Superficie elevada **/
+  --tertiary-background-color: #213330;
 
-  /** Success - Esmeralda clara **/
-  --success-color: #34D399;
-  --success-contrast: #0B291F;
+  /** Success - Verde **/
+  --success-color: #4ADE80;   /* 10.20:1 */
+  --success-contrast: #0F1A18; /* 10.20:1 */
 
-  /** Warning - Ámbar claro **/
-  --warning-color: #FBBF24;
-  --warning-contrast: #3B2F0B;
+  /** Warning - Ámbar **/
+  --warning-color: #FBBF24;   /* 10.65:1 */
+  --warning-contrast: #0F1A18; /* 10.65:1 */
 
-  /** Danger - Rojo claro **/
-  --danger-color: #F87171;
-  --danger-contrast: #38100F;
+  /** Danger **/
+  --danger-color: #F87171;    /* 6.43:1 */
+  --danger-contrast: #0F1A18; /* 6.43:1 */
 
-  /** Medium - Slate claro **/
-  --medium-color: #94A3B8;
-  --medium-contrast: #0F172A;
+  /** Medium **/
+  --medium-color: #9DB0AB;    /* 7.82:1 sobre fondo, 6.82:1 sobre superficie */
+  --medium-contrast: #0F1A18;
 
-  /** Disabled - Gris oscuro **/
-  --disabled-color: #334155;
+  /** Disabled **/
+  --disabled-color: #2C3B37;
 
-  /** Accent - Gold brillante **/
-  --accent-color: #F0D78C;
+  /** Accent - Amarillo limón **/
+  --accent-color: #FFE066;
+  --accent-color-rgb: 255, 224, 102;
+  --accent-contrast: #0F1A18; /* 13.63:1 sobre el amarillo */
+
+  /** Sobre fondo oscuro el amarillo ya es legible (13.63:1), así que el
+      acento y su tinta coinciden. En Light son distintos. **/
+  --accent-text-color: #FFE066;
+
+  /** Papel de las previsualizaciones. En Dark NO es blanco puro: un rectángulo
+      blanco a pantalla completa sobre fondo oscuro encandila. **/
+  --paper-color: #213330;
 
   /* Sombras */
-  --box-shadow-primary: 0px 4px 16px rgba(0, 0, 0, 0.5);
-  --box-shadow-secondary: 0px 3px 10px rgba(232, 195, 106, 0.15);
+  --box-shadow-primary: 0 4px 18px rgba(0, 0, 0, 0.55);
+  --box-shadow-secondary: 0 3px 12px rgba(255, 143, 216, 0.22);
 }

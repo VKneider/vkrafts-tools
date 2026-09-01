@@ -30,7 +30,7 @@ slice-breadcrumbs .slice_breadcrumbs_current {
   line-height: 1.2;
   color: var(--font-primary-color);
   text-decoration: none;
-  border-radius: 6px;
+  border-radius: var(--vk-radius);
   padding: 2px 4px;
   transition: background-color 0.2s ease, color 0.2s ease;
   min-width: 0;

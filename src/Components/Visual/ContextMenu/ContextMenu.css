@@ -7,10 +7,10 @@ slice-context-menu .contextmenu {
   z-index: 300;
   min-width: 190px;
   padding: 6px;
-  border-radius: 10px;
-  background: var(--primary-background-color);
+  border-radius: var(--vk-radius);
+  background: var(--secondary-background-color);
   border: 1px solid rgba(var(--primary-color-rgb), 0.3);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  box-shadow: var(--box-shadow-primary);
 }
 
 slice-context-menu .contextmenu[hidden] { display: none; }
@@ -22,7 +22,7 @@ slice-context-menu .contextmenu__item {
   width: 100%;
   padding: 7px 10px;
   border: none;
-  border-radius: 7px;
+  border-radius: var(--vk-radius);
   background: transparent;
   color: var(--font-primary-color);
   font-size: 12.5px;
@@ -39,7 +39,10 @@ slice-context-menu .contextmenu__item--danger { color: var(--danger-color); }
 
 slice-context-menu .contextmenu__item--danger:hover,
 slice-context-menu .contextmenu__item--danger.is-focused {
-  background: rgba(var(--danger-color-rgb, 239, 68, 68), 0.14);
+  /* Era rgba(var(--danger-color-rgb, …)): ese token no existe (solo hay -rgb
+     para primary, secondary y accent), así que el hover siempre pintaba el
+     rojo del fallback en vez de --danger-color. */
+  background: color-mix(in srgb, var(--danger-color) 14%, transparent);
 }
 
 slice-context-menu .contextmenu__item slice-icon {

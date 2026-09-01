@@ -28,12 +28,21 @@ slice-layouts-section .layoutssection__side {
 /* ---------- columna derecha ---------- */
 
 slice-layouts-section .layoutssection__right {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 10px;
   min-width: 0;
   height: 100%;
   min-height: 0;
+}
+
+slice-layouts-section .layoutssection__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 slice-layouts-section .layoutssection__sheetsbar {
@@ -43,13 +52,50 @@ slice-layouts-section .layoutssection__sheetsbar {
   gap: 6px;
 }
 
-slice-layouts-section .layoutssection__zoominfo {
-  display: block;
-  text-align: right;
-  font-size: 11px;
-  color: var(--medium-color);
-  margin-bottom: 2px;
+/* ---------- zoom ---------- */
+
+slice-layouts-section .layoutssection__zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(var(--primary-color-rgb), 0.25);
+  background: var(--primary-background-color);
 }
+
+slice-layouts-section .layoutssection__zoombtn,
+slice-layouts-section .layoutssection__zoomvalue {
+  border: none;
+  background: transparent;
+  color: var(--font-primary-color);
+  cursor: pointer;
+  border-radius: 999px;
+  transition: background 140ms ease;
+}
+
+slice-layouts-section .layoutssection__zoombtn {
+  width: 24px;
+  height: 24px;
+  font-size: 15px;
+  line-height: 1;
+}
+
+slice-layouts-section .layoutssection__zoomvalue {
+  min-width: 48px;
+  height: 24px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--medium-color);
+}
+
+slice-layouts-section .layoutssection__zoombtn:hover,
+slice-layouts-section .layoutssection__zoomvalue:hover {
+  background: rgba(var(--primary-color-rgb), 0.12);
+}
+
+/* ---------- chips de hoja ---------- */
 
 slice-layouts-section .layoutssection__sheetchip {
   display: inline-flex;
@@ -60,13 +106,23 @@ slice-layouts-section .layoutssection__sheetchip {
   background: var(--primary-background-color);
 }
 
+/* La hoja activa se rellena de color plano, no se marca con un anillo: en
+   Memphis el estado se comunica con bloques de color. */
 slice-layouts-section .layoutssection__sheetchip.is-active {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.18);
+  background: var(--primary-color);
+}
+
+slice-layouts-section .layoutssection__sheetchip.is-active
+  .layoutssection__sheetchip-main {
+  color: var(--primary-color-contrast);
 }
 
 slice-layouts-section .layoutssection__sheetchip-main {
-  padding: 4px 12px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px 4px 12px;
   font-size: 12px;
   font-weight: 600;
   border: none;
@@ -75,13 +131,27 @@ slice-layouts-section .layoutssection__sheetchip-main {
   cursor: pointer;
 }
 
+slice-layouts-section .layoutssection__sheetchip-count {
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--medium-color);
+}
+
+slice-layouts-section .layoutssection__sheetchip.is-active
+  .layoutssection__sheetchip-count {
+  color: var(--primary-color-contrast);
+  opacity: 0.75;
+}
+
 slice-layouts-section .layoutssection__sheetchip-del {
-  padding: 4px 9px;
+  padding: 4px 8px;
   border: none;
   background: transparent;
-  color: var(--danger-color);
   cursor: pointer;
   font-size: 13px;
+  line-height: 1;
+  color: var(--danger-color);
 }
 
 slice-layouts-section .layoutssection__sheetchip-add {
@@ -99,9 +169,22 @@ slice-layouts-section .layoutssection__sheetchip-add:hover {
   border-color: var(--primary-color);
 }
 
+/* Duplicar es una acción distinta de crear: borde sólido y acento dorado. */
+slice-layouts-section .layoutssection__sheetchip-dup {
+  border-style: solid;
+  border-color: rgba(var(--secondary-color-rgb), 0.45);
+  color: var(--accent-text-color);
+}
+
+slice-layouts-section .layoutssection__sheetchip-dup:hover {
+  border-color: var(--secondary-color);
+  background: rgba(var(--secondary-color-rgb), 0.12);
+}
+
 /* ---------- hoja ---------- */
 
 slice-layouts-section .layoutssection__stage {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -109,6 +192,81 @@ slice-layouts-section .layoutssection__stage {
   padding: 8px 0 24px;
   flex: 1;
   min-height: 0;
+}
+
+/* ---------- estado vacío + overlay de exportación ---------- */
+
+slice-layouts-section .layoutssection__hint {
+  position: absolute;
+  left: 50%;
+  top: 76px;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 320px;
+  padding: 14px 18px;
+  text-align: center;
+  border-radius: 12px;
+  border: 1px dashed rgba(var(--primary-color-rgb), 0.35);
+  background: var(--primary-background-color);
+  box-shadow: var(--box-shadow-primary);
+  pointer-events: none;
+}
+
+slice-layouts-section .layoutssection__hint[hidden] {
+  display: none;
+}
+
+slice-layouts-section .layoutssection__hint strong {
+  font-size: 13px;
+  color: var(--font-primary-color);
+}
+
+slice-layouts-section .layoutssection__hint span {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--medium-color);
+}
+
+slice-layouts-section .layoutssection__busy {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-color-contrast);
+  background: var(--primary-color);
+  box-shadow: var(--box-shadow-primary);
+}
+
+slice-layouts-section .layoutssection__busy[hidden] {
+  display: none;
+}
+
+slice-layouts-section .layoutssection__busy-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  /* Derivado de currentColor: con un blanco fijo el aro quedaba invertido en
+     Dark, donde el texto de este badge es oscuro. */
+  border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
+  animation: layouts-spin 700ms linear infinite;
+}
+
+@keyframes layouts-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 slice-layouts-section .layoutssection__sheet {
@@ -128,8 +286,9 @@ slice-layouts-section .layoutssection__cell {
 }
 
 slice-layouts-section .sheetcell--drop-hover {
-  box-shadow: 0 0 0 3px var(--primary-color), inset 0 0 20px rgba(var(--primary-color-rgb), 0.15);
-  transform: scale(1.02);
+  box-shadow: 0 0 0 3px var(--secondary-color);
+  background-color: rgba(var(--secondary-color-rgb), 0.16);
+  scale: 1.02;
 }
 
 /* Celdas planas solo para la rama de exportación (PNG/PDF) */
@@ -179,7 +338,7 @@ slice-layouts-section .layoutssection__infomenu {
   border-radius: 10px;
   background: var(--primary-background-color);
   border: 1px solid rgba(var(--primary-color-rgb), 0.3);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--box-shadow-primary);
 }
 
 slice-layouts-section .layoutssection__infomenu p {
@@ -245,28 +404,7 @@ slice-layouts-section .layoutssection__menu-apply {
 
 slice-layouts-section .layoutssection__menu-apply:hover { filter: brightness(1.08); }
 
-/* ---------- print ---------- */
-
-@media print {
-  body > *:not(.print-portal) {
-    display: none !important;
-  }
-
-  .print-portal {
-    position: static !important;
-    left: auto !important;
-    top: auto !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #fff !important;
-    box-shadow: none !important;
-  }
-
-  .print-portal > * {
-    width: 100% !important;
-    height: auto !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-  }
-}
+/* La impresión ya no pasa por la página: ExportService monta un iframe con su
+   propio documento y su propio @page, así que acá no hace falta ningún
+   @media print (el bloque anterior apuntaba a un .print-portal inexistente). */
 

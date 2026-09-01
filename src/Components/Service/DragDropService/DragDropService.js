@@ -33,21 +33,24 @@ export default class DragDropService {
     if (old) old.remove();
     const style = document.createElement('style');
     style.id = 'dnd-service-styles';
+    // Todo derivado de los tokens del tema: antes era azul #3b82f6 sobre
+    // blanco, fijo, así que los tiradores y el fantasma de arrastre se veían
+    // igual en Light que en Dark y fuera de la paleta de la app.
     style.textContent = `
       .dnd-handle{position:absolute;z-index:1;touch-action:none;transition:background .15s,border-color .15s,box-shadow .15s}
-      .dnd-handle:hover{background:rgba(59,130,246,.28);border-color:rgba(59,130,246,.9)}
-      .dnd-handle--n,.dnd-handle--s,.dnd-handle--e,.dnd-handle--w{border-radius:1px;background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.45)}
+      .dnd-handle:hover{background:color-mix(in srgb, var(--secondary-color) 28%, transparent);border-color:var(--secondary-color)}
+      .dnd-handle--n,.dnd-handle--s,.dnd-handle--e,.dnd-handle--w{border-radius:1px;background:color-mix(in srgb, var(--secondary-color) 14%, transparent);border:1px solid color-mix(in srgb, var(--secondary-color) 45%, transparent)}
       .dnd-handle--n{bottom:auto;top:-5px;left:6px;right:6px;height:10px;cursor:ns-resize}
       .dnd-handle--s{top:auto;bottom:-5px;left:6px;right:6px;height:10px;cursor:ns-resize}
       .dnd-handle--e{left:auto;right:-5px;top:6px;bottom:6px;width:10px;cursor:ew-resize}
       .dnd-handle--w{right:auto;left:-5px;top:6px;bottom:6px;width:10px;cursor:ew-resize}
-      .dnd-handle--ne,.dnd-handle--nw,.dnd-handle--se,.dnd-handle--sw{border-radius:4px;background:#fff;border:1.5px solid rgba(59,130,246,.75);box-shadow:0 1px 4px rgba(0,0,0,.2)}
-      .dnd-handle--ne::after,.dnd-handle--nw::after,.dnd-handle--se::after,.dnd-handle--sw::after{content:'';position:absolute;inset:2px;border-radius:2px;background:repeating-linear-gradient(135deg,transparent,transparent 2px,rgba(59,130,246,.18) 2px,rgba(59,130,246,.18) 3px);pointer-events:none}
+      .dnd-handle--ne,.dnd-handle--nw,.dnd-handle--se,.dnd-handle--sw{border-radius:4px;background:var(--primary-background-color);border:2px solid var(--secondary-color);box-shadow:var(--box-shadow-primary)}
+      .dnd-handle--ne::after,.dnd-handle--nw::after,.dnd-handle--se::after,.dnd-handle--sw::after{content:'';position:absolute;inset:2px;border-radius:2px;color:var(--secondary-color);background-image:var(--vk-stripes);pointer-events:none;opacity:.5}
       .dnd-handle--ne{inset:auto -5px -5px auto;width:16px;height:16px;cursor:nesw-resize}
       .dnd-handle--nw{inset:-5px auto -5px -5px;width:16px;height:16px;cursor:nwse-resize}
       .dnd-handle--se{bottom:-5px;right:-5px;width:16px;height:16px;cursor:nwse-resize}
       .dnd-handle--sw{bottom:-5px;left:-5px;width:16px;height:16px;cursor:nesw-resize}
-      .dnd-ghost{position:fixed;pointer-events:none;z-index:999999;opacity:.85;margin:0;will-change:transform;box-shadow:0 8px 30px rgba(0,0,0,.15)}
+      .dnd-ghost{position:fixed;pointer-events:none;z-index:999999;opacity:.85;margin:0;will-change:transform;box-shadow:var(--box-shadow-primary)}
       .dnd-sortable-ph{pointer-events:none;flex:0 0 auto}
       .dnd-dragging{user-select:none;-webkit-user-select:none}
     `;
@@ -573,7 +576,11 @@ export default class DragDropService {
 
     const placeholder = document.createElement('div');
     placeholder.className = 'dnd-sortable-ph' + (cfg.ghostClass ? ' ' + cfg.ghostClass : '');
-    placeholder.style.cssText = `height:${rect.height}px;margin:0;background:rgba(59,130,246,.08);border:2px dashed #3b82f6;border-radius:6px;box-sizing:border-box`;
+    // Del tema, no del azul de Tailwind que estaba fijo acá.
+    placeholder.style.cssText = `height:${rect.height}px;margin:0;`
+      + 'background:color-mix(in srgb, var(--secondary-color) 10%, transparent);'
+      + 'border:2px dashed var(--secondary-color);'
+      + 'border-radius:var(--vk-radius);box-sizing:border-box';
     container.insertBefore(placeholder, item);
 
     const ghost = document.createElement('div');
@@ -581,10 +588,14 @@ export default class DragDropService {
       position: 'fixed', pointerEvents: 'none', zIndex: '999999',
       opacity: '.85', width: rect.width + 'px', height: rect.height + 'px',
       top: rect.top + 'px', left: rect.left + 'px',
-      background: '#fff', border: '1px solid #d1d5db',
-      borderRadius: '6px', boxShadow: '0 4px 12px rgba(0,0,0,.12)',
+      background: 'var(--secondary-background-color)',
+      color: 'var(--font-primary-color)',
+      border: '2px solid var(--secondary-color)',
+      borderRadius: 'var(--vk-radius)',
+      boxShadow: 'var(--box-shadow-primary)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'system-ui, sans-serif', fontSize: '14px',
+      // `system-ui` pisaba la tipografía de la app en el fantasma de arrastre.
+      fontFamily: 'var(--font-family)', fontSize: '14px',
       willChange: 'transform',
     };
     Object.assign(ghost.style, ghostStyle);

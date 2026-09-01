@@ -49,7 +49,7 @@ slice-checkbox .checkmark {
   width: 1.3em;
   background-color: var(--secondary-background-color);
   border: var(--slice-border) solid var(--primary-color);
-  transition: all 0.3s;
+  transition: all 180ms ease;
   border-radius: var(--border-radius-slice);
   cursor: pointer;
 }

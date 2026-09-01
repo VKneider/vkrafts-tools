@@ -1,0 +1,32 @@
+/* El componente no pinta nada por sí mismo: monta el Modal en <body>. */
+slice-confirm-action-modal {
+  display: contents;
+}
+
+/* Skin propio, sobre los tokens de VKRAFTS — el Modal del registry queda
+   intacto para el resto de la app. */
+
+slice-modal.confirmmodal .slice-modal__body {
+  padding-top: 0.25rem;
+}
+
+slice-modal.confirmmodal .confirmmodal__message {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--medium-color);
+}
+
+slice-modal.confirmmodal .confirmmodal__message[hidden] {
+  display: none;
+}
+
+/* Una acción destructiva se anuncia con color antes de leerse el texto: la
+   franja superior del Modal cambia, no solo el título. */
+slice-modal.confirmmodal--danger {
+  --modal-accent: var(--danger-color);
+}
+
+slice-modal.confirmmodal--danger .slice-modal__title {
+  color: var(--danger-color);
+}

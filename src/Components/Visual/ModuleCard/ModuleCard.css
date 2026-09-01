@@ -1,76 +1,170 @@
+/* ModuleCard — Memphis: un bloque de color plano con trama arriba y el texto
+   abajo. Sin borde de tinta y sin sombra dura: la card se distingue por su
+   bloque de color, no por su contorno. */
+
 slice-module-card {
   display: block;
+  opacity: 0;
+  animation: modulecard-rise 560ms var(--vk-bounce) var(--d, 0ms) forwards;
 }
 
 slice-module-card .modulecard {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 24px;
-  border-radius: 16px;
-  background: var(--primary-background-color);
-  border: 1px solid rgba(var(--primary-color-rgb), 0.15);
-  box-shadow: var(--box-shadow-primary);
-  text-align: center;
+  border-radius: var(--vk-radius-lg);
+  background: var(--secondary-background-color);
+  overflow: hidden;
   cursor: pointer;
-  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  outline: none;
+  transition: translate 240ms var(--vk-bounce), box-shadow 240ms ease;
 }
 
-slice-module-card .modulecard:hover {
-  transform: translateY(-3px);
-  border-color: rgba(var(--primary-color-rgb), 0.4);
-  box-shadow: 0 10px 24px rgba(var(--primary-color-rgb), 0.18);
+slice-module-card .modulecard:hover,
+slice-module-card .modulecard:focus-visible {
+  translate: 0 -5px;
+  box-shadow: var(--box-shadow-primary);
+}
+
+slice-module-card .modulecard:active {
+  translate: 0 -1px;
+}
+
+slice-module-card .modulecard:focus-visible {
+  outline: 3px solid var(--card-accent, var(--primary-color));
+  outline-offset: 3px;
+}
+
+/* ── Bloque de color ───────────────────────────────────────────── */
+
+slice-module-card .modulecard__block {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 22px;
+  min-height: 104px;
+  background: var(--card-accent, var(--primary-color));
+  color: var(--card-ink, var(--primary-color-contrast));
+  overflow: hidden;
+}
+
+/* La trama vive dentro del bloque, no detrás de la card. */
+slice-module-card .modulecard__pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.28;
+  background-image: var(--vk-dots);
+  background-size: var(--vk-dots-size);
+  transition: translate 400ms ease;
+}
+
+slice-module-card .modulecard:hover .modulecard__pattern {
+  translate: 10px 10px;
 }
 
 slice-module-card .modulecard__icon {
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 16px;
-  border-radius: 14px;
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--primary-color-contrast);
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  box-shadow: var(--box-shadow-primary);
+  width: 46px;
+  height: 46px;
+  border-radius: var(--vk-radius);
+  background: var(--primary-background-color);
+  color: var(--card-accent, var(--primary-color));
+  transition: rotate 320ms var(--vk-bounce);
+}
+
+slice-module-card .modulecard:hover .modulecard__icon {
+  rotate: -10deg;
+}
+
+slice-module-card .modulecard__index {
+  position: relative;
+  font-family: var(--vk-font-display);
+  font-weight: 900;
+  font-size: 42px;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  opacity: 0.5;
+}
+
+/* ── Cuerpo ────────────────────────────────────────────────────── */
+
+slice-module-card .modulecard__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 20px 22px 20px;
 }
 
 slice-module-card .modulecard__title {
   margin: 0 0 8px;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--font-secondary-color);
+  font-family: var(--vk-font-display);
+  font-weight: 800;
+  font-size: 25px;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  color: var(--font-primary-color);
 }
 
 slice-module-card .modulecard__description {
   margin: 0 0 16px;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--medium-color);
 }
 
+/* ── Features ──────────────────────────────────────────────────── */
+
 slice-module-card .modulecard__features {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 6px;
-  margin-bottom: 16px;
 }
 
 slice-module-card .modulecard__feature {
-  font-size: 12px;
-  padding: 3px 10px;
+  padding: 4px 10px;
   border-radius: 999px;
+  background: var(--tertiary-background-color);
+  font-size: 11.5px;
+  font-weight: 700;
   color: var(--font-secondary-color);
-  background: rgba(var(--primary-color-rgb), 0.08);
-  border: 1px solid rgba(var(--primary-color-rgb), 0.2);
 }
+
+/* ── Acción ────────────────────────────────────────────────────── */
 
 slice-module-card .modulecard__action {
   margin-top: auto;
+  margin-left: -8px;
+  pointer-events: none;
+  transition: translate 240ms var(--vk-bounce);
 }
 
-slice-module-card .modulecard__action slice-button,
-slice-module-card .modulecard__action .slice_button {
-  min-width: 100%;
+slice-module-card .modulecard:hover .modulecard__action {
+  translate: 6px 0;
+}
+
+@keyframes modulecard-rise {
+  from { opacity: 0; translate: 0 18px; }
+  to   { opacity: 1; translate: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  slice-module-card {
+    opacity: 1;
+    animation: none;
+  }
+
+  slice-module-card .modulecard,
+  slice-module-card .modulecard__icon,
+  slice-module-card .modulecard__pattern,
+  slice-module-card .modulecard__action {
+    transition: none;
+  }
 }

@@ -10,41 +10,42 @@ slice-font-card .fontcard {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  border-radius: 16px;
-  background: var(--primary-background-color);
-  border: 1px solid rgba(var(--primary-color-rgb), 0.14);
+  border-radius: var(--vk-radius-lg);
+  background: var(--secondary-background-color);
   box-shadow: var(--box-shadow-primary);
-  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  transition: translate 200ms var(--vk-bounce), box-shadow 200ms ease;
 }
 
-/* Acento superior degradado */
+/* Franja de acento superior en color plano (antes era un degradado, que este
+   sistema no usa). Crece al seleccionar, así el estado no depende del borde. */
 slice-font-card .fontcard::before {
   content: "";
   position: absolute;
   inset: 0 0 auto;
-  height: 4px;
-  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-  opacity: 0.55;
-  transition: opacity 200ms ease;
+  height: 5px;
+  background: var(--secondary-color);
+  opacity: 0.65;
+  transition: opacity 200ms ease, height 200ms var(--vk-bounce);
 }
 
 slice-font-card .fontcard:hover {
-  transform: translateY(-3px);
-  border-color: rgba(var(--primary-color-rgb), 0.35);
-  box-shadow: 0 12px 28px rgba(var(--primary-color-rgb), 0.18);
+  translate: 0 -3px;
 }
 
 slice-font-card .fontcard:hover::before {
   opacity: 1;
 }
 
+/* La card ya no tiene borde: la selección se marca con un anillo y una franja
+   más gruesa, no con border-color. */
 slice-font-card .fontcard--selected {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.22), var(--box-shadow-primary);
+  box-shadow: 0 0 0 3px var(--primary-color), var(--box-shadow-primary);
 }
 
 slice-font-card .fontcard--selected::before {
   opacity: 1;
+  height: 10px;
+  background: var(--primary-color);
 }
 
 /* ---------- header ---------- */
@@ -63,20 +64,21 @@ slice-font-card .fontcard__code {
   padding: 3px 10px;
   border-radius: 999px;
   color: var(--primary-color-contrast);
-  background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
+  background: var(--primary-color);
   border: none;
   cursor: copy;
-  transition: transform 120ms ease, box-shadow 120ms ease, filter 150ms ease;
+  transition: translate 120ms ease, filter 150ms ease;
 }
 
 slice-font-card .fontcard__code:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(var(--primary-color-rgb), 0.35);
+  translate: 0 -1px;
+  filter: brightness(1.08);
 }
 
 slice-font-card .fontcard__code--copied {
   filter: saturate(1.4) brightness(1.1);
-  box-shadow: 0 0 0 3px rgba(var(--success-color), 0.35);
+  /* Mismo caso que en FontDetailSection: --success-color es un hex. */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success-color) 35%, transparent);
 }
 
 slice-font-card .fontcard__flags {
@@ -113,12 +115,14 @@ slice-font-card .fontcard__preview {
   flex: 1;
   min-height: 110px;
   padding: 18px 16px;
-  border-radius: 12px;
+  border-radius: var(--vk-radius-lg);
   overflow: hidden;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Mismo criterio que en FontDetailSection: papel, no fondo de app. */
+  background-color: var(--paper-color);
   border: 1px dashed rgba(var(--primary-color-rgb), 0.18);
 }
 

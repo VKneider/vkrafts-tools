@@ -22,6 +22,7 @@ export default class AppShell extends HTMLElement {
       const navbar = await slice.build('Navbar', {
          sliceId: 'app-navbar',
          position: 'fixed',
+         logo: { src: '/images/favicon.svg', path: '/' },
          items: [
             { text: 'Hub', path: '/' },
             { text: 'Designer', path: '/designer' },

@@ -1,9 +1,77 @@
+/* Contenedor propio: el shell ya no impone ancho ni padding lateral. */
 .about {
-  padding: 16px 0;
+  max-width: 72ch;
+  margin: 0 auto;
+  padding: 16px 24px 48px;
+}
+
+.about h1 {
+  margin: 0 0 8px;
+  font-size: clamp(34px, 6vw, 54px);
+  color: var(--font-primary-color);
+}
+
+/* Subrayado de bloque plano: el recurso de acento del sistema. */
+.about h1::after {
+  content: "";
+  display: block;
+  width: 86px;
+  height: 8px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: var(--secondary-color);
+}
+
+.about h2 {
+  margin: 32px 0 10px;
+  font-size: 22px;
+  color: var(--font-primary-color);
 }
 
 .about p {
   color: var(--font-secondary-color);
   max-width: 65ch;
   line-height: 1.6;
+}
+
+.about ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.about li {
+  position: relative;
+  padding: 10px 14px 10px 34px;
+  border-radius: var(--vk-radius);
+  background: var(--secondary-background-color);
+  color: var(--font-secondary-color);
+  line-height: 1.5;
+}
+
+/* Punto de color en vez de viñeta: cada ítem lleva su bloque. */
+.about li::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 1.05em;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent-color);
+}
+
+.about li:nth-child(3n + 2)::before {
+  background: var(--secondary-color);
+}
+
+.about li:nth-child(3n + 3)::before {
+  background: var(--success-color);
+}
+
+.about li strong {
+  color: var(--font-primary-color);
 }

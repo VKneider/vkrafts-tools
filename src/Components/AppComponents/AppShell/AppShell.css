@@ -2,9 +2,12 @@
   min-height: 100vh;
 }
 
+/* Sin max-width a propósito: cada sección declara el suyo (Hub 1180, Designer
+   1280, Plantillas 1320, About 65ch). El límite de 960px que había acá los
+   pisaba a todos, y la vista de Plantillas —que es la que más ancho necesita
+   para la hoja— quedaba comprimida a ~910px útiles. */
 .app-shell__content {
-  max-width: 960px;
   margin: 0 auto;
   /* top padding clears the fixed navbar */
-  padding: 96px 24px 48px;
+  padding: 96px 0 48px;
 }

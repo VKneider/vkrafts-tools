@@ -25,25 +25,37 @@ slice-sheet-cell .sheetcell--img {
   to   { opacity: 1; transform: scale(1); }
 }
 
+/* La celda vacía se repite decenas de veces en una hoja: se mantiene discreta
+   en reposo y el color aparece solo al interactuar. */
 slice-sheet-cell .sheetcell--empty {
   display: flex;
   align-items: center;
   justify-content: center;
   border: 2px dashed rgba(var(--primary-color-rgb), 0.28);
   cursor: pointer;
-  transition: border-color 150ms ease, background 150ms ease;
+  transition: border-color 150ms ease, background-color 150ms ease;
 }
 
 slice-sheet-cell .sheetcell--empty:hover {
-  border-color: var(--primary-color);
-  background: rgba(var(--primary-color-rgb), 0.06);
+  border-color: var(--secondary-color);
+  border-style: solid;
+  color: var(--secondary-color);
+  background-color: rgba(var(--secondary-color-rgb), 0.08);
+  background-image: var(--vk-dots);
+  background-size: var(--vk-dots-size);
 }
 
 slice-sheet-cell .sheetcell__plus {
-  font-size: 22px;
-  font-weight: 300;
+  font-size: 24px;
+  font-weight: 400;
   color: var(--medium-color);
   pointer-events: none;
+  transition: color 150ms ease, scale 200ms var(--vk-bounce);
+}
+
+slice-sheet-cell .sheetcell--empty:hover .sheetcell__plus {
+  color: var(--accent-text-color);
+  scale: 1.2;
 }
 
 slice-sheet-cell .sheetcell__remove {
@@ -66,51 +78,3 @@ slice-sheet-cell .sheetcell__remove {
 
 slice-sheet-cell:hover .sheetcell__remove { opacity: 1; }
 
-/* ---------- bordes arrastrables ---------- */
-
-slice-sheet-cell .sheetcell__edge {
-  position: absolute;
-  z-index: 4;
-}
-
-slice-sheet-cell .sheetcell__edge--right,
-slice-sheet-cell .sheetcell__edge--left {
-  top: -3px; bottom: -3px;
-  width: 9px;
-  cursor: col-resize;
-}
-slice-sheet-cell .sheetcell__edge--right { right: -5px; }
-slice-sheet-cell .sheetcell__edge--left { left: -5px; }
-
-slice-sheet-cell .sheetcell__edge--bottom,
-slice-sheet-cell .sheetcell__edge--top {
-  left: -3px; right: -3px;
-  height: 9px;
-  cursor: row-resize;
-}
-slice-sheet-cell .sheetcell__edge--bottom { bottom: -5px; }
-slice-sheet-cell .sheetcell__edge--top { top: -5px; }
-
-slice-sheet-cell .sheetcell__edge::after {
-  content: "";
-  position: absolute;
-  inset: 50% auto auto 50%;
-  transform: translate(-50%, -50%);
-  border-radius: 4px;
-  background: transparent;
-  transition: background 140ms ease;
-}
-
-slice-sheet-cell .sheetcell__edge--right::after,
-slice-sheet-cell .sheetcell__edge--left::after {
-  width: 4px; height: 44px;
-}
-
-slice-sheet-cell .sheetcell__edge--bottom::after,
-slice-sheet-cell .sheetcell__edge--top::after {
-  width: 44px; height: 4px;
-}
-
-slice-sheet-cell .sheetcell__edge:hover::after {
-  background: var(--primary-color);
-}

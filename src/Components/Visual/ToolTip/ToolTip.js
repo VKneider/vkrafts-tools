@@ -118,7 +118,7 @@ export default class ToolTip extends HTMLElement {
       const cc = this._customColor;
       if (cc.background) this.bubble.style.setProperty('--tt-bg', cc.background);
       if (cc.text) this.bubble.style.setProperty('--tt-text', cc.text);
-      if (cc.accent) this.bubble.style.setProperty('--tt-accent', cc.accent);
+      // `--tt-accent` no lo lee ninguna regla del CSS: setearlo no hacía nada.
    }
 
    async init() {

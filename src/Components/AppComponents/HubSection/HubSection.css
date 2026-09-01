@@ -1,129 +1,216 @@
+/* HubSection — Memphis 80s.
+   Reglas del sistema: color plano, formas geométricas sueltas, tramas de
+   puntos y rayas, composición asimétrica. Nada de bordes gruesos de tinta ni
+   sombras duras sin desenfoque: ese es otro lenguaje. */
+
 slice-hub-section {
   display: block;
+  font-family: var(--vk-font-ui);
 }
 
-slice-hub-section .hubsection {
-  max-width: 1100px;
+slice-hub-section .hub {
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 24px 16px 48px;
+  padding: 24px 24px 72px;
 }
 
 /* ── Hero ─────────────────────────────────────────────────────── */
 
-slice-hub-section .hubsection__hero {
+slice-hub-section .hub__hero {
   position: relative;
-  text-align: center;
-  margin-bottom: 48px;
-  padding: 56px 32px 48px;
-  border-radius: 24px;
-  color: var(--primary-color-contrast);
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  box-shadow: 0 12px 40px rgba(var(--primary-color-rgb), 0.25);
+  padding: 56px 0 60px;
   overflow: hidden;
 }
 
-slice-hub-section .hubsection__hero::before {
-  content: '';
+slice-hub-section .hub__hero-inner {
+  position: relative;
+  z-index: 1;
+  /* Asimétrico a propósito: el texto no va centrado. */
+  max-width: 20ch;
+}
+
+/* ── Formas sueltas ───────────────────────────────────────────── */
+
+slice-hub-section .hub__shapes {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 20% 80%, rgba(255,255,255,0.12) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 50%);
   pointer-events: none;
 }
 
-slice-hub-section .hubsection__hero-content {
-  position: relative;
-  z-index: 1;
+slice-hub-section .hub__shape {
+  position: absolute;
+  display: block;
+  animation: hub-drift 11s ease-in-out infinite;
 }
 
-slice-hub-section .hubsection__eyebrow {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  opacity: 0.75;
-  margin-bottom: 12px;
-  padding: 4px 14px;
+/* Triángulo — el signo Memphis por excelencia. */
+slice-hub-section .hub__shape--tri {
+  top: 8%;
+  right: 26%;
+  width: 0;
+  height: 0;
+  border-left: 26px solid transparent;
+  border-right: 26px solid transparent;
+  border-bottom: 44px solid var(--secondary-color);
+  transform: rotate(14deg);
+}
+
+slice-hub-section .hub__shape--circle {
+  top: 58%;
+  right: 8%;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  animation-delay: -3s;
+}
+
+/* Trama de puntos: el patrón vive en la primitiva global. */
+slice-hub-section .hub__shape--dots {
+  top: 14%;
+  right: 4%;
+  width: 96px;
+  height: 68px;
+  color: var(--primary-color);
+  background-image: var(--vk-dots);
+  background-size: var(--vk-dots-size);
+  animation-delay: -6s;
+}
+
+slice-hub-section .hub__shape--stripes {
+  bottom: 6%;
+  left: 46%;
+  width: 84px;
+  height: 40px;
+  border-radius: 6px;
+  color: var(--success-color);
+  background-image: var(--vk-stripes);
+  transform: rotate(-8deg);
+  animation-delay: -8s;
+}
+
+slice-hub-section .hub__shape--pill {
+  top: 40%;
+  right: 36%;
+  width: 58px;
+  height: 20px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.25);
-  background: rgba(255,255,255,0.1);
+  background: var(--primary-color);
+  transform: rotate(-24deg);
+  animation-delay: -4.5s;
 }
 
-slice-hub-section .hubsection__welcome {
-  margin: 0 0 12px;
-  font-size: clamp(26px, 5vw, 36px);
-  font-weight: 800;
-  letter-spacing: -0.02em;
+slice-hub-section .hub__shape--squiggle {
+  top: 30%;
+  right: 14%;
+  width: 120px;
+  color: var(--secondary-color);
+  animation-delay: -1.5s;
 }
 
-slice-hub-section .hubsection__tagline {
-  margin: 0 auto 24px;
-  max-width: 560px;
-  font-size: 16px;
-  line-height: 1.6;
-  opacity: 0.92;
+slice-hub-section .hub__shape--squiggle2 {
+  bottom: 16%;
+  right: 30%;
+  width: 90px;
+  color: var(--accent-color);
+  transform: rotate(12deg);
+  animation-delay: -9s;
 }
 
-slice-hub-section .hubsection__badges {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
+@keyframes hub-drift {
+  0%, 100% { translate: 0 0; }
+  50%      { translate: 0 -16px; }
 }
 
-slice-hub-section .hubsection__badge {
+/* ── Texto ────────────────────────────────────────────────────── */
+
+slice-hub-section .hub__kicker {
+  margin: 0 0 10px;
   font-size: 12px;
-  font-weight: 600;
-  padding: 5px 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(4px);
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-text-color);
 }
 
-/* ── Modules ──────────────────────────────────────────────────── */
-
-slice-hub-section .hubsection__modules {
-  margin-top: 8px;
-}
-
-slice-hub-section .hubsection__header {
-  text-align: center;
-  margin-bottom: 28px;
-}
-
-slice-hub-section .hubsection__header h3 {
-  margin: 0 0 6px;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--font-secondary-color);
-}
-
-slice-hub-section .hubsection__header p {
+slice-hub-section .hub__wordmark {
   margin: 0;
-  color: var(--medium-color);
-  font-size: 14px;
+  font-family: var(--vk-font-display);
+  font-weight: 900;
+  font-size: clamp(54px, 11vw, 116px);
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+  color: var(--font-primary-color);
 }
 
-/* ── Grid slot ────────────────────────────────────────────────── */
+slice-hub-section .hub__lede {
+  margin: 20px 0 0;
+  font-size: clamp(17px, 2.2vw, 21px);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--medium-color);
+}
 
-slice-hub-section .hubsection__gridslot {
+/* ── Grilla ───────────────────────────────────────────────────── */
+
+slice-hub-section .hub__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(258px, 1fr));
+  gap: 22px;
+}
+
+/* ── Reveal ───────────────────────────────────────────────────── */
+
+slice-hub-section .hub__reveal {
+  opacity: 0;
+  animation: hub-rise 560ms var(--vk-bounce) var(--d, 0ms) forwards;
+}
+
+@keyframes hub-rise {
+  from { opacity: 0; translate: 0 16px; }
+  to   { opacity: 1; translate: 0 0; }
 }
 
 /* ── Responsive ───────────────────────────────────────────────── */
 
-@media (max-width: 680px) {
-  slice-hub-section .hubsection__hero {
-    padding: 40px 20px 36px;
-    border-radius: 18px;
+@media (max-width: 720px) {
+  slice-hub-section .hub__hero {
+    padding: 36px 0 40px;
   }
 
-  slice-hub-section .hubsection__gridslot {
-    grid-template-columns: 1fr;
+  slice-hub-section .hub__hero-inner {
+    max-width: none;
+  }
+
+  /* Se conservan solo las formas que no chocan con el texto. */
+  slice-hub-section .hub__shape--dots,
+  slice-hub-section .hub__shape--pill,
+  slice-hub-section .hub__shape--squiggle,
+  slice-hub-section .hub__shape--tri {
+    display: none;
+  }
+
+  slice-hub-section .hub__shape--circle {
+    top: auto;
+    bottom: 4%;
+    width: 54px;
+    height: 54px;
+  }
+}
+
+@media (max-width: 560px) {
+  slice-hub-section .hub {
+    padding: 18px 18px 56px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  slice-hub-section .hub__reveal {
+    opacity: 1;
+    animation: none;
+  }
+
+  slice-hub-section .hub__shape {
+    animation: none;
   }
 }

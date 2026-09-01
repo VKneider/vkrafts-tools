@@ -736,14 +736,24 @@ export default class CanvasSection extends HTMLElement {
          || Array.isArray(active._objects);
       const objects = isMulti && typeof active.getObjects === 'function' ? active.getObjects() : [active];
 
-      objects.forEach((o) => this._fabric.remove(o));
-      this._fabric.discardActiveObject();
+      // Una sola entrada de historial para toda la selección: antes borrar
+      // cinco objetos costaba cinco Ctrl+Z para recuperarlos.
+      this._batch(() => {
+         objects.forEach((o) => this._fabric.remove(o));
+         this._fabric.discardActiveObject();
+      });
+
       this._setSelected(null);
       this._fabric.renderAll();
       this.$menu.hidden = true;
       this._toasts?.show(`${objects.length > 1 ? `${objects.length} elementos` : 'Elemento'} eliminado`, { type: 'success', duration: 1800 });
    }
 
+   /**
+    * Con `_batch` vaciar el canvas ya se deshace con un solo Ctrl+Z, pero la
+    * confirmación se queda: es un botón que borra TODO, y contar con que el
+    * usuario conozca el atajo no es una red de seguridad.
+    */
    clearCanvas() {
       if (!this._fabric) return;
       const objects = this._fabric.getObjects();
@@ -751,13 +761,44 @@ export default class CanvasSection extends HTMLElement {
          this._toasts?.show('El canvas ya está vacío', { type: 'info' });
          return;
       }
-      objects.forEach((o) => this._fabric.remove(o));
+
+      slice.events.emit('confirm:request', {
+         title: 'Vaciar el canvas',
+         message: `Se eliminan los ${objects.length} elementos del lienzo.`,
+         confirmLabel: 'Vaciar',
+         danger: true,
+         onConfirm: () => this._doClearCanvas(objects)
+      });
+   }
+
+   _doClearCanvas(objects) {
+      this._batch(() => objects.forEach((o) => this._fabric.remove(o)));
       this._fabric.renderAll();
       this._setSelected(null);
       this._toasts?.show(`${objects.length} elementos eliminados del canvas`, { type: 'success' });
    }
 
    // ---------- historial ----------
+
+   /**
+    * Agrupa varias operaciones en UNA sola entrada de historial.
+    *
+    * `object:added` / `object:removed` guardan estado en cada disparo, así que
+    * cualquier operación en bucle (borrar una selección múltiple, vaciar el
+    * canvas) generaba una entrada por objeto: deshacer un canvas de veinte
+    * elementos eran veinte Ctrl+Z. Acá se silencia el historial durante el
+    * bucle y se guarda una única vez al final.
+    */
+   _batch(fn) {
+      const previous = this._skipHistory;
+      this._skipHistory = true;
+      try {
+         fn();
+      } finally {
+         this._skipHistory = previous;
+      }
+      this._saveState();
+   }
 
    _saveState() {
       if (!this._fabric || this._skipHistory) return;
@@ -801,22 +842,26 @@ export default class CanvasSection extends HTMLElement {
 
    // ---------- exportación ----------
 
+   // Las descargas pasan por DownloadService: hacerlo a mano acá dejaba el
+   // anchor fuera del documento (Firefox ignora el click) y revocaba la object
+   // URL en la línea siguiente, lo que cancelaba la descarga del SVG.
+   get _downloads() {
+      return slice.getComponent('DownloadService');
+   }
+
    exportAsPNG() {
       if (!this._fabric) return;
-      const link = document.createElement('a');
-      link.download = 'canvas-design.png';
-      link.href = this._fabric.toDataURL({ format: 'png', quality: 1, multiplier: 2 });
-      link.click();
+      const href = this._fabric.toDataURL({ format: 'png', quality: 1, multiplier: 2 });
+      this._downloads?.url(href, 'canvas-design.png');
    }
 
    exportAsSVG() {
       if (!this._fabric) return;
-      const blob = new Blob([this._fabric.toSVG()], { type: 'image/svg+xml' });
-      const link = document.createElement('a');
-      link.download = 'canvas-design.svg';
-      link.href = URL.createObjectURL(blob);
-      link.click();
-      URL.revokeObjectURL(link.href);
+      this._downloads?.text(
+         this._fabric.toSVG(),
+         'canvas-design.svg',
+         'image/svg+xml;charset=utf-8'
+      );
    }
 
    // ---------- teclado y portapapeles ----------

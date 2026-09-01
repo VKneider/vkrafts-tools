@@ -6,12 +6,17 @@ slice-layouts-panel .layoutspanel {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 12px;
-  border-radius: 12px;
-  background: var(--primary-background-color);
-  border: 1px solid rgba(var(--primary-color-rgb), 0.15);
+  padding: 14px;
+  border-radius: var(--vk-radius-lg);
+  background: var(--secondary-background-color);
+  border: none;
   box-shadow: var(--box-shadow-primary);
 }
+
+/* Regla del sistema: la trama y los colores fuertes van en los pocos elementos
+   que anclan la pantalla, nunca en los que se repiten decenas de veces. Este
+   panel es denso, así que se mantiene sobrio y el color aparece solo en los
+   estados activos. */
 
 slice-layouts-panel .layoutspanel__group {
   display: flex;
@@ -21,10 +26,10 @@ slice-layouts-panel .layoutspanel__group {
 
 slice-layouts-panel .layoutspanel__label {
   font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.09em;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--medium-color);
+  color: var(--accent-text-color);
 }
 
 slice-layouts-panel slice-select { width: 100%; }
@@ -185,65 +190,67 @@ slice-layouts-panel .layoutspanel__gallery-wrap {
 
 slice-layouts-panel .layoutspanel__gallery-wrap[hidden] { display: none; }
 
+slice-layouts-panel .layoutspanel__gallery-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+slice-layouts-panel .layoutspanel__gallery-clear {
+  padding: 2px 8px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--danger-color);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+slice-layouts-panel .layoutspanel__gallery-clear:hover {
+  background: rgba(var(--primary-color-rgb), 0.1);
+}
+
+/* Exportación en curso: se bloquean las acciones para no lanzarla dos veces. */
+slice-layouts-panel.is-busy .layoutspanel__actions {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 slice-layouts-panel .layoutspanel__gallery {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-slice-layouts-panel .layoutspanel__pool-item {
-  position: relative;
+/* Las miniaturas de la biblioteca viven ahora en el componente PoolCard, que
+   se trajo su propio CSS. Acá solo queda el contenedor. */
+
+/* ---------- tamaños de producto ---------- */
+
+slice-layouts-panel .layoutspanel__products {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
-slice-layouts-panel .layoutspanel__thumb {
-  width: 52px; height: 52px; border-radius: 8px;
-  border: 2px solid transparent;
-  background-size: cover; background-position: center;
-  cursor: pointer; padding: 0;
-  transition: transform 120ms ease, border-color 120ms ease;
-}
-slice-layouts-panel .layoutspanel__thumb:hover { transform: scale(1.06); }
-slice-layouts-panel .layoutspanel__thumb.is-pending {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.25);
+slice-layouts-panel .layoutspanel__product.is-active {
+  border-color: var(--secondary-color);
+  background: rgba(var(--secondary-color-rgb), 0.16);
+  color: var(--accent-text-color);
+  font-weight: 700;
 }
 
-slice-layouts-panel .layoutspanel__pool-dot {
-  position: absolute;
-  bottom: 3px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
+slice-layouts-panel .layoutspanel__hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--medium-color);
 }
 
-slice-layouts-panel .layoutspanel__pool-dot.is-used {
-  background: var(--success-color);
-}
-
-slice-layouts-panel .layoutspanel__pool-del {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  border: none;
-  background: var(--danger-color);
-  color: var(--danger-contrast);
-  font-size: 11px;
-  line-height: 1;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 120ms ease;
-  z-index: 2;
-}
-
-slice-layouts-panel .layoutspanel__pool-item:hover .layoutspanel__pool-del {
-  opacity: 1;
-}
-
-slice-layouts-panel .layoutspanel__pool-item--dragging {
-  opacity: 0.4;
+slice-layouts-panel .layoutspanel__hint[hidden] {
+  display: none;
 }

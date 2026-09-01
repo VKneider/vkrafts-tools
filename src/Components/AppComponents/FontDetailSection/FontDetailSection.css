@@ -11,9 +11,8 @@ slice-font-detail-section .fontdetailsection {
 slice-font-detail-section .fontdetailsection__notfound {
   text-align: center;
   padding: 48px 24px;
-  border-radius: 14px;
-  background: var(--primary-background-color);
-  border: 1px solid rgba(var(--primary-color-rgb), 0.2);
+  border-radius: var(--vk-radius-lg);
+  background: var(--secondary-background-color);
 }
 
 slice-font-detail-section .fontdetailsection__notfound h2 {
@@ -52,7 +51,7 @@ slice-font-detail-section .fontdetailsection__family-wrap {
 slice-font-detail-section .fontdetailsection__family {
   margin: 0 0 4px;
   font-size: clamp(22px, 4vw, 30px);
-  font-weight: 700;
+  font-weight: 800;
   color: var(--font-secondary-color);
   filter: blur(7px);
   opacity: 0.55;
@@ -70,14 +69,16 @@ slice-font-detail-section .fontdetailsection__family-lock {
   justify-content: center;
   width: 20px;
   height: 20px;
-  border-radius: 6px;
+  border-radius: var(--vk-radius);
   background: var(--tertiary-background-color);
   color: var(--medium-color);
   transition: background 0.2s ease, color 0.2s ease;
 }
 
 slice-font-detail-section .fontdetailsection__family-wrap.is-revealed .fontdetailsection__family-lock {
-  background: rgba(var(--success-color), 0.18);
+  /* Era rgba(var(--success-color), .18): --success-color es un hex, no un
+     triplete, así que la declaración era inválida y la regla no pintaba nada. */
+  background: color-mix(in srgb, var(--success-color) 18%, transparent);
   color: var(--success-color);
 }
 
@@ -90,13 +91,14 @@ slice-font-detail-section .fontdetailsection__hint {
 slice-font-detail-section .fontdetailsection__preview {
   min-height: 180px;
   padding: 32px;
-  border-radius: 16px;
-  border: 1px solid rgba(var(--primary-color-rgb), 0.15);
+  border-radius: var(--vk-radius-lg);
   box-shadow: var(--box-shadow-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--primary-background-color);
+  /* Papel, no fondo de app: lo que se ve acá es la fuente como se va a
+     imprimir, así que en Light va blanco puro. */
+  background-color: var(--paper-color);
 }
 
 slice-font-detail-section .fontdetailsection__preview--checker {
@@ -126,8 +128,7 @@ slice-font-detail-section .fontdetailsection__meta {
 
 slice-font-detail-section .fontdetailsection__meta > div {
   background: var(--secondary-background-color);
-  border: 1px solid rgba(var(--primary-color-rgb), 0.12);
-  border-radius: 10px;
+  border-radius: var(--vk-radius);
   padding: 10px 14px;
 }
 

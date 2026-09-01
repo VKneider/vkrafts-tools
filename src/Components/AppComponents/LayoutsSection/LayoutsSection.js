@@ -1,9 +1,21 @@
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
-const PX_PER_MM = 3.4;
+// 1 mm real en píxeles CSS a 96dpi. El valor exacto importa: con la constante
+// anterior (3.4) la hoja se renderizaba al ~90% y todo lo impreso/exportado
+// salía más chico que el tamaño de papel declarado.
+const PX_PER_MM = 96 / 25.4;
+
 const STEP_MS = 140;
 const HOLD_DRAG_PX = 10;
+const MIN_WEIGHT = 0.15;
+const MAX_FILES = 30;
+const ZOOM_MIN = 0.35;
+const ZOOM_MAX = 3;
+const ZOOM_DEFAULT = 0.7;
+
+// Las celdas se reusan por sliceId entre renders (solo hay una hoja visible).
+const cellId = (slot) => `sheet-cell-${slot}`;
 
 export default class LayoutsSection extends HTMLElement {
 
@@ -26,11 +38,16 @@ export default class LayoutsSection extends HTMLElement {
       this._tips = slice.getComponent('ToolTipProvider');
       this._ctx = slice.context.use('sheet');
 
-      this._poolSvc = await slice.build('PoolService', { sliceId: 'PoolService' });
-      this._placeSvc = await slice.build('PlacementService', { sliceId: 'PlacementService', geomService: this._geom });
-      this._sheetSvc = await slice.build('SheetService', { sliceId: 'SheetService', templatesService: this._templates });
-      this._exportSvc = await slice.build('ExportService', { sliceId: 'ExportService', templatesService: this._templates });
-      this._dnd = await slice.build('DragDropService', { sliceId: 'DragDropService' });
+      // `singleton: true` devuelve la instancia ya construida si existe, así que
+      // esto sirve tanto para crearlas como para recuperarlas (PoolService, por
+      // ejemplo, ya lo levantó Providers para SheetStorage).
+      this._poolSvc = await slice.build('PoolService', { singleton: true });
+      this._placeSvc = await slice.build('PlacementService', { singleton: true, geomService: this._geom });
+      this._sheetSvc = await slice.build('SheetService', { singleton: true, templatesService: this._templates });
+      this._exportSvc = await slice.build('ExportService', { singleton: true, templatesService: this._templates });
+      this._dnd = await slice.build('DragDropService', { singleton: true });
+
+      this._storage = slice.getComponent('SheetStorage');
 
       this._cmenu = slice.getComponent('app-context-menu');
       if (!this._cmenu) {
@@ -40,15 +57,32 @@ export default class LayoutsSection extends HTMLElement {
 
       this._pendingRefId = null;
       this._placing = false;
+      this._exporting = false;
       this._renderSeq = 0;
       this._renderChain = Promise.resolve();
+      this._placeChain = Promise.resolve();
+      this._lastAnimatedSlot = -1;
+      this._dndNodes = new Set();
+
+      // Restaurar ANTES de construir los controles: el panel se inicializa
+      // leyendo la hoja activa, así que tiene que ver ya el estado recuperado.
+      await this._restoreSession();
 
       await this._buildControls();
 
-      this._watchHandle = this._ctx.bind(this, () => this.renderAll());
+      // Bind the watcher AFTER _restoreSession + _buildControls so the initial
+      // context.set() inside _restoreSession doesn't trigger renderAll() while
+      // _panel is still null (which would skip gallery rendering).
+      this._watchHandle = this._ctx.bind(this, () => {
+         this._storage?.scheduleSave(this._state);
+         this.renderAll();
+      });
       await this.renderAll();
 
       document.addEventListener('paste', this._onPaste = (e) => {
+         // La sección queda cacheada por el MultiRoute: sin este guard seguiría
+         // capturando pegados mientras el usuario está en otra vista.
+         if (!this.isConnected) return;
          const files = Array.from(e.clipboardData?.items || [])
             .filter((it) => it.type.startsWith('image/'))
             .map((it) => it.getAsFile())
@@ -62,26 +96,61 @@ export default class LayoutsSection extends HTMLElement {
          e.preventDefault();
 
          const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
-         const factor = Math.exp(-dy * 0.0016);
-
-         const prev = this._state.zoom ?? 0.7;
-         const next = Math.min(3, Math.max(0.35, prev * factor));
-         if (Math.abs(next - prev) > 0.001) {
-            this._ctx.patch({ zoom: next });
-            this.renderSheet();
-         }
+         this._zoomBy(Math.exp(-dy * 0.0016));
       }, { passive: false });
    }
 
    update() { return this.renderAll(); }
 
+   /** Recupera la sesión anterior (biblioteca + hojas), si la hay. */
+   async _restoreSession() {
+      if (!this._storage) {
+         slice.logger?.logWarn?.('LayoutsSection', '[restore] SheetStorage no disponible');
+         return;
+      }
+
+      let restored = null;
+      try {
+         restored = await this._storage.restore();
+      } catch (err) {
+         slice.logger?.logWarn?.('LayoutsSection', '[restore] Error en restore()', err);
+      }
+      if (!restored) return;
+
+      this._ctx.set((prev) => ({
+         ...prev,
+         activeId: restored.activeId,
+         sheets: restored.sheets,
+         pool: restored.pool,
+         zoom: restored.zoom ?? prev.zoom
+      }));
+
+      if (restored.pool.length) {
+         this._toasts?.show(
+            `Sesión restaurada · ${restored.pool.length} imagen(es) y ${restored.sheets.length} hoja(s)`,
+            { type: 'info', duration: 3000 }
+         );
+      }
+   }
+
    beforeDestroy() {
+      // El guardado va con debounce: sin este flush se pierde el último cambio
+      // si el usuario navega enseguida.
+      this._storage?.flush();
+
       document.removeEventListener('paste', this._onPaste);
       document.removeEventListener('wheel', this._onWheel);
+
       if (this._tips) {
          this.querySelectorAll('[data-tooltip]').forEach((el) => this._tips.detach(el));
       }
-      this._poolSvc?.disposeAll(this._state.pool);
+
+      for (const node of this._dndNodes) this._dnd?.detach(node);
+      this._dndNodes.clear();
+
+      // Las object URLs del pool NO se revocan acá: el pool vive en el contexto
+      // 'sheet', que sobrevive a esta sección. Revocarlas dejaba la biblioteca
+      // llena de imágenes rotas al volver a entrar a /layouts.
       slice.controller.destroyByContainer(this);
    }
 
@@ -109,11 +178,12 @@ export default class LayoutsSection extends HTMLElement {
       const sheet = this._sheet();
 
       const actionDefs = [
-         { key: 'auto', label: 'Auto acomodar', icon: 'wand-sparkles', variant: 'filled', tip: 'Recoloca el pool en esta hoja según orientación y proporción', handler: () => this.smartAssign(true) },
-         { key: 'clear', label: 'Limpiar hoja', icon: 'trash-2', variant: 'outlined', tip: 'Vacía las celdas (las imágenes siguen en el pool)', handler: () => this.clearPlacements() },
-         { key: 'pngs', label: 'PNGs', icon: 'images', variant: 'outlined', tip: 'Descargar todas las hojas como imágenes', handler: () => this.exportPNGs() },
-         { key: 'pdf', label: 'PDF', icon: 'file-text', variant: 'outlined', tip: 'Exportar todas las hojas en un PDF', handler: () => this.exportPDF() },
-         { key: 'print', label: 'Imprimir', icon: 'printer', variant: 'soft', tip: 'Imprimir la hoja actual', handler: () => this.printSheet() }
+         { key: 'auto', label: 'Auto acomodar', icon: 'wand-sparkles', variant: 'filled', tip: 'Distribuye automáticamente las imágenes en la hoja', handler: () => this.smartAssign(true) },
+         { key: 'clear', label: 'Limpiar hoja', icon: 'trash-2', variant: 'outlined', tip: 'Quita las imágenes de la hoja (quedan en la biblioteca)', handler: () => this.clearPlacements() },
+         { key: 'pngs', label: 'PNGs', icon: 'images', variant: 'outlined', tip: 'Descarga como imágenes (para uso digital)', handler: () => this.exportPNGs() },
+         { key: 'pdf', label: 'PDF', icon: 'file-text', variant: 'outlined', tip: 'Descarga con medidas exactas (recomendado para imprimir)', handler: () => this.exportPDF() },
+         { key: 'print', label: 'Imprimir', icon: 'printer', variant: 'soft', tip: 'Imprimir todas las hojas a tamaño real', handler: () => this.printSheets() },
+         { key: 'calib', label: 'Calibrar', icon: 'file-text', variant: 'ghost', tip: 'Hoja de prueba para calibrar tu impresora', handler: () => this.exportCalibration() }
       ];
 
       this._panel = await slice.build('LayoutsPanel', {
@@ -125,65 +195,179 @@ export default class LayoutsSection extends HTMLElement {
          onTemplateChange: (t) => this._setTemplate(t),
          onPresetChange: (presetId) => this._commitSheet((s) => ({ ...s, presetId })),
          onFitChange: (fitMode) => this._commitSheet((s) => ({ ...s, fitMode })),
-         onScaleChange: (val) => this._commitSheet((s) => ({ ...s, imageScale: val }))
+         onScaleChange: (val) => this._setImageScale(val),
+         onProductChange: (product) => this._setProduct(product)
       });
       if (this._panel) this.$refs.panel.appendChild(this._panel);
 
       this.$refs.picker.addEventListener('change', () => {
-         const slot = Number(this.$refs.picker.dataset.slot || -1);
+         const slot = Number(this.$refs.picker.dataset.slot ?? -1);
          this.addFiles(Array.from(this.$refs.picker.files || []), {
             directSlot: slot >= 0 ? slot : null
          });
          this.$refs.picker.value = '';
+         delete this.$refs.picker.dataset.slot;
       });
 
+      this.$refs.zoomIn.addEventListener('click', () => this._zoomBy(1.15));
+      this.$refs.zoomOut.addEventListener('click', () => this._zoomBy(1 / 1.15));
+      this.$refs.zoomInfo.addEventListener('click', () => this._setZoom(ZOOM_DEFAULT));
+
       this._tips?.scope(this);
+   }
+
+   // ---------- zoom ----------
+
+   _zoomBy(factor) {
+      this._setZoom((this._state.zoom ?? ZOOM_DEFAULT) * factor);
+   }
+
+   _setZoom(value) {
+      const prev = this._state.zoom ?? ZOOM_DEFAULT;
+      const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value));
+      if (Math.abs(next - prev) < 0.001) return;
+      // patch: `set` reemplaza el estado completo y se llevaría pool y hojas.
+      this._ctx.patch({ zoom: next });
    }
 
    // ---------- pool ----------
 
    async addFiles(files, { directSlot = null } = {}) {
+      const list = Array.from(files || []).slice(0, MAX_FILES);
       const assets = [];
-      for (const file of files.slice(0, 30)) {
+
+      for (const file of list) {
+         if (!file?.type?.startsWith('image/')) continue;
+
          const url = URL.createObjectURL(file);
          const size = await this._poolSvc.measure(url);
-         if (!size) { URL.revokeObjectURL(url); continue; }
-         const asset = this._poolSvc.createAsset(file, size);
-         if (asset) assets.push(asset);
+         if (!size) {
+            URL.revokeObjectURL(url);
+            continue;
+         }
+         // Se reusa la MISMA object URL que ya se midió: createAsset() generaba
+         // una segunda y la primera quedaba sin revocar en cada carga.
+         const asset = this._poolSvc.createAssetDirect({
+            name: file.name,
+            url,
+            w: size.w,
+            h: size.h
+         });
+         if (asset) {
+            assets.push(asset);
+            // El binario va a IndexedDB para sobrevivir a la recarga; la object
+            // URL no sirve fuera de este documento.
+            await this._storage?.saveAsset(asset, file);
+         } else {
+            URL.revokeObjectURL(url);
+         }
       }
-      if (!assets.length) return;
+
+      if (!assets.length) {
+         this._toasts?.show('No se pudo leer ninguna imagen', { type: 'error' });
+         return;
+      }
 
       this._ctx.set((prev) => ({ ...prev, pool: [...prev.pool, ...assets] }));
 
       if (directSlot !== null) {
          const sheet = this._sheet();
          const cellRatio = this._cellRatio(sheet);
-         const fit = this._placeSvc.fitFor(assets[0].ratio, cellRatio, sheet.fitMode);
-         this._commitSheet((s) => this._placeSvc.placeInSlot(s, directSlot, assets[0].id, fit));
-         this.renderSheet();
-         for (let i = 1; i < assets.length; i++) {
-            const step = this._placeSvc.fillNextFree(assets[i], sheet, this._capacity(), cellRatio);
-            if (step) await this._replay([step]);
-         }
+         const [first, ...rest] = assets;
+         const fit = this._placeSvc.fitFor(first.ratio, cellRatio, sheet.fitMode);
+         this._lastAnimatedSlot = directSlot;
+         this._commitSheet((s) => this._placeSvc.placeInSlot(s, directSlot, first.id, fit));
+         this._lastAnimatedSlot = -1;
+         if (rest.length) await this._fillFree(rest);
       } else {
-         await this._fillFreeGradually(assets);
+         await this._fillFree(assets);
       }
-      if (!this._watchHandle) this.renderAll();
    }
 
+   /**
+    * Elimina una imagen del pool. Es la acción MENOS reversible de la vista:
+    * saca la imagen de todas las hojas, revoca su object URL y la borra de
+    * IndexedDB — para recuperarla hay que volver a subir el archivo.
+    *
+    * Se confirma solo si está colocada en alguna hoja, que es cuando además se
+    * pierde trabajo de armado. Preguntar por cada miniatura sin usar entrenaría
+    * al usuario a aceptar sin leer.
+    */
    removeFromPool(id) {
+      const asset = this._asset(id);
+      const placedIn = this._state.sheets.filter((sh) =>
+         this._placeSvc.usedAssetIds(sh).has(id)).length;
+
+      if (!placedIn) return this._doRemoveFromPool(id);
+
+      this._confirm({
+         title: 'Eliminar imagen',
+         message: `"${asset?.name ?? 'La imagen'}" está colocada en ${placedIn} hoja(s). Se quita de todas y se borra de la biblioteca.`,
+         confirmLabel: 'Eliminar',
+         danger: true,
+         onConfirm: () => this._doRemoveFromPool(id)
+      });
+   }
+
+   _doRemoveFromPool(id) {
       this._ctx.set((prev) => ({
          ...prev,
          pool: this._poolSvc.removeAsset(prev.pool, id),
          sheets: this._placeSvc.removeAssetFromAllSheets(prev.sheets, id)
       }));
-      if (!this._watchHandle) this.renderAll();
+      this._storage?.deleteAsset(id);
       if (this._pendingRefId === id) this._pendingRefId = null;
    }
 
+   /** Pide confirmación por evento; el diálogo lo resuelve ConfirmActionModal. */
+   _confirm(config) {
+      slice.events.emit('confirm:request', config);
+   }
+
+   clearPool() {
+      const pool = this._state.pool;
+      if (!pool.length) return;
+
+      this._confirm({
+         title: 'Vaciar la biblioteca',
+         message: `Se eliminan las ${pool.length} imágenes y se vacían todas las hojas. No se puede deshacer.`,
+         confirmLabel: 'Vaciar todo',
+         danger: true,
+         onConfirm: () => this._doClearPool()
+      });
+   }
+
+   _doClearPool() {
+      this._ctx.set((prev) => {
+         this._poolSvc.disposeAll(prev.pool);
+         return {
+            ...prev,
+            pool: [],
+            sheets: prev.sheets.map((sh) => ({ ...sh, placement: {} }))
+         };
+      });
+      this._pendingRefId = null;
+      this._storage?.clearAssets();
+      this._toasts?.show('Biblioteca vaciada', { type: 'info' });
+   }
+
    clearPlacements() {
-      this._commitSheet((s) => this._placeSvc.clearPlacements(s));
-      this._toasts?.show('Celdas vaciadas · las imágenes siguen en el pool', { type: 'info' });
+      const used = this._placeSvc.countUsedInSheet(this._sheet());
+      if (!used) {
+         this._toasts?.show('La hoja ya está vacía', { type: 'info' });
+         return;
+      }
+
+      this._confirm({
+         title: 'Limpiar la hoja',
+         message: `Se vacían las ${used} celdas ocupadas. Las imágenes siguen en la biblioteca.`,
+         confirmLabel: 'Limpiar',
+         danger: true,
+         onConfirm: () => {
+            this._commitSheet((s) => this._placeSvc.clearPlacements(s));
+            this._toasts?.show('Celdas vaciadas · las imágenes siguen en la biblioteca', { type: 'info' });
+         }
+      });
    }
 
    removePlacement(slot) {
@@ -192,65 +376,133 @@ export default class LayoutsSection extends HTMLElement {
 
    // ---------- colocación gradual ----------
 
-   async _fillFreeGradually(refIds) {
+   async _fillFree(assets) {
       const sheet = this._sheet();
       const cellRatio = this._cellRatio(sheet);
-      const assets = refIds
-         .map((id) => this._asset(id))
-         .filter(Boolean);
+      const requested = this._expandByQuantity(assets);
 
-      const queue = this._placeSvc.fillGradually(assets, sheet, this._capacity(), cellRatio);
+      // fillGradually espera los ASSETS, no sus ids: antes se le pasaba el
+      // array de assets y se lo re-mapeaba como ids, así que la cola salía
+      // siempre vacía y el auto-acomodo al subir imágenes no hacía nada.
+      const queue = this._placeSvc.fillGradually(
+         requested, sheet, this._capacity(), cellRatio
+      );
       await this._replay(queue);
 
-      const out = assets.length - queue.length;
-      if (out > 0) this._toasts?.show(`${out} imagen(es) esperan en el pool`, { type: 'info' });
+      const out = requested.length - queue.length;
+         if (out > 0) this._toasts?.show(`${out} imagen(es) esperan en la biblioteca`, { type: 'info' });
    }
 
    _cellRatio(sheet) {
-      const geo = this._cellGeometry(
+      return this._cellGeometry(
          sheet,
          this._templates.get(sheet.templateId),
          this._templates.page(sheet.pageId),
          this._templates.preset(sheet.presetId)
-      );
-      return geo.cellRatio;
+      ).cellRatio;
    }
 
-   async _replay(queue) {
-      if (this._placing) return;
-      this._placing = true;
-      for (const step of queue) {
-         this._lastAnimatedSlot = step.slot;
-         this._commitSheet((s) => this._placeSvc.placeInSlot(s, step.slot, step.refId, step.fit));
-         await new Promise((r) => setTimeout(r, STEP_MS));
+   /** Encola una animación de colocación. Las llamadas se serializan. */
+   _replay(queue) {
+      if (!queue?.length) return this._placeChain;
+
+      this._placeChain = this._placeChain
+         .then(async () => {
+            this._placing = true;
+            for (const step of queue) {
+               this._lastAnimatedSlot = step.slot;
+               this._commitSheet((s) =>
+                  this._placeSvc.placeInSlot(s, step.slot, step.refId, step.fit));
+               await new Promise((r) => setTimeout(r, STEP_MS));
+            }
+         })
+         .catch((err) => {
+            slice.logger?.logError?.('LayoutsSection', 'Placement failed', err);
+         })
+         .finally(() => {
+            this._lastAnimatedSlot = -1;
+            this._placing = false;
+         });
+
+      return this._placeChain;
+   }
+
+   /**
+    * Expande el pool según la cantidad pedida por imagen: una imagen con ×12
+    * entra doce veces en la cola de colocación. Es el caso "doce stickers
+    * iguales en una hoja".
+    */
+   _expandByQuantity(pool) {
+      const out = [];
+      for (const asset of pool) {
+         const copies = Math.max(1, Math.round(asset.quantity ?? 1));
+         for (let i = 0; i < copies; i++) out.push(asset);
       }
-      this._lastAnimatedSlot = -1;
-      this.renderSheet();
-      this._placing = false;
+      return out;
    }
 
-   smartAssign(notify = false) {
+   async smartAssign(notify = false) {
       if (this._placing) return;
+
       const sheet = this._sheet();
       if (!this._state.pool.length) {
-         this._toasts?.show('No hay imágenes en el pool todavía', { type: 'info' });
+         this._toasts?.show('No hay imágenes en la biblioteca todavía', { type: 'info' });
          return;
       }
 
+      const requested = this._expandByQuantity(this._state.pool);
       const cellRatio = this._cellRatio(sheet);
       const queue = this._placeSvc.smartAssign(
-         this._state.pool, sheet, this._capacity(), cellRatio
+         requested, sheet, this._capacity(), cellRatio
       );
 
       this._commitSheet((s) => this._placeSvc.clearPlacements(s));
-      this._replay(queue);
+      await this._replay(queue);
 
       if (notify) {
          const out = this._state.pool.length - queue.length;
          this._toasts?.show(out > 0
-            ? `${queue.length} colocadas · ${out} en el pool sin lugar`
+            ? `${queue.length} colocadas · ${out} sin lugar en la hoja`
             : `${queue.length} imágenes acomodadas`, { type: 'info' });
       }
+   }
+
+   /**
+    * Fija el tamaño de celda a las medidas reales de un producto y calcula
+    * cuántas piezas entran. A diferencia de una plantilla, la celda NO se
+    * estira para llenar la hoja: un sticker de 5×5 sale de 5×5 y lo que sobra
+    * queda como margen.
+    */
+   _setProduct(product) {
+      const sheet = this._sheet();
+      const grid = this._templates.gridForProduct(product, sheet.pageId, sheet.presetId);
+
+      if (!grid.fits) {
+         this._toasts?.show(
+            `${product.name} no entra en esta hoja con estos márgenes`,
+            { type: 'warning' }
+         );
+         return;
+      }
+
+      const tpl = this._templates.ensureGrid(grid.cols, grid.rows);
+
+      this._commitSheet((s) => {
+         const cleaned = this._placeSvc.cleanupPlacement(s, grid.total);
+         return {
+            ...cleaned,
+            templateId: tpl.id,
+            productId: product.id,
+            cellSizeMm: { w: product.wMm, h: product.hMm },
+            cols: Array(grid.cols).fill(1),
+            rows: Array(grid.rows).fill(1)
+         };
+      });
+
+      this._toasts?.show(
+         `${product.name}: entran ${grid.total} por hoja (${grid.cols}×${grid.rows})`,
+         { type: 'success' }
+      );
    }
 
    _setTemplate(t) {
@@ -259,6 +511,10 @@ export default class LayoutsSection extends HTMLElement {
          return {
             ...cleaned,
             templateId: t.id,
+            // Elegir una plantilla libera el tamaño fijo: las celdas vuelven a
+            // estirarse para llenar la hoja.
+            productId: null,
+            cellSizeMm: null,
             cols: Array(t.cols).fill(1),
             rows: Array(t.rows).fill(1)
          };
@@ -270,10 +526,25 @@ export default class LayoutsSection extends HTMLElement {
       }
    }
 
+   _setImageScale(val) {
+      // El slider dispara en cada `input`. Repintamos las celdas en el acto y
+      // dejamos que el commit al contexto haga el resto sin reconstruirlas.
+      const scale = Number(val) || 1;
+      this.$refs.sheet.querySelectorAll('slice-sheet-cell').forEach((cell) => {
+         cell.imageScale = scale;
+      });
+      this._commitSheet((s) => ({ ...s, imageScale: scale }));
+   }
+
    assignToSlot(slot) {
       if (!this._pendingRefId) return;
       const refId = this._pendingRefId;
       const asset = this._asset(refId);
+      if (!asset) {
+         this._pendingRefId = null;
+         return;
+      }
+
       this._lastAnimatedSlot = slot;
       this._commitSheet((s) =>
          this._placeSvc.placeInSlot(s, slot, refId,
@@ -291,14 +562,25 @@ export default class LayoutsSection extends HTMLElement {
       bar.replaceChildren();
 
       s.sheets.forEach((sh, i) => {
+         const used = this._placeSvc.countUsedInSheet(sh);
+         const capacity = this._sheetSvc.getCapacity(sh.templateId);
+
          const chip = document.createElement('div');
          chip.className = 'layoutssection__sheetchip' + (sh.id === s.activeId ? ' is-active' : '');
 
          const main = document.createElement('button');
          main.type = 'button';
          main.className = 'layoutssection__sheetchip-main';
-         main.textContent = `Hoja ${i + 1}`;
          main.addEventListener('click', () => this._ctx.patch({ activeId: sh.id }));
+
+         const label = document.createElement('span');
+         label.textContent = `Hoja ${i + 1}`;
+
+         const count = document.createElement('small');
+         count.className = 'layoutssection__sheetchip-count';
+         count.textContent = `${used}/${capacity}`;
+
+         main.append(label, count);
          chip.appendChild(main);
 
          if (s.sheets.length > 1) {
@@ -307,37 +589,99 @@ export default class LayoutsSection extends HTMLElement {
             del.className = 'layoutssection__sheetchip-del';
             del.textContent = '×';
             del.setAttribute('aria-label', `Eliminar Hoja ${i + 1}`);
-            del.addEventListener('click', () => this.removeSheet(sh.id));
+            del.addEventListener('click', (e) => {
+               e.stopPropagation();
+               this.removeSheet(sh.id);
+            });
             chip.appendChild(del);
          }
 
          bar.appendChild(chip);
       });
 
+      // Dos acciones bien separadas: crear en blanco vs. copiar la activa.
       const add = document.createElement('button');
       add.type = 'button';
       add.className = 'layoutssection__sheetchip-add';
       add.textContent = '+ Nueva hoja';
+      add.setAttribute('data-tooltip', 'Hoja vacía con la configuración por defecto');
       add.addEventListener('click', () => this.addSheet());
       bar.appendChild(add);
+
+      const dup = document.createElement('button');
+      dup.type = 'button';
+      dup.className = 'layoutssection__sheetchip-add layoutssection__sheetchip-dup';
+      dup.textContent = '⧉ Duplicar';
+      dup.setAttribute('data-tooltip', 'Copia la hoja actual con sus ajustes e imágenes');
+      dup.addEventListener('click', () => this.duplicateSheet(s.activeId));
+      bar.appendChild(dup);
+
+      this._tips?.scope(bar);
    }
 
+   /**
+    * Hoja NUEVA: en blanco, con la configuración por defecto del catálogo.
+    * No se le pasa la hoja activa a `createSheet` a propósito — hacerlo heredaba
+    * página, plantilla, márgenes, ajuste y escala, y "nueva hoja" terminaba
+    * comportándose como un clon. Para copiar una hoja está `duplicateSheet`.
+    */
    addSheet() {
-      const s = this._state;
-      const current = this._sheet();
-      const fresh = this._sheetSvc.createSheet(s.sheets.length + 1, current);
+      // `set` REEMPLAZA el estado: sin esparcir `prev` acá se perdían el pool
+      // de imágenes y el zoom cada vez que se creaba una hoja.
+      this._ctx.set((prev) => {
+         const fresh = this._sheetSvc.createSheet(prev.sheets.length + 1);
+         return { ...prev, activeId: fresh.id, sheets: [...prev.sheets, fresh] };
+      });
+      this._toasts?.show(`Hoja ${this._state.sheets.length} creada en blanco`, { type: 'success' });
+   }
 
-      this._ctx.set((prev) => ({
-         activeId: fresh.id,
-         sheets: [...prev.sheets, fresh]
-      }));
-      if (!this._watchHandle) this.renderAll();
-      this._toasts?.show(`Hoja ${s.sheets.length} creada`, { type: 'success' });
+   /** Copia exacta de una hoja: ajustes, medidas de celda e imágenes colocadas. */
+   duplicateSheet(id) {
+      this._ctx.set((prev) => {
+         const index = prev.sheets.findIndex((sh) => sh.id === id);
+         if (index < 0) return prev;
+
+         const src = prev.sheets[index];
+         const copy = {
+            ...src,
+            id: `sheet-${prev.sheets.length + 1}-${Date.now()}`,
+            placement: { ...src.placement },
+            cols: Array.isArray(src.cols) ? [...src.cols] : src.cols,
+            rows: Array.isArray(src.rows) ? [...src.rows] : src.rows
+         };
+
+         const sheets = [...prev.sheets];
+         sheets.splice(index + 1, 0, copy);
+         return { ...prev, sheets, activeId: copy.id };
+      });
+      this._toasts?.show('Hoja duplicada', { type: 'success' });
    }
 
    removeSheet(id) {
-      this._ctx.set((prev) => this._sheetSvc.removeSheet(prev.sheets, prev.activeId, id));
-      if (!this._watchHandle) this.renderAll();
+      const s = this._state;
+      if (s.sheets.length <= 1) return;
+
+      const index = s.sheets.findIndex((sh) => sh.id === id);
+      const sheet = s.sheets[index];
+      const used = sheet ? this._placeSvc.countUsedInSheet(sheet) : 0;
+
+      // Una hoja vacía se borra sin preguntar: no hay nada que perder.
+      if (!used) return this._doRemoveSheet(id);
+
+      this._confirm({
+         title: `Eliminar la hoja ${index + 1}`,
+         message: `Tiene ${used} imagen(es) colocadas. Se pierde el armado de esta hoja, pero las imágenes siguen en la biblioteca.`,
+         confirmLabel: 'Eliminar',
+         danger: true,
+         onConfirm: () => this._doRemoveSheet(id)
+      });
+   }
+
+   _doRemoveSheet(id) {
+      this._ctx.set((prev) => {
+         if (prev.sheets.length <= 1) return prev;
+         return { ...prev, ...this._sheetSvc.removeSheet(prev.sheets, prev.activeId, id) };
+      });
    }
 
    // ---------- render ----------
@@ -359,80 +703,141 @@ export default class LayoutsSection extends HTMLElement {
       }
 
       if (this.$refs.zoomInfo) {
-         const pct = Math.round((this._state.zoom ?? 0.7) * 100);
-         this.$refs.zoomInfo.textContent = `Zoom ${pct}% · Ctrl+rueda`;
+         const pct = Math.round((this._state.zoom ?? ZOOM_DEFAULT) * 100);
+         this.$refs.zoomInfo.textContent = `${pct}%`;
+      }
+
+      if (this.$refs.hint) {
+         this.$refs.hint.hidden = this._state.pool.length > 0;
       }
    }
 
    renderGallery() {
       const host = this._panel?.getGalleryHost();
       if (!host) return;
+
       const s = this._state;
+
       host.hidden = s.pool.length === 0;
-      host.replaceChildren();
 
-      const header = document.createElement('span');
-      header.className = 'layoutspanel__label';
-      header.textContent = `Biblioteca (${s.pool.length})`;
-      host.appendChild(header);
+      // La cáscara (título + botón vaciar) se arma una sola vez; después solo
+      // se refresca el contador. Reconstruirla en cada commit del contexto
+      // destruía las tarjetas justo mientras el usuario tocaba sus controles.
+      if (!this._$galleryGrid || !host.contains(this._$galleryGrid)) {
+         host.replaceChildren();
 
-      const grid = document.createElement('div');
-      grid.className = 'layoutspanel__gallery';
+         const header = document.createElement('div');
+         header.className = 'layoutspanel__gallery-head';
 
-      const usedInActive = this._placeSvc.usedAssetIds(this._sheet());
+         this._$galleryTitle = document.createElement('span');
+         this._$galleryTitle.className = 'layoutspanel__label';
+         header.appendChild(this._$galleryTitle);
 
-      s.pool.forEach((asset) => {
-         const wrap = document.createElement('div');
-         wrap.className = 'layoutspanel__pool-item';
+         const clear = document.createElement('button');
+         clear.type = 'button';
+         clear.className = 'layoutspanel__gallery-clear';
+         clear.textContent = 'Vaciar';
+         clear.setAttribute('data-tooltip', 'Elimina todas las imágenes de la biblioteca');
+         clear.addEventListener('click', () => this.clearPool());
+         header.appendChild(clear);
 
-         const thumb = document.createElement('button');
-         thumb.type = 'button';
-         thumb.className = 'layoutspanel__thumb';
-         if (this._pendingRefId === asset.id) thumb.classList.add('is-pending');
-         thumb.style.backgroundImage = `url("${asset.url}")`;
-         thumb.setAttribute('data-tooltip', usedInActive.has(asset.id)
-            ? 'Arrastrar a una celda · click para recolocar'
-            : 'Arrastrar a una celda · click para seleccionar');
-         thumb.addEventListener('click', () => {
-            this._pendingRefId = this._pendingRefId === asset.id ? null : asset.id;
-            this.renderGallery();
+         this._$galleryGrid = document.createElement('div');
+         this._$galleryGrid.className = 'layoutspanel__gallery';
+
+         host.append(header, this._$galleryGrid);
+      }
+
+      this._$galleryTitle.textContent = `Biblioteca (${s.pool.length})`;
+
+      // Serializado: renderGallery() se dispara en cada commit del contexto sin
+      // que nadie la espere, y dos pasadas concurrentes construirían dos veces
+      // la PoolCard de un mismo asset.
+      this._galleryChain = (this._galleryChain || Promise.resolve())
+         .then(() => this._renderPoolCards(this._$galleryGrid, this._state.pool,
+            this._placeSvc.usedAssetIds(this._sheet())))
+         .catch((err) => {
+            slice.logger?.logError?.('LayoutsSection', 'Gallery render failed', err);
          });
 
-         this._dnd.makeDraggable(wrap, {
-            handle: thumb,
-            data: { type: 'pool-asset', assetId: asset.id },
-            ghost: true,
-            ghostClass: 'layoutspanel__pool-item--dragging',
-            onDragEnd: () => { this._dropTargetSlot = null; }
-         });
+      return this._galleryChain;
+   }
 
-         const del = document.createElement('button');
-         del.type = 'button';
-         del.className = 'layoutspanel__pool-del';
-         del.textContent = '×';
-         del.setAttribute('aria-label', 'Eliminar del pool');
-         del.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.removeFromPool(asset.id);
-         });
+   /** Reusa las tarjetas por sliceId: construye las nuevas, refresca las que
+    *  siguen y destruye las que ya no están. */
+   async _renderPoolCards(grid, pool, usedInActive) {
+      const alive = new Set();
 
-         const dot = document.createElement('span');
-         dot.className = 'layoutspanel__pool-dot';
-         if (usedInActive.has(asset.id)) dot.classList.add('is-used');
+      for (const asset of pool) {
+         const id = `pool-card-${asset.id}`;
+         alive.add(id);
 
-         wrap.append(thumb, dot, del);
-         grid.appendChild(wrap);
-      });
+         let card = slice.getComponent(id);
+         if (card) {
+            slice.setComponentProps(card, {
+               asset,
+               pending: this._pendingRefId === asset.id,
+               used: usedInActive.has(asset.id),
+               quantity: asset.quantity ?? 1
+            });
+         } else {
+            card = await slice.build('PoolCard', {
+               sliceId: id,
+               asset,
+               pending: this._pendingRefId === asset.id,
+               used: usedInActive.has(asset.id),
+               quantity: asset.quantity ?? 1,
+               onSelect: (assetId) => {
+                  this._pendingRefId = this._pendingRefId === assetId ? null : assetId;
+                  this.renderGallery();
+               },
+               onRemove: (assetId) => this.removeFromPool(assetId),
+               onQuantityChange: (assetId, qty) => this.setAssetQuantity(assetId, qty)
+            });
+            if (!card) continue;
+            this._dndAttach(card, {
+               draggable: {
+                  handle: card.dragHandle,
+                  data: { type: 'pool-asset', assetId: asset.id },
+                  ghost: true,
+                  ghostClass: 'poolcard--dragging'
+               }
+            });
+         }
+         grid.appendChild(card);
+      }
 
-      host.appendChild(grid);
+      for (const el of Array.from(grid.children)) {
+         const id = el.getAttribute?.('slice-id');
+         if (!id || alive.has(id)) continue;
+         this._dndRelease(el);
+         slice.controller.destroyComponent(id);
+         el.remove();
+      }
+
+      this._releaseDetachedDnd();
+   }
+
+   /** Cuántas copias de esta imagen deben entrar en la hoja al auto-acomodar. */
+   setAssetQuantity(id, quantity) {
+      this._ctx.set((prev) => ({
+         ...prev,
+         pool: prev.pool.map((a) => (a.id === id ? { ...a, quantity } : a))
+      }));
+      this._storage?.updateAssetQuantity(id, quantity);
    }
 
    renderSheet() {
       const seq = ++this._renderSeq;
-      this._renderChain = this._renderChain.then(() => {
-         if (seq !== this._renderSeq) return null;
-         return this._renderSheetInto(this._sheet(), this.$refs.sheet, { interactive: true, seq });
-      });
+      this._renderChain = this._renderChain
+         .then(() => {
+            if (seq !== this._renderSeq) return null;
+            return this._renderSheetInto(this._sheet(), this.$refs.sheet, { interactive: true, seq });
+         })
+         // Sin este catch, un solo render fallido dejaba la cadena rechazada y
+         // ningún render posterior volvía a ejecutarse.
+         .catch((err) => {
+            slice.logger?.logError?.('LayoutsSection', 'Sheet render failed', err);
+         });
       return this._renderChain;
    }
 
@@ -441,113 +846,196 @@ export default class LayoutsSection extends HTMLElement {
       const page = this._templates.page(sheet.pageId);
       const preset = this._templates.preset(sheet.presetId);
       const geo = this._cellGeometry(sheet, tpl, page, preset);
+      const placement = sheet.placement || {};
 
-      const scale = PX_PER_MM;
-      this._lastScale = scale;
+      // Sin redondear: el contenedor se redondeaba a px enteros mientras los
+      // tracks de la grilla iban con decimales, así que la suma de celdas +
+      // gaps + márgenes no daba exactamente el alto/ancho de la hoja y esa
+      // diferencia se arrastraba hasta el PDF.
+      const W = page.w * PX_PER_MM;
+      const H = page.h * PX_PER_MM;
 
-      const W = Math.round(page.w * scale);
-      const H = Math.round(page.h * scale);
-      Object.assign(host.style, {
+      const layout = {
          width: `${W}px`,
          height: `${H}px`,
-         padding: `${preset.marginMm * scale}px`,
-         gap: `${preset.gapMm * scale}px`,
-         gridTemplateColumns: geo.colWmm.map((w) => `${Math.round(w * scale)}px`).join(' '),
-         gridTemplateRows: geo.rowHmm.map((h) => `${Math.round(h * scale)}px`).join(' '),
-         transform: interactive ? `scale(${this._state.zoom ?? 0.7})` : 'none',
-         transformOrigin: 'top center'
-      });
-
-      if (interactive) slice.controller.destroyByContainer(host);
-      host.replaceChildren();
-
-      for (let idx = 0; idx < tpl.cols * tpl.rows; idx++) {
-         const ref = sheet.placement[idx];
-         const asset = ref ? this._asset(ref.refId) : null;
-         const col = idx % tpl.cols;
-         const row = Math.floor(idx / tpl.cols);
-         const animate = interactive && idx === this._lastAnimatedSlot;
-
-         if (!interactive) {
-            const cell = document.createElement('div');
-            cell.className = 'layoutssection__cell';
-            if (asset && ref) {
-               cell.classList.add('layoutssection__cell--img');
-               cell.style.backgroundImage = `url("${asset.url}")`;
-               const imgScale = sheet.imageScale ?? 1;
-               if (imgScale < 1) {
-                  cell.style.backgroundSize = `${imgScale * 100}%`;
-                  cell.style.backgroundPosition = 'center';
-                  cell.style.backgroundRepeat = 'no-repeat';
-               } else {
-                  cell.style.backgroundSize = ref.fit === 'contain' ? 'contain' : 'cover';
-               }
-            }
-            host.appendChild(cell);
-            continue;
-         }
-
-         const cell = await slice.build('SheetCell', {
-            slot: idx,
-            col,
-            row,
-            img: asset ? { ...asset, fit: ref?.fit || 'cover' } : null,
-            imageScale: sheet.imageScale ?? 1,
-            animate,
-            onPick: (slotIdx) => this._onEmptyCellClick(slotIdx),
-            onRemove: (slotIdx) => this.removePlacement(slotIdx),
-            onMenu: (info) => this._showInfoMenu(info.nativeEvent, info),
-            onEdgeDrag: (e, axis, k) => this._beginBoundaryDrag(e, axis, k)
-         });
-         if (seq !== null && seq !== this._renderSeq) {
-            cell?.remove?.();
-            return;
-         }
-         if (!cell) continue;
-
-         cell.setGeometry(tpl.cols, tpl.rows);
-         host.appendChild(cell);
-
-         if (interactive) {
-            const slotIdx = idx;
-
-            if (ref) {
-               this._dnd.makeDraggable(cell, {
-                  handle: cell.querySelector('.sheetcell'),
-                  data: { type: 'cell-swap', sourceSlot: slotIdx, assetId: ref.refId },
-                  ghost: true,
-                  threshold: 5
-               });
-            }
-
-            this._dnd.makeDroppable(cell, {
-               accept: (data) => data?.type === 'pool-asset' || data?.type === 'cell-swap',
-               onDragEnter: () => cell.classList.add('sheetcell--drop-hover'),
-               onDragLeave: () => cell.classList.remove('sheetcell--drop-hover'),
-               onDrop: (_el, _ev, data) => {
-                  cell.classList.remove('sheetcell--drop-hover');
-                  this._handleCellDrop(slotIdx, data);
-               }
-            });
-         }
-      }
+         padding: `${preset.marginMm * PX_PER_MM}px`,
+         gap: `${preset.gapMm * PX_PER_MM}px`,
+         gridTemplateColumns: geo.colWmm.map((w) => `${w * PX_PER_MM}px`).join(' '),
+         gridTemplateRows: geo.rowHmm.map((h) => `${h * PX_PER_MM}px`).join(' '),
+         // Con celdas de tamaño fijo la grilla no llena la hoja: se centra y lo
+         // que sobra queda como margen.
+         justifyContent: geo.fixed ? 'center' : 'stretch',
+         alignContent: geo.fixed ? 'center' : 'stretch'
+      };
 
       if (interactive) {
-         this._renderSplitters(host, geo, tpl, preset);
-         this._tips?.scope(host);
-         this._applyCellTooltips(host, geo);
+         Object.assign(host.style, layout, {
+            transform: `scale(${this._state.zoom ?? ZOOM_DEFAULT})`,
+            transformOrigin: 'top center'
+         });
+      } else {
+         // Rama de exportación: el contenedor vive fuera de <slice-layouts-section>,
+         // así que NINGUNA regla del CSS del componente lo alcanza. Todo lo que
+         // el layout necesita va inline o la hoja se exporta como una pila
+         // vertical de celdas sin grilla.
+         Object.assign(host.style, layout, {
+            display: 'grid',
+            boxSizing: 'border-box',
+            position: 'relative',
+            background: '#ffffff',
+            borderRadius: '0',
+            boxShadow: 'none',
+            transform: 'none',
+            overflow: 'hidden'
+         });
+
+         host.replaceChildren();
+         for (let idx = 0; idx < tpl.cols * tpl.rows; idx++) {
+            host.appendChild(this._buildFlatCell(placement[idx], sheet));
+         }
+         return;
       }
+
+      const capacity = tpl.cols * tpl.rows;
+      const alive = new Set();
+
+      for (let idx = 0; idx < capacity; idx++) {
+         const ref = placement[idx];
+         const asset = ref ? this._asset(ref.refId) : null;
+         const img = asset ? { ...asset, fit: ref?.fit || 'cover' } : null;
+         const id = cellId(idx);
+         alive.add(id);
+
+         let cell = slice.getComponent(id);
+
+         if (cell) {
+            // Reuso en sitio: los setters repintan y no se pierde el estado
+            // interno ni se re-registra el drag & drop desde cero.
+            cell.animate = idx === this._lastAnimatedSlot;
+            slice.setComponentProps(cell, {
+               slot: idx,
+               col: idx % tpl.cols,
+               row: Math.floor(idx / tpl.cols),
+               img,
+               imageScale: sheet.imageScale ?? 1
+            });
+         } else {
+            cell = await slice.build('SheetCell', {
+               sliceId: id,
+               slot: idx,
+               col: idx % tpl.cols,
+               row: Math.floor(idx / tpl.cols),
+               img,
+               imageScale: sheet.imageScale ?? 1,
+               animate: idx === this._lastAnimatedSlot,
+               onPick: (slotIdx) => this._onEmptyCellClick(slotIdx),
+               onRemove: (slotIdx) => this.removePlacement(slotIdx),
+               onMenu: (info) => this._showInfoMenu(info.nativeEvent, info)
+            });
+         }
+
+         if (seq !== null && seq !== this._renderSeq) return;
+         if (!cell) continue;
+
+         host.appendChild(cell);
+         this._attachCellDnd(cell, idx, ref);
+      }
+
+      // Poda: celdas que sobran tras cambiar a una plantilla más chica.
+      for (const el of Array.from(host.children)) {
+         const id = el.getAttribute?.('slice-id');
+         if (!id || alive.has(id)) continue;
+         this._dndRelease(el);
+         slice.controller.destroyComponent(id);
+         el.remove();
+      }
+
+      this._renderSplitters(host, geo, tpl, preset);
+      this._releaseDetachedDnd();
+      this._tips?.scope(host);
+      this._applyCellTooltips(host, geo);
+   }
+
+   /** Celda plana para exportación: sin componentes ni CSS externo. */
+   _buildFlatCell(ref, sheet) {
+      const cell = document.createElement('div');
+      Object.assign(cell.style, {
+         position: 'relative',
+         minWidth: '0',
+         minHeight: '0',
+         borderRadius: '0',
+         overflow: 'hidden'
+      });
+
+      const asset = ref ? this._asset(ref.refId) : null;
+      if (!asset) return cell;
+
+      const imgScale = sheet.imageScale ?? 1;
+      Object.assign(cell.style, {
+         backgroundImage: `url("${asset.url}")`,
+         backgroundPosition: 'center',
+         backgroundRepeat: 'no-repeat',
+         backgroundSize: imgScale < 1
+            ? `${imgScale * 100}%`
+            : (ref.fit === 'contain' ? 'contain' : 'cover')
+      });
+
+      return cell;
+   }
+
+   // ---------- drag & drop ----------
+
+   _dndAttach(node, { draggable = null, droppable = null } = {}) {
+      this._dnd.detach(node);
+      if (draggable) this._dnd.makeDraggable(node, draggable);
+      if (droppable) this._dnd.makeDroppable(node, droppable);
+      this._dndNodes.add(node);
+   }
+
+   _dndRelease(node) {
+      this._dnd.detach(node);
+      this._dndNodes.delete(node);
+   }
+
+   /** DragDropService retiene los nodos por siempre; le devolvemos los muertos. */
+   _releaseDetachedDnd() {
+      for (const node of [...this._dndNodes]) {
+         if (!node.isConnected) this._dndRelease(node);
+      }
+   }
+
+   _attachCellDnd(cell, slotIdx, ref) {
+      this._dndAttach(cell, {
+         draggable: ref
+            ? {
+               handle: cell.querySelector('.sheetcell'),
+               data: { type: 'cell-swap', sourceSlot: slotIdx, assetId: ref.refId },
+               ghost: true,
+               threshold: 5
+            }
+            : null,
+         droppable: {
+            accept: (data) => data?.type === 'pool-asset' || data?.type === 'cell-swap',
+            onDragEnter: () => cell.classList.add('sheetcell--drop-hover'),
+            onDragLeave: () => cell.classList.remove('sheetcell--drop-hover'),
+            onDrop: (_el, _ev, data) => {
+               cell.classList.remove('sheetcell--drop-hover');
+               this._handleCellDrop(slotIdx, data);
+            }
+         }
+      });
    }
 
    _applyCellTooltips(host, geo) {
       if (!this._tips) return;
       const cm = (mm) => `${(mm / 10).toFixed(1)} cm`;
+      const cols = geo.colWmm.length;
 
       Array.from(host.querySelectorAll('slice-sheet-cell')).forEach((cellEl) => {
          const slot = Number(cellEl.querySelector('.sheetcell')?.dataset.slot ?? cellEl.dataset.slot);
          if (!Number.isFinite(slot)) return;
-         const col = slot % geo.cols.length;
-         const row = Math.floor(slot / geo.cols.length);
+         const col = slot % cols;
+         const row = Math.floor(slot / cols);
          const text = `${cm(geo.colWmm[col])} × ${cm(geo.rowHmm[row])}`;
          this._tips.detach(cellEl);
          this._tips.attach(cellEl, { text, placement: 'bottom', showDelay: 120 });
@@ -557,40 +1045,25 @@ export default class LayoutsSection extends HTMLElement {
    // ---------- geometría ----------
 
    _cellGeometry(sheet, tpl, page, preset) {
-      return this._geom.geometry(tpl, page, preset, sheet.cols, sheet.rows);
+      return this._geom.geometry(
+         tpl, page, preset, sheet.cols, sheet.rows, sheet.cellSizeMm
+      );
    }
 
    // ---------- splitters ----------
 
    _renderSplitters(host, geo, tpl, preset) {
-      const scale = this._lastScale || PX_PER_MM;
-      const innerLeft = preset.marginMm * scale;
-      const innerTop = preset.marginMm * scale;
-      const innerW = host.clientWidth - preset.marginMm * 2 * scale;
-      const innerH = host.clientHeight - preset.marginMm * 2 * scale;
-      const gapPx = preset.gapMm * scale;
+      host.querySelectorAll('.layoutssection__splitter').forEach((el) => el.remove());
+
+      // Con un producto elegido la celda mide lo que mide: redimensionar por
+      // pesos no haría nada, así que tampoco se ofrecen los tiradores.
+      if (geo.fixed) return;
 
       const makeHandle = (axis, k) => {
          const h = document.createElement('div');
          h.className = `layoutssection__splitter layoutssection__splitter--${axis}`;
-
-         if (axis === 'v') {
-            const left = innerLeft +
-               geo.colWmm.slice(0, k).reduce((a, b) => a + b, 0) +
-               gapPx * k - HOLD_DRAG_PX / 2;
-            h.style.left = `${left}px`;
-            h.style.top = `${innerTop}px`;
-            h.style.height = `${innerH}px`;
-            h.style.width = `${HOLD_DRAG_PX}px`;
-         } else {
-            const top = innerTop +
-               geo.rowHmm.slice(0, k).reduce((a, b) => a + b, 0) +
-               gapPx * k - HOLD_DRAG_PX / 2;
-            h.style.top = `${top}px`;
-            h.style.left = `${innerLeft}px`;
-            h.style.width = `${innerW}px`;
-            h.style.height = `${HOLD_DRAG_PX}px`;
-         }
+         h.dataset.axis = axis;
+         h.dataset.k = String(k);
          h.addEventListener('pointerdown', (e) => this._beginBoundaryDrag(e, axis, k));
          h.addEventListener('dblclick', () => {
             this._commitSheet((s) => (axis === 'v'
@@ -602,49 +1075,116 @@ export default class LayoutsSection extends HTMLElement {
 
       for (let k = 1; k < tpl.cols; k++) host.appendChild(makeHandle('v', k));
       for (let k = 1; k < tpl.rows; k++) host.appendChild(makeHandle('h', k));
+
+      this._positionSplitters(host, geo, preset);
+   }
+
+   _positionSplitters(host, geo, preset) {
+      const inner = preset.marginMm * PX_PER_MM;
+      const gapPx = preset.gapMm * PX_PER_MM;
+      const innerW = geo.colWmm.reduce((a, b) => a + b, 0) * PX_PER_MM
+         + gapPx * (geo.colWmm.length - 1);
+      const innerH = geo.rowHmm.reduce((a, b) => a + b, 0) * PX_PER_MM
+         + gapPx * (geo.rowHmm.length - 1);
+
+      host.querySelectorAll('.layoutssection__splitter').forEach((h) => {
+         const axis = h.dataset.axis;
+         const k = Number(h.dataset.k);
+
+         if (axis === 'v') {
+            const left = inner
+               + geo.colWmm.slice(0, k).reduce((a, b) => a + b, 0) * PX_PER_MM
+               + gapPx * k - HOLD_DRAG_PX / 2;
+            Object.assign(h.style, {
+               left: `${left}px`,
+               top: `${inner}px`,
+               height: `${innerH}px`,
+               width: `${HOLD_DRAG_PX}px`
+            });
+         } else {
+            const top = inner
+               + geo.rowHmm.slice(0, k).reduce((a, b) => a + b, 0) * PX_PER_MM
+               + gapPx * k - HOLD_DRAG_PX / 2;
+            Object.assign(h.style, {
+               top: `${top}px`,
+               left: `${inner}px`,
+               width: `${innerW}px`,
+               height: `${HOLD_DRAG_PX}px`
+            });
+         }
+      });
    }
 
    _beginBoundaryDrag(event, axis, k) {
       event.preventDefault();
-      const sheet = this._sheet();
-      const geo = this._cellGeometry(
-         sheet,
-         this._templates.get(sheet.templateId),
-         this._templates.page(sheet.pageId),
-         this._templates.preset(sheet.presetId)
-      );
 
+      const sheet = this._sheet();
+      // Tamaño de producto fijo: los pesos no participan de la geometría.
+      if (sheet.cellSizeMm) return;
+
+      const tpl = this._templates.get(sheet.templateId);
+      const page = this._templates.page(sheet.pageId);
+      const preset = this._templates.preset(sheet.presetId);
+      const geo = this._cellGeometry(sheet, tpl, page, preset);
+
+      const host = this.$refs.sheet;
       const startPos = axis === 'v' ? event.clientX : event.clientY;
-      const weights = axis === 'v' ? [...geo.cols] : [...geo.rows];
+      const base = axis === 'v' ? [...geo.cols] : [...geo.rows];
+      const unit = axis === 'v'
+         ? geo.colWmm[k - 1] / base[k - 1]
+         : geo.rowHmm[k - 1] / base[k - 1];
+
+      let latest = base;
+      let frame = 0;
+
+      const apply = (weights) => {
+         const preview = this._geom.geometry(
+            tpl, page, preset,
+            axis === 'v' ? weights : sheet.cols,
+            axis === 'h' ? weights : sheet.rows
+         );
+         host.style.gridTemplateColumns = preview.colWmm.map((w) => `${w * PX_PER_MM}px`).join(' ');
+         host.style.gridTemplateRows = preview.rowHmm.map((h) => `${h * PX_PER_MM}px`).join(' ');
+         this._positionSplitters(host, preview, preset);
+      };
 
       const onMove = (ev) => {
-         const zoom = this._state.zoom ?? 0.7;
-         const effectiveScale = PX_PER_MM * zoom;
-         const delta = ((axis === 'v' ? ev.clientX : ev.clientY) - startPos) / effectiveScale;
-         const unit = axis === 'v'
-            ? geo.colWmm[k - 1] / weights[k - 1]
-            : geo.rowHmm[k - 1] / weights[k - 1];
-         let wA = weights[k - 1] + delta / unit;
-         let wB = weights[k] - delta / unit;
-         const min = 0.15;
-         if (wA < min) { wB += min - wA; wA = min; }
-         if (wB < min) { wA += min - wB; wB = min; }
-         weights[k - 1] = wA;
-         weights[k] = wB;
+         const zoom = this._state.zoom ?? ZOOM_DEFAULT;
+         const delta = ((axis === 'v' ? ev.clientX : ev.clientY) - startPos) / (PX_PER_MM * zoom);
 
-         requestAnimationFrame(() => {
-            this._commitSheet((s) => (axis === 'v'
-               ? { ...s, cols: [...weights] }
-               : { ...s, rows: [...weights] }));
-         });
+         const next = [...base];
+         let wA = base[k - 1] + delta / unit;
+         let wB = base[k] - delta / unit;
+         if (wA < MIN_WEIGHT) { wB += MIN_WEIGHT - wA; wA = MIN_WEIGHT; }
+         if (wB < MIN_WEIGHT) { wA += MIN_WEIGHT - wB; wB = MIN_WEIGHT; }
+         next[k - 1] = wA;
+         next[k] = wB;
+         latest = next;
+
+         // Preview puramente visual. Antes se hacía commit al contexto en cada
+         // pointermove, y como el watcher dispara renderAll(), cada frame
+         // reconstruía TODAS las celdas con slice.build().
+         if (!frame) {
+            frame = requestAnimationFrame(() => {
+               frame = 0;
+               apply(latest);
+            });
+         }
       };
 
       const onUp = () => {
          window.removeEventListener('pointermove', onMove);
          window.removeEventListener('pointerup', onUp);
+         window.removeEventListener('pointercancel', onUp);
+         if (frame) cancelAnimationFrame(frame);
+         this._commitSheet((s) => (axis === 'v'
+            ? { ...s, cols: [...latest] }
+            : { ...s, rows: [...latest] }));
       };
+
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
    }
 
    // ---------- menú contextual ----------
@@ -669,7 +1209,7 @@ export default class LayoutsSection extends HTMLElement {
             action: () => this.removePlacement(info.slot)
          });
          items.push({
-            label: 'Eliminar del pool',
+            label: 'Eliminar de la biblioteca',
             icon: 'trash-2',
             danger: true,
             action: () => this.removeFromPool(img.id)
@@ -690,6 +1230,7 @@ export default class LayoutsSection extends HTMLElement {
             return modal;
          })();
       }
+
       this._sizeModalPromise.then((modal) => {
          if (!modal) return;
 
@@ -726,7 +1267,6 @@ export default class LayoutsSection extends HTMLElement {
                   return next;
                });
                this._toasts?.show('Medidas de celda aplicadas', { type: 'success', duration: 1600 });
-               this.renderAll();
             }
          });
       });
@@ -735,8 +1275,6 @@ export default class LayoutsSection extends HTMLElement {
    _onEmptyCellClick(slot) {
       if (this._pendingRefId) {
          this.assignToSlot(slot);
-         this.renderGallery();
-         this.renderSheet();
          return;
       }
       this.$refs.picker.dataset.slot = String(slot);
@@ -750,70 +1288,177 @@ export default class LayoutsSection extends HTMLElement {
       if (data.type === 'pool-asset') {
          const asset = this._asset(data.assetId);
          if (!asset) return;
-         const cellRatio = this._cellRatio(sheet);
-         const fit = this._placeSvc.fitFor(asset.ratio, cellRatio, sheet.fitMode);
+         const fit = this._placeSvc.fitFor(asset.ratio, this._cellRatio(sheet), sheet.fitMode);
          this._commitSheet((s) => this._placeSvc.placeInSlot(s, targetSlot, asset.id, fit));
-         this.renderSheet();
-         this.renderGallery();
          return;
       }
 
       if (data.type === 'cell-swap') {
          const sourceSlot = data.sourceSlot;
          if (sourceSlot === targetSlot) return;
-         const sourceRef = sheet.placement[sourceSlot];
-         const targetRef = sheet.placement[targetSlot];
+
          this._commitSheet((s) => {
-            const newPlacement = { ...s.placement };
-            if (sourceRef && targetRef) {
-               newPlacement[targetSlot] = sourceRef;
-               newPlacement[sourceSlot] = targetRef;
-            } else if (sourceRef) {
-               newPlacement[targetSlot] = sourceRef;
-               delete newPlacement[sourceSlot];
-            }
-            return { ...s, placement: newPlacement };
+            const placement = { ...s.placement };
+            const sourceRef = placement[sourceSlot];
+            const targetRef = placement[targetSlot];
+            if (!sourceRef) return s;
+
+            placement[targetSlot] = sourceRef;
+            if (targetRef) placement[sourceSlot] = targetRef;
+            else delete placement[sourceSlot];
+
+            return { ...s, placement };
          });
-         this.renderSheet();
       }
    }
 
    // ---------- exportación ----------
 
-   async exportPNGs() {
-      const stages = await this._exportSvc.renderOffscreen(
-         this._state.sheets,
-         (sheet, tmp) => this._renderSheetInto(sheet, tmp, { interactive: false })
-      );
+   _setBusy(on, text = '') {
+      const busy = this.$refs.busy;
+      if (busy) {
+         busy.hidden = !on;
+         if (this.$refs.busyText) this.$refs.busyText.textContent = text;
+      }
+      this._panel?.setBusy?.(on);
+   }
+
+   /**
+    * Renderiza todas las hojas offscreen, corre `fn(stages)` y limpia siempre.
+    * Bloquea reentradas: dos clicks seguidos duplicaban toda la exportación.
+    */
+   async _withStages(label, fn) {
+      if (this._exporting) return null;
+      if (!this._state.sheets.length) return null;
+
+      this._exporting = true;
+      this._setBusy(true, `${label}…`);
+
+      let stages = null;
       try {
-         const count = await this._exportSvc.exportPNGs(stages, html2canvas);
-         this._toasts?.show(`${count} hoja(s) exportadas como PNG`, { type: 'success' });
-      } catch {
-         this._toasts?.show('Error al exportar PNGs', { type: 'error' });
+         stages = await this._exportSvc.renderOffscreen(
+            this._state.sheets,
+            (sheet, node) => this._renderSheetInto(sheet, node, { interactive: false })
+         );
+         return await fn(stages, (done, total) =>
+            this._setBusy(true, `${label} ${Math.min(done + 1, total)}/${total}`));
       } finally {
          this._exportSvc.cleanupStages(stages);
+         this._setBusy(false);
+         this._exporting = false;
       }
+   }
+
+   async exportPNGs() {
+      try {
+         const count = await this._withStages('Exportando PNG', (stages, onProgress) =>
+            this._exportSvc.exportPNGs(stages, html2canvas, { onProgress }));
+         if (count) this._toasts?.show(`${count} hoja(s) exportadas como PNG`, { type: 'success' });
+      } catch (err) {
+         slice.logger?.logError?.('LayoutsSection', 'PNG export failed', err);
+         this._toasts?.show('Error al exportar PNGs', { type: 'error' });
+      }
+   }
+
+   /**
+    * Traduce el estado a un plan puramente geométrico en milímetros. Es lo que
+    * permite que el PDF no dependa de rasterizar la hoja: cada imagen ya viene
+    * con su posición y tamaño físicos resueltos.
+    */
+   _buildExportPlan() {
+      return this._state.sheets.map((sheet) => {
+         const tpl = this._templates.get(sheet.templateId);
+         const page = this._templates.page(sheet.pageId);
+         const preset = this._templates.preset(sheet.presetId);
+         const geo = this._cellGeometry(sheet, tpl, page, preset);
+         const placement = sheet.placement || {};
+         const scale = sheet.imageScale ?? 1;
+
+         const items = [];
+         for (const cell of this._geom.cellRects(tpl, page, preset, geo)) {
+            const ref = placement[cell.slot];
+            const asset = ref ? this._asset(ref.refId) : null;
+            if (!asset) continue;
+
+            const rect = this._geom.imageRect(cell, asset.ratio, ref.fit || 'cover', scale);
+            items.push({
+               url: asset.url,
+               name: asset.name,
+               cellRatio: cell.wMm / cell.hMm,
+               ...rect
+            });
+         }
+
+         return { widthMm: page.w, heightMm: page.h, items };
+      });
    }
 
    async exportPDF() {
-      const stages = await this._exportSvc.renderOffscreen(
-         this._state.sheets,
-         (sheet, tmp) => this._renderSheetInto(sheet, tmp, { interactive: false })
-      );
+      if (this._exporting) return;
+      if (!this._state.sheets.length) return;
+
+      this._exporting = true;
+      this._setBusy(true, 'Generando PDF…');
+
       try {
-         const ok = await this._exportSvc.exportPDF(stages, html2canvas, jsPDF);
+         const ok = await this._exportSvc.exportPDFExact(
+            this._buildExportPlan(),
+            jsPDF,
+            {
+               onProgress: (done, total) =>
+                  this._setBusy(true, `Generando PDF ${Math.min(done + 1, total)}/${total}`)
+            }
+         );
          if (ok) {
-            this._toasts?.show('PDF generado con todas las hojas', { type: 'success' });
+            this._toasts?.show('PDF generado a tamaño real', { type: 'success' });
          }
-      } catch {
+      } catch (err) {
+         slice.logger?.logError?.('LayoutsSection', 'PDF export failed', err);
          this._toasts?.show('Error al generar el PDF', { type: 'error' });
       } finally {
-         this._exportSvc.cleanupStages(stages);
+         this._setBusy(false);
+         this._exporting = false;
       }
    }
 
-   printSheet() {
-      this._exportSvc.printSheet(this.$refs.sheet);
+   exportCalibration() {
+      try {
+         this._exportSvc.exportCalibrationSheet(jsPDF, this._sheet().pageId);
+         this._toasts?.show(
+            'Imprimila con el escalado desactivado y medí la regla',
+            { type: 'info', duration: 5000 }
+         );
+      } catch (err) {
+         slice.logger?.logError?.('LayoutsSection', 'Calibration sheet failed', err);
+         this._toasts?.show('Error al generar la hoja de calibración', { type: 'error' });
+      }
+   }
+
+   async printSheets() {
+      const pages = new Set(this._state.sheets.map((s) => s.pageId));
+      if (pages.size > 1) {
+         this._toasts?.show(
+            'Las hojas tienen tamaños distintos: se imprimirán con el tamaño de la primera',
+            { type: 'warning' }
+         );
+      }
+
+      try {
+         const ok = await this._withStages('Preparando impresión', async (stages) => {
+            // Se imprime desde los nodos offscreen (planos y medidos en mm
+            // reales). Clonar la hoja de pantalla arrastraba el transform de
+            // zoom y salía impresa al 70%.
+            const started = this._exportSvc.printSheets(stages);
+            // Un respiro para que el iframe termine de disponer el layout antes
+            // de que _withStages descarte los nodos originales.
+            await new Promise((r) => setTimeout(r, 300));
+            return started;
+         });
+         if (!ok) this._toasts?.show('No se pudo abrir el diálogo de impresión', { type: 'error' });
+      } catch (err) {
+         slice.logger?.logError?.('LayoutsSection', 'Print failed', err);
+         this._toasts?.show('Error al preparar la impresión', { type: 'error' });
+      }
    }
 }
 

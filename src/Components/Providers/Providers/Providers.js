@@ -1,3 +1,5 @@
+import { confirmEvents } from '../../../events/confirm.events.js';
+
 // ── Composition root ─────────────────────────────────────────────────────
 // Boots every singleton service in order, then steps back. AppShell.init()
 // awaits `slice.build('Providers', { singleton: true })` before mounting any
@@ -18,9 +20,29 @@ export default class Providers {
       // 2) Infraestructura compartida.
       await slice.build('HtmlService', { singleton: true });
       await slice.build('ShareService', { singleton: true });
+      await slice.build('DownloadService', { singleton: true });
       await slice.build('ToolTipProvider', { singleton: true });
       await slice.build('LayoutTemplates', { singleton: true });
       await slice.build('SheetGeometry', { singleton: true });
+
+      // Persistencia de Plantillas: los binarios de las imágenes en IndexedDB
+      // y la estructura de hojas en localStorage. SheetStorage une las dos.
+      const poolService = await slice.build('PoolService', { singleton: true });
+      const localStore = await slice.build('LocalStorageManager', { singleton: true });
+      // Este sí lleva sliceId propio: es una instancia configurada para una base
+      // y un store concretos, no el único IndexedDbManager posible de la app.
+      const sheetDb = await slice.build('IndexedDbManager', {
+         sliceId: 'vkrafts-pool-db',
+         databaseName: 'vkrafts',
+         storeName: 'pool'
+      });
+
+      await slice.build('SheetStorage', {
+         singleton: true,
+         db: sheetDb,
+         local: localStore,
+         poolService
+      });
 
       // Estado del módulo Plantillas de Hoja: pool compartido + múltiples hojas.
       const firstSheet = {
@@ -75,7 +97,14 @@ export default class Providers {
                duration: payload.duration ?? undefined
             });
          });
+
+         slice.events.register(confirmEvents);
       }
+
+      // Diálogo de confirmación: se monta una sola vez y queda escuchando
+      // `confirm:request`. Ninguna vista necesita construirlo ni conocerlo.
+      const confirmModal = await slice.build('ConfirmActionModal');
+      if (confirmModal) document.body.appendChild(confirmModal);
 
       this._ready = true;
       return this;

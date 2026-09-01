@@ -1,24 +1,32 @@
-<div class="hubsection">
-  <section class="hubsection__hero">
-    <div class="hubsection__hero-content">
-      <span class="hubsection__eyebrow">Papelería Creativa</span>
-      <h2 class="hubsection__welcome">Bienvenido a VKRAFTS</h2>
-      <p class="hubsection__tagline">
-        Herramientas online para diseñar productos personalizados. Creá, editá y exportá en segundos.
+<div class="hub">
+  <section class="hub__hero">
+    <!-- Vocabulario Memphis: triángulos, squiggles, círculos y tramas. -->
+    <div class="hub__shapes" aria-hidden="true">
+      <span class="hub__shape hub__shape--tri"></span>
+      <span class="hub__shape hub__shape--circle"></span>
+      <span class="hub__shape hub__shape--dots"></span>
+      <span class="hub__shape hub__shape--stripes"></span>
+      <span class="hub__shape hub__shape--pill"></span>
+      <svg class="hub__shape hub__shape--squiggle" viewBox="0 0 120 28" fill="none">
+        <path d="M2 14c8-16 18 16 26 0s18 16 26 0 18 16 26 0 18 16 26 0"
+              stroke="currentColor" stroke-width="4" stroke-linecap="round" />
+      </svg>
+      <svg class="hub__shape hub__shape--squiggle2" viewBox="0 0 120 28" fill="none">
+        <path d="M2 14c8-16 18 16 26 0s18 16 26 0 18 16 26 0 18 16 26 0"
+              stroke="currentColor" stroke-width="4" stroke-linecap="round" />
+      </svg>
+    </div>
+
+    <div class="hub__hero-inner">
+      <p class="hub__kicker hub__reveal" style="--d: 0ms">Papelería creativa</p>
+
+      <h1 class="hub__wordmark hub__reveal" style="--d: 80ms">VKRAFTS</h1>
+
+      <p class="hub__lede hub__reveal" style="--d: 180ms">
+        Armá, pegá e imprimí tus propias cosas.
       </p>
-      <div class="hubsection__badges">
-        <span class="hubsection__badge">Diseño Creativo</span>
-        <span class="hubsection__badge">Exportación PNG/SVG</span>
-        <span class="hubsection__badge">Impresión Directa</span>
-      </div>
     </div>
   </section>
 
-  <section class="hubsection__modules">
-    <header class="hubsection__header">
-      <h3>Elegí una herramienta</h3>
-      <p>Cada módulo está diseñado para una tarea específica</p>
-    </header>
-    <div class="hubsection__gridslot"></div>
-  </section>
+  <div class="hub__grid" data-ref="grid"></div>
 </div>

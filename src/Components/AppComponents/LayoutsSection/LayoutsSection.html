@@ -4,10 +4,31 @@
   </aside>
 
   <main class="layoutssection__right">
-    <div class="layoutssection__sheetsbar" data-ref="sheetsBar"></div>
-    <span class="layoutssection__zoominfo" data-ref="zoomInfo"></span>
+    <div class="layoutssection__topbar">
+      <div class="layoutssection__sheetsbar" data-ref="sheetsBar"></div>
+
+      <div class="layoutssection__zoom">
+        <button type="button" class="layoutssection__zoombtn" data-ref="zoomOut"
+                aria-label="Alejar">−</button>
+        <button type="button" class="layoutssection__zoomvalue" data-ref="zoomInfo"
+                aria-label="Restablecer zoom"></button>
+        <button type="button" class="layoutssection__zoombtn" data-ref="zoomIn"
+                aria-label="Acercar">+</button>
+      </div>
+    </div>
+
     <div class="layoutssection__stage" data-ref="stage">
       <div class="layoutssection__sheet" data-ref="sheet"></div>
+    </div>
+
+    <div class="layoutssection__hint" data-ref="hint" hidden>
+      <strong>La biblioteca está vacía</strong>
+      <span>Arrastrá imágenes al panel, pegá con Ctrl+V o hacé click en una celda.</span>
+    </div>
+
+    <div class="layoutssection__busy" data-ref="busy" hidden role="status" aria-live="polite">
+      <span class="layoutssection__busy-spinner" aria-hidden="true"></span>
+      <span data-ref="busyText"></span>
     </div>
   </main>
 

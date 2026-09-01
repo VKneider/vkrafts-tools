@@ -1,7 +1,7 @@
 export default class SheetCell extends HTMLElement {
 
    static props = {
-      slot: { type: 'number', required: true },
+      slot: { type: 'number', default: 0 },
       col: { type: 'number', default: 0 },
       row: { type: 'number', default: 0 },
       img: { type: 'object', default: null },
@@ -9,8 +9,7 @@ export default class SheetCell extends HTMLElement {
       animate: { type: 'boolean', default: false },
       onPick: { type: 'function', default: null },
       onRemove: { type: 'function', default: null },
-      onMenu: { type: 'function', default: null },
-      onEdgeDrag: { type: 'function', default: null }
+      onMenu: { type: 'function', default: null }
    };
 
    constructor(props) {
@@ -21,7 +20,6 @@ export default class SheetCell extends HTMLElement {
       this.$plus = this.querySelector('.sheetcell__plus');
       this.$remove = this.querySelector('.sheetcell__remove');
       this._img = null;
-      this._tplDims = null;
       this._bound = false;
 
       // Listeners se registran UNA sola vez; _render() solo pinta estado.
@@ -54,45 +52,12 @@ export default class SheetCell extends HTMLElement {
       this._tips?.detach(this.$remove);
    }
 
-   /** La sección inyecta la geometría de plantilla para los bordes. */
-   setGeometry(cols, rows) {
-      const changed =
-         !this._tplDims || this._tplDims.cols !== cols || this._tplDims.rows !== rows;
-      this._tplDims = { cols, rows };
-      if (changed) {
-         this.$root.querySelectorAll('.sheetcell__edge').forEach((e) => e.remove());
-         this._addEdgeHandles({ cols, rows });
-      }
-   }
-
-   _addEdgeHandles(tpl) {
-      const col = this._col ?? (this._slot % tpl.cols);
-      const row = this._row ?? Math.floor(this._slot / tpl.cols);
-
-      const edges = [];
-      if (tpl.cols > 1) {
-         if (col < tpl.cols - 1) edges.push(['v', col + 1, 'right']);
-         else if (col > 0) edges.push(['v', col, 'left']);
-      }
-      if (tpl.rows > 1) {
-         if (row < tpl.rows - 1) edges.push(['h', row + 1, 'bottom']);
-         else if (row > 0) edges.push(['h', row, 'top']);
-      }
-
-      edges.forEach(([axis, k, side]) => {
-         const strip = document.createElement('div');
-         strip.className = `sheetcell__edge sheetcell__edge--${side}`;
-         strip.addEventListener('pointerdown', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            this._onEdgeDrag?.(e, axis, k);
-         });
-         strip.addEventListener('click', (e) => e.stopPropagation());
-         this.$root.appendChild(strip);
-      });
-
-      this._tips?.scope(this);
-   }
+   // Acá vivían las tiras de borde: un <div> invisible por celda que, al
+   // arrastrarlo, redimensionaba la columna o la fila. Se fueron porque
+   // LayoutsSection ya dibuja splitters sobre los mismos huecos llamando al
+   // mismo handler, con mayor z-index: de cada par de tiras, una quedaba
+   // enterrada bajo el splitter y la otra duplicaba su función. El resize vive
+   // ahora en un solo lugar.
 
    paint() {
       const img = this._img;
@@ -161,8 +126,6 @@ export default class SheetCell extends HTMLElement {
    get onMenu() { return this._onMenu; }
    set onMenu(fn) { this._onMenu = typeof fn === 'function' ? fn : null; }
 
-   get onEdgeDrag() { return this._onEdgeDrag; }
-   set onEdgeDrag(fn) { this._onEdgeDrag = typeof fn === 'function' ? fn : null; }
 }
 
 customElements.define('slice-sheet-cell', SheetCell);

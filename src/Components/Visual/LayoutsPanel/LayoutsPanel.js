@@ -8,6 +8,7 @@ export default class LayoutsPanel extends HTMLElement {
       onPresetChange: { type: 'function', default: null },
       onFitChange: { type: 'function', default: null },
       onScaleChange: { type: 'function', default: null },
+      onProductChange: { type: 'function', default: null },
       onFiles: { type: 'function', default: null },
       actions: { type: 'array', default: [] }
    };
@@ -34,6 +35,9 @@ export default class LayoutsPanel extends HTMLElement {
 
       if (sheet.templateId !== prevProps?.sheet?.templateId) {
          this._highlightTemplate(sheet.templateId);
+      }
+      if (sheet.productId !== prevProps?.sheet?.productId) {
+         this._highlightProduct(sheet);
       }
       if (sheet.presetId !== prevProps?.sheet?.presetId) {
          this._highlightPreset(sheet.presetId);
@@ -82,7 +86,20 @@ export default class LayoutsPanel extends HTMLElement {
          this.$refs.page.appendChild(pageSelect);
       }
 
-      for (const t of templates.all()) {
+      for (const p of templates.allProducts()) {
+         const btn = document.createElement('button');
+         btn.type = 'button';
+         btn.className = 'layoutspanel__chip layoutspanel__product';
+         btn.dataset.productId = p.id;
+         btn.textContent = p.name;
+         btn.setAttribute('data-tooltip', `Celdas de ${p.wMm}×${p.hMm} mm a tamaño real`);
+         btn.addEventListener('click', () => this._onProductChange?.(p));
+         this.$refs.product.appendChild(btn);
+      }
+
+      // Las plantillas derivadas de un producto (grid-4x5) no van al selector:
+      // se generan solas y ensuciarían la lista fija.
+      for (const t of templates.all().filter((x) => !x.derived)) {
          const btn = document.createElement('button');
          btn.type = 'button';
          btn.className = 'layoutspanel__tpl-mini';
@@ -159,6 +176,25 @@ export default class LayoutsPanel extends HTMLElement {
       this._highlightTemplate(sheet.templateId);
       this._highlightPreset(sheet.presetId);
       this._highlightFit(sheet.fitMode);
+      this._highlightProduct(sheet);
+   }
+
+   _highlightProduct(sheet) {
+      const activeId = sheet?.productId || null;
+      this.$refs.product.querySelectorAll('.layoutspanel__product').forEach((b) => {
+         b.classList.toggle('is-active', b.dataset.productId === activeId);
+      });
+
+      if (!this.$refs.productHint) return;
+      if (activeId && sheet.cellSizeMm) {
+         const { w, h } = sheet.cellSizeMm;
+         this.$refs.productHint.textContent =
+            `Celdas fijas de ${w}×${h} mm · el resto de la hoja queda libre`;
+         this.$refs.productHint.hidden = false;
+      } else {
+         this.$refs.productHint.textContent = '';
+         this.$refs.productHint.hidden = true;
+      }
    }
 
    _highlightTemplate(id) {
@@ -188,6 +224,15 @@ export default class LayoutsPanel extends HTMLElement {
       return this.$refs.gallery;
    }
 
+   /** Bloquea las acciones mientras hay una exportación en curso. */
+   setBusy(on) {
+      this.classList.toggle('is-busy', !!on);
+      this.$refs.actions?.querySelectorAll('slice-button, button').forEach((el) => {
+         if ('disabled' in el) el.disabled = !!on;
+         el.setAttribute('aria-disabled', String(!!on));
+      });
+   }
+
    get sheet() { return this._sheet; }
    set sheet(v) { this._sheet = v; }
 
@@ -208,6 +253,9 @@ export default class LayoutsPanel extends HTMLElement {
 
    get onScaleChange() { return this._onScaleChange; }
    set onScaleChange(fn) { this._onScaleChange = typeof fn === 'function' ? fn : null; }
+
+   get onProductChange() { return this._onProductChange; }
+   set onProductChange(fn) { this._onProductChange = typeof fn === 'function' ? fn : null; }
 
    get onFiles() { return this._onFiles; }
    set onFiles(fn) { this._onFiles = typeof fn === 'function' ? fn : null; }

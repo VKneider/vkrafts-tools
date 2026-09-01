@@ -8,7 +8,7 @@ slice-loading .full-screen {
   height: 100%;
   /* position se maneja desde JavaScript */
   inset: 0; /* top: 0, right: 0, bottom: 0, left: 0 */
-  background: rgba(90, 90, 90, 0.5);
+  background: color-mix(in srgb, var(--font-primary-color) 45%, transparent);
   z-index: 500;
   display: flex;
   justify-content: center;
