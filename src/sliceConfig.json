@@ -72,11 +72,5 @@
    },
   "loading": {
      "enabled": true
-  },
-  "publicFolders": [
-     "/Themes",
-     "/Styles",
-     "/assets",
-     "/images"
-  ]
+  }
 }

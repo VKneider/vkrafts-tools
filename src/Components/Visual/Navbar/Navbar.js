@@ -17,8 +17,13 @@ export default class Navbar extends HTMLElement {
          required: false
       },
       // Componentes extra renderizados junto a los botones (p. ej. ThemeSwitcher).
-      // Cada entrada: { component: 'Name', props: {...} }.
+      // Puede recibir nods pre-construidos (extraNodes) o descriptores dinámicos (extras).
       extras: {
+         type: 'array',
+         default: [],
+         required: false
+      },
+      extraNodes: {
          type: 'array',
          default: [],
          required: false
@@ -68,6 +73,11 @@ export default class Navbar extends HTMLElement {
             await this.addButton(item, this.$buttonsContainer);
          });
       }
+      // Pre-built nodes (bundler-resolvable, preferred).
+      for (const node of this._extraNodes || []) {
+         if (node) this.$buttonsContainer.appendChild(node);
+      }
+      // Legacy dynamic descriptors (fallback, not bundlable).
       for (const extra of this.extras || []) {
          const node = await slice.build(extra.component, extra.props || {});
          if (node) this.$buttonsContainer.appendChild(node);
@@ -84,6 +94,14 @@ export default class Navbar extends HTMLElement {
 
    set extras(values) {
       this._extras = Array.isArray(values) ? values : [];
+   }
+
+   get extraNodes() {
+      return this._extraNodes;
+   }
+
+   set extraNodes(values) {
+      this._extraNodes = Array.isArray(values) ? values : [];
    }
 
    async addItems(items) {

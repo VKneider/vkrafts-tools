@@ -12,8 +12,13 @@ export default class AppShell extends HTMLElement {
       // on this having completed before it mounts.
       await slice.build('Providers', { singleton: true });
 
+      // Pre-build ThemeSwitcher with a literal name so the bundler resolves it.
+      const themeSwitcher = await slice.build('ThemeSwitcher', {
+         themes: ['Light', 'Dark'],
+         label: 'Tema'
+      });
+
       // Persistent navbar — built once, stays across navigations.
-      // El cambio de tema vive integrado al navbar (extras → ThemeSwitcher).
       const navbar = await slice.build('Navbar', {
          sliceId: 'app-navbar',
          position: 'fixed',
@@ -23,9 +28,7 @@ export default class AppShell extends HTMLElement {
             { text: 'Canvas', path: '/canvas' },
             { text: 'Plantillas', path: '/layouts' }
          ],
-         extras: [
-            { component: 'ThemeSwitcher', props: { themes: ['Light', 'Dark'], label: 'Tema' } }
-         ]
+         extraNodes: [themeSwitcher]
       });
       this.$header.appendChild(navbar);
 
