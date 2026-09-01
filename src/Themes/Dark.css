@@ -1,48 +1,48 @@
-/* Tema Dark — slate azulado suave (contraparte nocturna de la paleta krafts). */
+/* Tema Dark — Coral & Turquesa nocturno: cálido sobre fondo oscuro */
 :root {
   /* Tipografía */
-  --font-primary-color: #EDF2FB;
-  --font-secondary-color: #93BBFF;
+  --font-primary-color: #F5F0EB;
+  --font-secondary-color: #FFB4A8;
 
-  /** Primary - Krafts Blue (nocturno) **/
-  --primary-color: #4F8DF9;
-  --primary-color-rgb: 79, 141, 249;
-  --primary-background-color: #1B2436;
-  --primary-color-contrast: #ffffff;
-  --primary-color-shade: #3B6FD4;
+  /** Primary - Coral luminoso **/
+  --primary-color: #FF7F6B;
+  --primary-color-rgb: 255, 127, 107;
+  --primary-background-color: #1A1412;
+  --primary-color-contrast: #1A1412;
+  --primary-color-shade: #E8634A;
 
-  /** Secondary - Krafts Light Blue **/
-  --secondary-color: #7CA8FF;
-  --secondary-color-rgb: 124, 168, 255;
-  --secondary-background-color: #232E45;
-  --secondary-color-contrast: #10203F;
+  /** Secondary - Turquesa claro **/
+  --secondary-color: #2DD4BF;
+  --secondary-color-rgb: 45, 212, 191;
+  --secondary-background-color: #1F2A28;
+  --secondary-color-contrast: #0A3D35;
 
-  /** Tertiary - Superficie azul elevada **/
-  --tertiary-background-color: #2C3954;
+  /** Tertiary - Superficie cálida elevada **/
+  --tertiary-background-color: #2A201A;
 
-  /** Success **/
+  /** Success - Esmeralda clara **/
   --success-color: #34D399;
   --success-contrast: #0B291F;
 
-  /** Warning **/
+  /** Warning - Ámbar claro **/
   --warning-color: #FBBF24;
   --warning-contrast: #3B2F0B;
 
-  /** Danger **/
+  /** Danger - Rojo claro **/
   --danger-color: #F87171;
   --danger-contrast: #38100F;
 
-  /** Medium - Gris azulado para texto secundario **/
-  --medium-color: #A5B4CC;
-  --medium-contrast: #1B2436;
+  /** Medium - Gris cálido para texto secundario **/
+  --medium-color: #A89E94;
+  --medium-contrast: #1A1412;
 
-  /** Disabled **/
-  --disabled-color: #3D4A66;
+  /** Disabled - Gris cálido oscuro **/
+  --disabled-color: #3D332B;
 
-  /** Accent **/
-  --accent-color: #4CC9E8;
+  /** Accent - Turquesa brillante **/
+  --accent-color: #5EEAD4;
 
   /* Sombras */
-  --box-shadow-primary: 0px 4px 16px rgba(11, 18, 32, 0.55);
-  --box-shadow-secondary: 0px 3px 10px rgba(79, 141, 249, 0.28);
+  --box-shadow-primary: 0px 4px 16px rgba(0, 0, 0, 0.45);
+  --box-shadow-secondary: 0px 3px 10px rgba(45, 212, 191, 0.2);
 }
