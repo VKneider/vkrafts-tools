@@ -72,5 +72,6 @@
    },
   "loading": {
      "enabled": true
-  }
+  },
+  "publicFolders": []
 }
