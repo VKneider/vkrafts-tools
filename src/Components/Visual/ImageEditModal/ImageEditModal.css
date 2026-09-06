@@ -1,0 +1,125 @@
+slice-image-edit-modal {
+  display: block;
+}
+
+slice-image-edit-modal .iem__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+slice-image-edit-modal .iem__preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  max-height: 320px;
+  border-radius: var(--vk-radius);
+  background: var(--secondary-background-color);
+  overflow: hidden;
+}
+
+slice-image-edit-modal .iem__preview img {
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  transition: filter 150ms ease, transform 150ms ease;
+}
+
+slice-image-edit-modal .iem__slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+slice-image-edit-modal .iem__slider-label {
+  min-width: 70px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--font-secondary-color);
+}
+
+slice-image-edit-modal .iem__slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 4px;
+  background: rgba(var(--primary-color-rgb), 0.2);
+  outline: none;
+}
+
+slice-image-edit-modal .iem__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+slice-image-edit-modal .iem__slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+slice-image-edit-modal .iem__slider-value {
+  min-width: 30px;
+  text-align: right;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--medium-color);
+}
+
+slice-image-edit-modal .iem__rotate-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+slice-image-edit-modal .iem__rotate-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(var(--primary-color-rgb), 0.3);
+  background: transparent;
+  color: var(--font-primary-color);
+  cursor: pointer;
+  transition: all 130ms ease;
+}
+
+slice-image-edit-modal .iem__rotate-btn:hover {
+  border-color: var(--primary-color);
+  background: rgba(var(--primary-color-rgb), 0.08);
+}
+
+slice-image-edit-modal .iem__rotate-label {
+  min-width: 30px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--medium-color);
+}
+
+slice-image-edit-modal .iem__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+slice-image-edit-modal .iem__footer slice-button .slice_button {
+  min-width: 0;
+}

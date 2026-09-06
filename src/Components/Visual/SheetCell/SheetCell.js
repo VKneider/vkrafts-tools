@@ -1,3 +1,7 @@
+const ZOOM_MIN = 1;
+const ZOOM_MAX = 3;
+const ZOOM_STEP = 0.05;
+
 export default class SheetCell extends HTMLElement {
 
    static props = {
@@ -6,10 +10,13 @@ export default class SheetCell extends HTMLElement {
       row: { type: 'number', default: 0 },
       img: { type: 'object', default: null },
       imageScale: { type: 'number', default: 1 },
+      selected: { type: 'boolean', default: false },
       animate: { type: 'boolean', default: false },
       onPick: { type: 'function', default: null },
       onRemove: { type: 'function', default: null },
-      onMenu: { type: 'function', default: null }
+      onMenu: { type: 'function', default: null },
+      onSelect: { type: 'function', default: null },
+      onCropChange: { type: 'function', default: null }
    };
 
    constructor(props) {
@@ -22,9 +29,23 @@ export default class SheetCell extends HTMLElement {
       this._img = null;
       this._bound = false;
 
+      // Zoom/pan state
+      this._cropScale = 1;
+      this._cropX = 0.5;
+      this._cropY = 0.5;
+      this._dragging = false;
+      this._dragStartX = 0;
+      this._dragStartY = 0;
+      this._dragStartCropX = 0;
+      this._dragStartCropY = 0;
+
       // Listeners se registran UNA sola vez; _render() solo pinta estado.
       this.$root.addEventListener('click', () => {
-         if (!this._img) this._onPick?.(this._slot);
+         if (this._img) {
+            this._onSelect?.(this._slot);
+         } else {
+            this._onPick?.(this._slot);
+         }
       });
       this.$root.addEventListener('contextmenu', (e) => {
          e.preventDefault();
@@ -37,6 +58,57 @@ export default class SheetCell extends HTMLElement {
          this._onRemove?.(this._slot, this._img?.id);
       });
       this.$remove.addEventListener('pointerdown', (e) => e.stopPropagation());
+
+      // Zoom: scroll wheel
+      this.$root.addEventListener('wheel', (e) => {
+         if (!this._selected || !this._img) return;
+         e.preventDefault();
+         e.stopPropagation();
+         const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+         this._cropScale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, this._cropScale + delta));
+         this._applyCropStyles();
+         this._clampCropPosition();
+         this._notifyCropChange();
+      }, { passive: false });
+
+      // Pan: pointer drag
+      this.$root.addEventListener('pointerdown', (e) => {
+         if (!this._selected || !this._img || this._cropScale <= 1) return;
+         e.preventDefault();
+         this._dragging = true;
+         this._dragStartX = e.clientX;
+         this._dragStartY = e.clientY;
+         this._dragStartCropX = this._cropX;
+         this._dragStartCropY = this._cropY;
+         this.$root.setPointerCapture(e.pointerId);
+      });
+
+      this.$root.addEventListener('pointermove', (e) => {
+         if (!this._dragging) return;
+         const dx = (e.clientX - this._dragStartX) / this.$root.offsetWidth;
+         const dy = (e.clientY - this._dragStartY) / this.$root.offsetHeight;
+         const range = (this._cropScale - 1) / (this._cropScale * 2);
+         this._cropX = this._clamp(this._dragStartCropX - dx * range * 2, 0, 1);
+         this._cropY = this._clamp(this._dragStartCropY - dy * range * 2, 0, 1);
+         this._applyCropStyles();
+         this._notifyCropChange();
+      });
+
+      this.$root.addEventListener('pointerup', () => {
+         this._dragging = false;
+      });
+
+      // Double-click: reset crop
+      this.$root.addEventListener('dblclick', (e) => {
+         if (!this._selected || !this._img) return;
+         e.preventDefault();
+         e.stopPropagation();
+         this._cropScale = 1;
+         this._cropX = 0.5;
+         this._cropY = 0.5;
+         this._applyCropStyles();
+         this._notifyCropChange();
+      });
 
       slice.controller.setComponentProps(this, props);
    }
@@ -52,13 +124,6 @@ export default class SheetCell extends HTMLElement {
       this._tips?.detach(this.$remove);
    }
 
-   // Acá vivían las tiras de borde: un <div> invisible por celda que, al
-   // arrastrarlo, redimensionaba la columna o la fila. Se fueron porque
-   // LayoutsSection ya dibuja splitters sobre los mismos huecos llamando al
-   // mismo handler, con mayor z-index: de cada par de tiras, una quedaba
-   // enterrada bajo el splitter y la otra duplicaba su función. El resize vive
-   // ahora en un solo lugar.
-
    paint() {
       const img = this._img;
       const filled = !!img;
@@ -67,28 +132,81 @@ export default class SheetCell extends HTMLElement {
       this.$root.classList.toggle('sheetcell--img', filled);
       this.$root.classList.toggle('sheetcell--empty', !filled);
       this.$root.classList.toggle('is-entering', !!this._animate);
+      this.$root.classList.toggle('sheetcell--selected', !!this._selected);
 
       if (filled) {
          this.$root.style.backgroundImage = `url("${img.url}")`;
+         // Restaurar crop del asset
+         this._cropScale = img.cropScale || 1;
+         this._cropX = img.cropX ?? 0.5;
+         this._cropY = img.cropY ?? 0.5;
+
+         if (this._cropScale > 1) {
+            this.$root.style.backgroundSize = `${this._cropScale * 100}%`;
+            this.$root.style.backgroundPosition = `${this._cropX * 100}% ${this._cropY * 100}%`;
+            this.$root.style.backgroundRepeat = 'no-repeat';
+         } else {
+            const scale = this._imageScale ?? 1;
+            if (scale < 1) {
+               this.$root.style.backgroundSize = `${scale * 100}%`;
+               this.$root.style.backgroundPosition = 'center';
+               this.$root.style.backgroundRepeat = 'no-repeat';
+            } else {
+               this.$root.style.backgroundSize = img.fit === 'contain' ? 'contain' : 'cover';
+               this.$root.style.backgroundPosition = '';
+               this.$root.style.backgroundRepeat = '';
+            }
+         }
+         this.$remove.hidden = false;
+         this.$plus.hidden = true;
+      } else {
+         this.$root.style.backgroundImage = '';
+         this._cropScale = 1;
+         this._cropX = 0.5;
+         this._cropY = 0.5;
+         this.$remove.hidden = true;
+         this.$plus.hidden = false;
+      }
+
+      this._animate = false;
+   }
+
+   _applyCropStyles() {
+      if (this._cropScale > 1) {
+         this.$root.style.backgroundSize = `${this._cropScale * 100}%`;
+         this.$root.style.backgroundPosition = `${this._cropX * 100}% ${this._cropY * 100}%`;
+         this.$root.style.backgroundRepeat = 'no-repeat';
+      } else {
          const scale = this._imageScale ?? 1;
          if (scale < 1) {
             this.$root.style.backgroundSize = `${scale * 100}%`;
             this.$root.style.backgroundPosition = 'center';
             this.$root.style.backgroundRepeat = 'no-repeat';
          } else {
-            this.$root.style.backgroundSize = img.fit === 'contain' ? 'contain' : 'cover';
+            this.$root.style.backgroundSize = this._img?.fit === 'contain' ? 'contain' : 'cover';
             this.$root.style.backgroundPosition = '';
             this.$root.style.backgroundRepeat = '';
          }
-         this.$remove.hidden = false;
-         this.$plus.hidden = true;
-      } else {
-         this.$root.style.backgroundImage = '';
-         this.$remove.hidden = true;
-         this.$plus.hidden = false;
       }
+   }
 
-      this._animate = false;
+   _clampCropPosition() {
+      const range = (this._cropScale - 1) / (this._cropScale * 2);
+      this._cropX = this._clamp(this._cropX, range, 1 - range);
+      this._cropY = this._clamp(this._cropY, range, 1 - range);
+   }
+
+   _clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+   }
+
+   _notifyCropChange() {
+      if (!this._img) return;
+      this._onCropChange?.(this._slot, {
+         cropX: this._cropX,
+         cropY: this._cropY,
+         cropScale: this._cropScale
+      });
    }
 
    // --- props ---
@@ -114,6 +232,12 @@ export default class SheetCell extends HTMLElement {
       this.paint();
    }
 
+   get selected() { return this._selected; }
+   set selected(value) {
+      this._selected = !!value;
+      this.$root.classList.toggle('sheetcell--selected', this._selected);
+   }
+
    get animate() { return this._animate; }
    set animate(value) { this._animate = !!value; }
 
@@ -125,6 +249,12 @@ export default class SheetCell extends HTMLElement {
 
    get onMenu() { return this._onMenu; }
    set onMenu(fn) { this._onMenu = typeof fn === 'function' ? fn : null; }
+
+   get onSelect() { return this._onSelect; }
+   set onSelect(fn) { this._onSelect = typeof fn === 'function' ? fn : null; }
+
+   get onCropChange() { return this._onCropChange; }
+   set onCropChange(fn) { this._onCropChange = typeof fn === 'function' ? fn : null; }
 
 }
 

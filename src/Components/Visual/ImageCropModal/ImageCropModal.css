@@ -1,0 +1,90 @@
+slice-image-crop-modal {
+  display: block;
+}
+
+slice-image-crop-modal .icm__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+slice-image-crop-modal .icm__canvas-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  max-height: 400px;
+  border-radius: var(--vk-radius);
+  background: var(--secondary-background-color);
+  overflow: hidden;
+}
+
+slice-image-crop-modal .icm__canvas {
+  max-width: 100%;
+  max-height: 360px;
+  display: block;
+}
+
+slice-image-crop-modal .icm__overlay {
+  position: absolute;
+  cursor: move;
+}
+
+slice-image-crop-modal .icm__handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border: 2px solid var(--primary-color);
+  border-radius: 2px;
+  pointer-events: auto;
+  z-index: 1;
+}
+
+slice-image-crop-modal .icm__handle--nw { cursor: nw-resize; }
+slice-image-crop-modal .icm__handle--n  { cursor: n-resize; }
+slice-image-crop-modal .icm__handle--ne { cursor: ne-resize; }
+slice-image-crop-modal .icm__handle--e  { cursor: e-resize; }
+slice-image-crop-modal .icm__handle--se { cursor: se-resize; }
+slice-image-crop-modal .icm__handle--s  { cursor: s-resize; }
+slice-image-crop-modal .icm__handle--sw { cursor: sw-resize; }
+slice-image-crop-modal .icm__handle--w  { cursor: w-resize; }
+
+slice-image-crop-modal .icm__aspect-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+slice-image-crop-modal .icm__aspect-btn {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(var(--primary-color-rgb), 0.3);
+  background: transparent;
+  color: var(--font-secondary-color);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 130ms ease;
+}
+
+slice-image-crop-modal .icm__aspect-btn:hover {
+  border-color: var(--primary-color);
+}
+
+slice-image-crop-modal .icm__aspect-btn.is-active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: var(--primary-color-contrast);
+}
+
+slice-image-crop-modal .icm__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+slice-image-crop-modal .icm__footer slice-button .slice_button {
+  min-width: 0;
+}

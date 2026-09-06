@@ -78,3 +78,15 @@ slice-sheet-cell .sheetcell__remove {
 
 slice-sheet-cell:hover .sheetcell__remove { opacity: 1; }
 
+/* ── Celda seleccionada ───────────────────────────────────────── */
+
+slice-sheet-cell .sheetcell--selected {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -1px;
+  cursor: grab;
+}
+
+slice-sheet-cell .sheetcell--selected:active {
+  cursor: grabbing;
+}
+

@@ -180,11 +180,27 @@ export default class ExportService {
    _loadImage(url) {
       return new Promise((resolve) => {
          const img = new Image();
-         img.crossOrigin = 'anonymous';
+         // crossOrigin 'anonymous' es necesario para CORS, pero las object URLs
+         // no lo necesitan — solo se activa cuando la URL es remota.
+         if (!url.startsWith('blob:')) img.crossOrigin = 'anonymous';
          img.onload = () => resolve(img);
          img.onerror = () => resolve(null);
          img.src = url;
       });
+   }
+
+   /**
+    * Convierte un HTMLImageElement a data URL para que jsPDF pueda estamparlo.
+    * Sin esto, addImage recibe un objeto Image que el navegador no serializa
+    * correctamente al PDF → página en blanco.
+    */
+   _imageToDataURL(img, keepAlpha, quality = 0.94) {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      return canvas.toDataURL(keepAlpha ? 'image/png' : 'image/jpeg', quality);
    }
 
    /**
@@ -254,15 +270,19 @@ export default class ExportService {
             const img = await this._loadImage(item.url);
             if (!img) continue;
 
-            const source = item.crop
-               ? this._cropToRatio(img, item.cellRatio, dpi, item.wMm)
-               : img;
-
             // PNG conserva la transparencia — un sticker recortado la necesita.
             const keepAlpha = /\.(png|webp|gif)$/i.test(item.name || '');
-            const data = source instanceof HTMLCanvasElement
-               ? source.toDataURL(keepAlpha ? 'image/png' : 'image/jpeg', 0.94)
-               : source;
+
+            let data;
+            if (item.crop) {
+               // crop → canvas recortado → data URL
+               const canvas = this._cropToRatio(img, item.cellRatio, dpi, item.wMm);
+               data = canvas.toDataURL(keepAlpha ? 'image/png' : 'image/jpeg', 0.94);
+            } else {
+               // Sin crop: siempre pasar por data URL, nunca el Image directo.
+               // addImage con un HTMLImageElement produce páginas en blanco.
+               data = this._imageToDataURL(img, keepAlpha);
+            }
 
             pdf.addImage(
                data,

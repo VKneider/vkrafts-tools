@@ -140,6 +140,10 @@ describe('ExportService', () => {
             naturalWidth: 400,
             naturalHeight: 300
          });
+         // jsdom no tiene canvas nativo: mockear la conversión a data URL.
+         vi.spyOn(svc, '_imageToDataURL').mockReturnValue('data:image/jpeg;base64,mock');
+         // _cropToRatio también usa canvas; mockear para tests de crop.
+         vi.spyOn(svc, '_cropToRatio').mockReturnValue(mockCanvas());
       });
 
       const page = (items) => ({ widthMm: 210, heightMm: 297, items });
@@ -179,6 +183,19 @@ describe('ExportService', () => {
       it('usa JPEG para fotos', async () => {
          await svc.exportPDFExact([page([item({ name: 'foto.jpg' })])], MockJsPDF);
          expect(pdfSpy.addImage.mock.calls[0][1]).toBe('JPEG');
+      });
+
+      it('pasa data URL (no HTMLImageElement) a addImage para evitar PDF en blanco', async () => {
+         await svc.exportPDFExact([page([item()])], MockJsPDF);
+         const data = pdfSpy.addImage.mock.calls[0][0];
+         expect(typeof data).toBe('string');
+         expect(data).toMatch(/^data:image/);
+      });
+
+      it('usa canvas recortado cuando crop es true', async () => {
+         await svc.exportPDFExact([page([item({ crop: true })])], MockJsPDF);
+         expect(svc._cropToRatio).toHaveBeenCalled();
+         expect(pdfSpy.addImage).toHaveBeenCalled();
       });
 
       it('retorna false si no hay hojas', async () => {

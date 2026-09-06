@@ -19,6 +19,8 @@ const components = {
   "FontCard": "Visual",
   "Grid": "Visual",
   "Icon": "Visual",
+  "ImageCropModal": "Visual",
+  "ImageEditModal": "Visual",
   "Input": "Visual",
   "LayoutsPanel": "Visual",
   "Link": "Visual",

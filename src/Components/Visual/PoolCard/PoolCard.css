@@ -146,3 +146,43 @@ slice-pool-card .poolcard__qty-value {
 slice-pool-card.poolcard--dragging {
   opacity: 0.4;
 }
+
+/* ── Preview en hover ──────────────────────────────────────────── */
+
+.poolcard-preview {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: var(--vk-radius);
+  background: var(--primary-background-color);
+  border: 1px solid rgba(var(--primary-color-rgb), 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  animation: poolcard-preview-in 150ms ease;
+}
+
+.poolcard-preview img {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: var(--secondary-background-color);
+}
+
+.poolcard-preview span {
+  font-size: 11px;
+  color: var(--medium-color);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+@keyframes poolcard-preview-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

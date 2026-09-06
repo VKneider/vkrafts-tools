@@ -1,5 +1,6 @@
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import heic2any from 'heic2any';
 
 // 1 mm real en píxeles CSS a 96dpi. El valor exacto importa: con la constante
 // anterior (3.4) la hoja se renderizaba al ~90% y todo lo impreso/exportado
@@ -64,6 +65,17 @@ export default class LayoutsSection extends HTMLElement {
       this._lastAnimatedSlot = -1;
       this._dndNodes = new Set();
 
+      // Historial para undo/redo: cada snapshot es una copia profunda del estado.
+      this._history = [];
+      this._future = [];
+      this._historyMax = 50;
+
+      // Clipboard para copiar/pegar placements
+      this._clipboard = null;
+
+      // Celda seleccionada para zoom/pan
+      this._selectedSlot = null;
+
       // Restaurar ANTES de construir los controles: el panel se inicializa
       // leyendo la hoja activa, así que tiene que ver ya el estado recuperado.
       await this._restoreSession();
@@ -84,9 +96,9 @@ export default class LayoutsSection extends HTMLElement {
          // capturando pegados mientras el usuario está en otra vista.
          if (!this.isConnected) return;
          const files = Array.from(e.clipboardData?.items || [])
-            .filter((it) => it.type.startsWith('image/'))
             .map((it) => it.getAsFile())
-            .filter(Boolean);
+            .filter(Boolean)
+            .filter((f) => f.type.startsWith('image/') || this._isHeicFile(f));
          if (files.length) this.addFiles(files);
       });
 
@@ -98,6 +110,16 @@ export default class LayoutsSection extends HTMLElement {
          const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
          this._zoomBy(Math.exp(-dy * 0.0016));
       }, { passive: false });
+
+      document.addEventListener('keydown', this._onKeyDown = (e) => {
+         if (!this.isConnected) return;
+         // No interceptar si el foco está en un input, textarea o dialogo
+         const tag = e.target?.tagName?.toLowerCase();
+         if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+         if (e.target?.closest?.('dialog, slice-modal')) return;
+
+         this._handleShortcut(e);
+      });
    }
 
    update() { return this.renderAll(); }
@@ -140,6 +162,7 @@ export default class LayoutsSection extends HTMLElement {
 
       document.removeEventListener('paste', this._onPaste);
       document.removeEventListener('wheel', this._onWheel);
+      document.removeEventListener('keydown', this._onKeyDown);
 
       if (this._tips) {
          this.querySelectorAll('[data-tooltip]').forEach((el) => this._tips.detach(el));
@@ -172,6 +195,14 @@ export default class LayoutsSection extends HTMLElement {
       if (!this._watchHandle) this.renderAll();
    }
 
+   /** Detecta archivos HEIC/HEIF por extensión o MIME type. */
+   _isHeicFile(file) {
+      if (!file) return false;
+      const name = file.name?.toLowerCase() || '';
+      return name.endsWith('.heic') || name.endsWith('.heif')
+         || file.type === 'image/heic' || file.type === 'image/heif';
+   }
+
    // ---------- construcción de controles ----------
 
    async _buildControls() {
@@ -182,8 +213,7 @@ export default class LayoutsSection extends HTMLElement {
          { key: 'clear', label: 'Limpiar hoja', icon: 'trash-2', variant: 'outlined', tip: 'Quita las imágenes de la hoja (quedan en la biblioteca)', handler: () => this.clearPlacements() },
          { key: 'pngs', label: 'PNGs', icon: 'images', variant: 'outlined', tip: 'Descarga como imágenes (para uso digital)', handler: () => this.exportPNGs() },
          { key: 'pdf', label: 'PDF', icon: 'file-text', variant: 'outlined', tip: 'Descarga con medidas exactas (recomendado para imprimir)', handler: () => this.exportPDF() },
-         { key: 'print', label: 'Imprimir', icon: 'printer', variant: 'soft', tip: 'Imprimir todas las hojas a tamaño real', handler: () => this.printSheets() },
-         { key: 'calib', label: 'Calibrar', icon: 'file-text', variant: 'ghost', tip: 'Hoja de prueba para calibrar tu impresora', handler: () => this.exportCalibration() }
+         { key: 'print', label: 'Imprimir', icon: 'printer', variant: 'soft', tip: 'Imprimir todas las hojas a tamaño real', handler: () => this.printSheets() }
       ];
 
       this._panel = await slice.build('LayoutsPanel', {
@@ -213,6 +243,15 @@ export default class LayoutsSection extends HTMLElement {
       this.$refs.zoomOut.addEventListener('click', () => this._zoomBy(1 / 1.15));
       this.$refs.zoomInfo.addEventListener('click', () => this._setZoom(ZOOM_DEFAULT));
 
+      // Click en el fondo de la hoja deselecciona la celda activa
+      this.$refs.sheet.addEventListener('click', (e) => {
+         if (e.target === this.$refs.sheet || e.target.closest('.sheet-grid') === this.$refs.sheet) {
+            if (!e.target.closest('slice-sheet-cell')) {
+               this._deselectAll();
+            }
+         }
+      });
+
       this._tips?.scope(this);
    }
 
@@ -230,6 +269,180 @@ export default class LayoutsSection extends HTMLElement {
       this._ctx.patch({ zoom: next });
    }
 
+   // ---------- atajos de teclado ----------
+
+   _handleShortcut(e) {
+      const ctrl = e.ctrlKey || e.metaKey;
+
+      // Ctrl+Z — Deshacer (restaurar estado anterior del historial)
+      if (ctrl && e.key === 'z' && !e.shiftKey) {
+         e.preventDefault();
+         this._undo();
+         return;
+      }
+
+      // Ctrl+Y o Ctrl+Shift+Z — Rehacer
+      if ((ctrl && e.key === 'y') || (ctrl && e.shiftKey && e.key === 'z')) {
+         e.preventDefault();
+         this._redo();
+         return;
+      }
+
+      // Delete / Backspace — Quitar imagen de la celda activa
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+         e.preventDefault();
+         this._removeFromActiveCell();
+         return;
+      }
+
+      // Ctrl+C — Copiar placement de la celda activa
+      if (ctrl && e.key === 'c') {
+         e.preventDefault();
+         this._copyPlacement();
+         return;
+      }
+
+      // Ctrl+V — Pegar placement en la celda activa
+      if (ctrl && e.key === 'v') {
+         e.preventDefault();
+         this._pastePlacement();
+         return;
+      }
+
+      // Ctrl+D — Duplicar hoja
+      if (ctrl && e.key === 'd') {
+         e.preventDefault();
+         this.duplicateSheet(this._state.activeId);
+         return;
+      }
+
+      // Ctrl+E — Exportar PDF (Ctrl+Shift+E = solo hoja activa)
+      if (ctrl && e.key === 'e') {
+         e.preventDefault();
+         this.exportPDF({ activeOnly: e.shiftKey });
+         return;
+      }
+
+      // Ctrl+P — Imprimir (Ctrl+Shift+P = solo hoja activa)
+      if (ctrl && e.key === 'p') {
+         e.preventDefault();
+         this.printSheets({ activeOnly: e.shiftKey });
+         return;
+      }
+
+      // + / - — Zoom
+      if (e.key === '+' || e.key === '=') {
+         e.preventDefault();
+         this._zoomBy(1.15);
+         return;
+      }
+      if (e.key === '-' && !ctrl) {
+         e.preventDefault();
+         this._zoomBy(1 / 1.15);
+         return;
+      }
+
+      // 0 — Reset zoom
+      if (e.key === '0' && !ctrl) {
+         e.preventDefault();
+         this._setZoom(ZOOM_DEFAULT);
+         return;
+      }
+
+      // Escape — Deseleccionar celda
+      if (e.key === 'Escape') {
+         this._deselectAll();
+         return;
+      }
+   }
+
+   /** Guarda un snapshot del estado actual en el historial (antes de una acción). */
+   _pushHistory() {
+      const state = this._state;
+      this._history.push(JSON.parse(JSON.stringify({
+         sheets: state.sheets,
+         activeId: state.activeId
+      })));
+      if (this._history.length > this._historyMax) this._history.shift();
+      this._future = [];
+   }
+
+   _undo() {
+      if (!this._history.length) return;
+      const prev = this._history.pop();
+      this._future.push(JSON.parse(JSON.stringify({
+         sheets: this._state.sheets,
+         activeId: this._state.activeId
+      })));
+      this._ctx.set((s) => ({ ...s, sheets: prev.sheets, activeId: prev.activeId }));
+      this._toasts?.show('Deshacer', { type: 'info', duration: 1200 });
+   }
+
+   _redo() {
+      if (!this._future.length) return;
+      const next = this._future.pop();
+      this._history.push(JSON.parse(JSON.stringify({
+         sheets: this._state.sheets,
+         activeId: this._state.activeId
+      })));
+      this._ctx.set((s) => ({ ...s, sheets: next.sheets, activeId: next.activeId }));
+      this._toasts?.show('Rehacer', { type: 'info', duration: 1200 });
+   }
+
+   /** Quita la imagen de la celda activa (la celda donde está el foco o la última clickeada). */
+   _removeFromActiveCell() {
+      // Buscar la última celda clickeada o la primera con imagen
+      const cells = this.$refs.sheet?.querySelectorAll('slice-sheet-cell') || [];
+      for (const cell of cells) {
+         const slot = Number(cell.dataset?.slot ?? cell.querySelector('.sheetcell')?.dataset?.slot);
+         if (Number.isFinite(slot) && this._sheet().placement?.[slot]) {
+            this._pushHistory();
+            this.removePlacement(slot);
+            return;
+         }
+      }
+   }
+
+   /** Copia el placement de la primera celda con imagen al clipboard. */
+   _copyPlacement() {
+      const placement = this._sheet().placement || {};
+      for (const [slot, ref] of Object.entries(placement)) {
+         if (ref) {
+            this._clipboard = { ...ref };
+            this._toasts?.show('Placement copiado', { type: 'info', duration: 1200 });
+            return;
+         }
+      }
+      this._toasts?.show('No hay imagen que copiar', { type: 'info', duration: 1200 });
+   }
+
+   /** Pega el placement copiado en la primera celda vacía. */
+   _pastePlacement() {
+      if (!this._clipboard) {
+         this._toasts?.show('No hay nada pegado', { type: 'info', duration: 1200 });
+         return;
+      }
+      const sheet = this._sheet();
+      const tpl = this._templates.get(sheet.templateId);
+      const capacity = tpl.cols * tpl.rows;
+      const placement = sheet.placement || {};
+
+      // Buscar la primera celda vacía
+      for (let slot = 0; slot < capacity; slot++) {
+         if (!placement[slot]) {
+            this._pushHistory();
+            const asset = this._asset(this._clipboard.refId);
+            const fit = asset
+               ? this._placeSvc.fitFor(asset.ratio, this._cellRatio(sheet), sheet.fitMode)
+               : this._clipboard.fit || 'cover';
+            this._commitSheet((s) => this._placeSvc.placeInSlot(s, slot, this._clipboard.refId, fit));
+            this._toasts?.show('Placement pegado', { type: 'info', duration: 1200 });
+            return;
+         }
+      }
+      this._toasts?.show('La hoja está llena', { type: 'warning', duration: 1500 });
+   }
+
    // ---------- pool ----------
 
    async addFiles(files, { directSlot = null } = {}) {
@@ -237,9 +450,34 @@ export default class LayoutsSection extends HTMLElement {
       const assets = [];
 
       for (const file of list) {
-         if (!file?.type?.startsWith('image/')) continue;
+         if (!file?.type?.startsWith('image/') && !this._isHeicFile(file)) continue;
 
-         const url = URL.createObjectURL(file);
+         let processedFile = file;
+
+         // Convertir HEIC/HEIF a JPEG
+         if (this._isHeicFile(file)) {
+            try {
+               this._toasts?.show('Convirtiendo imagen HEIC…', { type: 'info', duration: 2000 });
+               const blob = await heic2any({
+                  blob: file,
+                  toType: 'image/jpeg',
+                  quality: 0.92
+               });
+               // heic2any puede devolver un array de blobs (animaciones)
+               const jpegBlob = Array.isArray(blob) ? blob[0] : blob;
+               processedFile = new File(
+                  [jpegBlob],
+                  file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'),
+                  { type: 'image/jpeg' }
+               );
+            } catch (err) {
+               slice.logger?.logWarn?.('LayoutsSection', 'HEIC conversion failed', err);
+               this._toasts?.show('No se pudo convertir la imagen HEIC', { type: 'error' });
+               continue;
+            }
+         }
+
+         const url = URL.createObjectURL(processedFile);
          const size = await this._poolSvc.measure(url);
          if (!size) {
             URL.revokeObjectURL(url);
@@ -248,7 +486,7 @@ export default class LayoutsSection extends HTMLElement {
          // Se reusa la MISMA object URL que ya se midió: createAsset() generaba
          // una segunda y la primera quedaba sin revocar en cada carga.
          const asset = this._poolSvc.createAssetDirect({
-            name: file.name,
+            name: processedFile.name,
             url,
             w: size.w,
             h: size.h
@@ -257,7 +495,7 @@ export default class LayoutsSection extends HTMLElement {
             assets.push(asset);
             // El binario va a IndexedDB para sobrevivir a la recarga; la object
             // URL no sirve fuera de este documento.
-            await this._storage?.saveAsset(asset, file);
+            await this._storage?.saveAsset(asset, processedFile);
          } else {
             URL.revokeObjectURL(url);
          }
@@ -364,6 +602,7 @@ export default class LayoutsSection extends HTMLElement {
          confirmLabel: 'Limpiar',
          danger: true,
          onConfirm: () => {
+            this._pushHistory();
             this._commitSheet((s) => this._placeSvc.clearPlacements(s));
             this._toasts?.show('Celdas vaciadas · las imágenes siguen en la biblioteca', { type: 'info' });
          }
@@ -371,6 +610,7 @@ export default class LayoutsSection extends HTMLElement {
    }
 
    removePlacement(slot) {
+      this._pushHistory();
       this._commitSheet((s) => this._placeSvc.removePlacement(s, slot));
    }
 
@@ -791,7 +1031,8 @@ export default class LayoutsSection extends HTMLElement {
                   this.renderGallery();
                },
                onRemove: (assetId) => this.removeFromPool(assetId),
-               onQuantityChange: (assetId, qty) => this.setAssetQuantity(assetId, qty)
+                onQuantityChange: (assetId, qty) => this.setAssetQuantity(assetId, qty),
+                onContextMenu: (info) => this._showPoolContextMenu(info)
             });
             if (!card) continue;
             this._dndAttach(card, {
@@ -824,6 +1065,43 @@ export default class LayoutsSection extends HTMLElement {
          pool: prev.pool.map((a) => (a.id === id ? { ...a, quantity } : a))
       }));
       this._storage?.updateAssetQuantity(id, quantity);
+   }
+
+   /** Guarda el crop (zoom/pan) de una celda en la hoja (per-placement). */
+   _setPlacementCrop(slotIdx, { cropX, cropY, cropScale }) {
+      this._commitSheet((s) => {
+         const placement = { ...s.placement };
+         if (placement[slotIdx]) {
+            placement[slotIdx] = { ...placement[slotIdx], cropX, cropY, cropScale };
+         }
+         return { ...s, placement };
+      });
+   }
+
+   /** Selecciona una celda (para zoom/pan). Click en otra celda o fondo deselecciona. */
+   _onCellSelect(slotIdx) {
+      if (this._selectedSlot === slotIdx) {
+         this._selectedSlot = null;
+      } else {
+         this._selectedSlot = slotIdx;
+      }
+      this._refreshCellSelection();
+   }
+
+   _deselectAll() {
+      if (this._selectedSlot === null) return;
+      this._selectedSlot = null;
+      this._refreshCellSelection();
+   }
+
+   _refreshCellSelection() {
+      const cells = this.$refs.sheet?.querySelectorAll('slice-sheet-cell') || [];
+      for (const cell of cells) {
+         const slot = Number(cell.dataset?.slot ?? cell.querySelector('.sheetcell')?.dataset?.slot);
+         if (Number.isFinite(slot)) {
+            cell.selected = slot === this._selectedSlot;
+         }
+      }
    }
 
    renderSheet() {
@@ -902,37 +1180,47 @@ export default class LayoutsSection extends HTMLElement {
       for (let idx = 0; idx < capacity; idx++) {
          const ref = placement[idx];
          const asset = ref ? this._asset(ref.refId) : null;
-         const img = asset ? { ...asset, fit: ref?.fit || 'cover' } : null;
+         const img = asset ? {
+            ...asset,
+            fit: ref?.fit || 'cover',
+            cropX: ref?.cropX ?? 0.5,
+            cropY: ref?.cropY ?? 0.5,
+            cropScale: ref?.cropScale ?? 1
+         } : null;
          const id = cellId(idx);
          alive.add(id);
 
          let cell = slice.getComponent(id);
 
-         if (cell) {
-            // Reuso en sitio: los setters repintan y no se pierde el estado
-            // interno ni se re-registra el drag & drop desde cero.
-            cell.animate = idx === this._lastAnimatedSlot;
-            slice.setComponentProps(cell, {
-               slot: idx,
-               col: idx % tpl.cols,
-               row: Math.floor(idx / tpl.cols),
-               img,
-               imageScale: sheet.imageScale ?? 1
-            });
-         } else {
-            cell = await slice.build('SheetCell', {
-               sliceId: id,
-               slot: idx,
-               col: idx % tpl.cols,
-               row: Math.floor(idx / tpl.cols),
-               img,
-               imageScale: sheet.imageScale ?? 1,
-               animate: idx === this._lastAnimatedSlot,
-               onPick: (slotIdx) => this._onEmptyCellClick(slotIdx),
-               onRemove: (slotIdx) => this.removePlacement(slotIdx),
-               onMenu: (info) => this._showInfoMenu(info.nativeEvent, info)
-            });
-         }
+          if (cell) {
+             // Reuso en sitio: los setters repintan y no se pierde el estado
+             // interno ni se re-registra el drag & drop desde cero.
+             cell.animate = idx === this._lastAnimatedSlot;
+             slice.setComponentProps(cell, {
+                slot: idx,
+                col: idx % tpl.cols,
+                row: Math.floor(idx / tpl.cols),
+                img,
+                imageScale: sheet.imageScale ?? 1,
+                selected: this._selectedSlot === idx
+             });
+          } else {
+             cell = await slice.build('SheetCell', {
+                sliceId: id,
+                slot: idx,
+                col: idx % tpl.cols,
+                row: Math.floor(idx / tpl.cols),
+                img,
+                imageScale: sheet.imageScale ?? 1,
+                selected: this._selectedSlot === idx,
+                animate: idx === this._lastAnimatedSlot,
+                onPick: (slotIdx) => this._onEmptyCellClick(slotIdx),
+                onRemove: (slotIdx) => this.removePlacement(slotIdx),
+                onMenu: (info) => this._showInfoMenu(info.nativeEvent, info),
+                onSelect: (slotIdx) => this._onCellSelect(slotIdx),
+                onCropChange: (slotIdx, crop) => this._setPlacementCrop(slotIdx, crop)
+             });
+          }
 
          if (seq !== null && seq !== this._renderSeq) return;
          if (!cell) continue;
@@ -1203,6 +1491,39 @@ export default class LayoutsSection extends HTMLElement {
       if (img) {
          items.push({ type: 'separator' });
          items.push({
+            label: 'Recortar',
+            icon: 'scissors',
+            action: () => this._openCropModal(info)
+         });
+         items.push({
+            label: 'Editar',
+            icon: 'pen-tool',
+            action: () => this._openEditModal(info)
+         });
+         items.push({ type: 'separator' });
+         items.push({
+            label: 'Rotar 90° izquierda',
+            icon: 'rotate-ccw',
+            action: () => this._rotateAsset(img.id, -90)
+         });
+         items.push({
+            label: 'Rotar 90° derecha',
+            icon: 'rotate-cw',
+            action: () => this._rotateAsset(img.id, 90)
+         });
+         items.push({ type: 'separator' });
+         items.push({
+            label: 'Voltear horizontal',
+            icon: 'flip-horizontal',
+            action: () => this._flipAsset(img.id, 'horizontal')
+         });
+         items.push({
+            label: 'Voltear vertical',
+            icon: 'flip-vertical',
+            action: () => this._flipAsset(img.id, 'vertical')
+         });
+         items.push({ type: 'separator' });
+         items.push({
             label: 'Quitar de la celda',
             icon: 'trash-2',
             danger: true,
@@ -1215,6 +1536,55 @@ export default class LayoutsSection extends HTMLElement {
             action: () => this.removeFromPool(img.id)
          });
       }
+
+      this._cmenu?.open({ x: e.clientX, y: e.clientY, items });
+   }
+
+   _showPoolContextMenu(info) {
+      const { nativeEvent: e, asset } = info;
+      if (!asset) return;
+
+      const items = [
+         {
+            label: 'Recortar',
+            icon: 'scissors',
+            action: () => this._openCropModal({ img: asset })
+         },
+         {
+            label: 'Editar',
+            icon: 'pen-tool',
+            action: () => this._openEditModal({ img: asset })
+         },
+         { type: 'separator' },
+         {
+            label: 'Rotar 90° izquierda',
+            icon: 'rotate-ccw',
+            action: () => this._rotateAsset(asset.id, -90)
+         },
+         {
+            label: 'Rotar 90° derecha',
+            icon: 'rotate-cw',
+            action: () => this._rotateAsset(asset.id, 90)
+         },
+         { type: 'separator' },
+         {
+            label: 'Voltear horizontal',
+            icon: 'flip-horizontal',
+            action: () => this._flipAsset(asset.id, 'horizontal')
+         },
+         {
+            label: 'Voltear vertical',
+            icon: 'flip-vertical',
+            action: () => this._flipAsset(asset.id, 'vertical')
+         },
+         { type: 'separator' },
+         {
+            label: 'Eliminar de la biblioteca',
+            icon: 'trash-2',
+            danger: true,
+            action: () => this.removeFromPool(asset.id)
+         }
+      ];
 
       this._cmenu?.open({ x: e.clientX, y: e.clientY, items });
    }
@@ -1272,6 +1642,162 @@ export default class LayoutsSection extends HTMLElement {
       });
    }
 
+   _openCropModal(info) {
+      if (!this._cropModalPromise) {
+         this._cropModalPromise = (async () => {
+            let modal = slice.getComponent('image-crop-modal');
+            if (!modal) {
+               modal = await slice.build('ImageCropModal', { sliceId: 'image-crop-modal' });
+               if (modal) document.body.appendChild(modal);
+            }
+            return modal;
+         })();
+      }
+
+      this._cropModalPromise.then((modal) => {
+         if (!modal) return;
+         modal.open({
+            img: info.img,
+            onApply: (blob, dims) => this._replaceAssetBlob(info.img.id, blob, dims)
+         });
+      });
+   }
+
+   _openEditModal(info) {
+      if (!this._editModalPromise) {
+         this._editModalPromise = (async () => {
+            let modal = slice.getComponent('image-edit-modal');
+            if (!modal) {
+               modal = await slice.build('ImageEditModal', { sliceId: 'image-edit-modal' });
+               if (modal) document.body.appendChild(modal);
+            }
+            return modal;
+         })();
+      }
+
+      this._editModalPromise.then((modal) => {
+         if (!modal) return;
+         modal.open({
+            img: info.img,
+            onApply: (blob, dims) => this._replaceAssetBlob(info.img.id, blob, dims)
+         });
+      });
+   }
+
+   /**
+    * Reemplaza el blob de un asset (por crop o edición) actualizando la pool,
+    * el almacenamiento y el object URL. Las celdas que referencian este asset
+    * se repintan automáticamente porque el contexto dispara renderAll().
+    */
+   async _replaceAssetBlob(assetId, blob, { pxW, pxH }) {
+      if (!blob || !assetId) return;
+
+      const asset = this._asset(assetId);
+      if (!asset) return;
+
+      // Revocar la URL anterior si es blob
+      if (asset.url?.startsWith('blob:')) {
+         URL.revokeObjectURL(asset.url);
+      }
+
+      const newUrl = URL.createObjectURL(blob);
+
+      // Actualizar el asset en la pool
+      this._ctx.set((prev) => ({
+         ...prev,
+         pool: prev.pool.map((a) => {
+            if (a.id !== assetId) return a;
+            return { ...a, url: newUrl, pxW, pxH, ratio: pxW / pxH };
+         })
+      }));
+
+      // Persistir el nuevo blob en IndexedDB
+      await this._storage?.saveAsset({ ...asset, pxW, pxH }, blob);
+
+      this._toasts?.show('Imagen actualizada', { type: 'success', duration: 1600 });
+   }
+
+   /**
+    * Rota un asset por grados (90, -90, 180, etc.) usando canvas.
+    */
+   async _rotateAsset(assetId, degrees) {
+      this._pushHistory();
+      const asset = this._asset(assetId);
+      if (!asset?.url) return;
+
+      const imgEl = await new Promise((resolve) => {
+         const img = new Image();
+         img.crossOrigin = 'anonymous';
+         img.onload = () => resolve(img);
+         img.onerror = () => resolve(null);
+         img.src = asset.url;
+      });
+      if (!imgEl) return;
+
+      const rad = (degrees * Math.PI) / 180;
+      const absD = Math.abs(degrees);
+      const swap = absD === 90 || absD === 270;
+      const outW = swap ? imgEl.naturalHeight : imgEl.naturalWidth;
+      const outH = swap ? imgEl.naturalWidth : imgEl.naturalHeight;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = outW;
+      canvas.height = outH;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      ctx.translate(outW / 2, outH / 2);
+      ctx.rotate(rad);
+      ctx.drawImage(imgEl, -imgEl.naturalWidth / 2, -imgEl.naturalHeight / 2);
+
+      const blob = await new Promise((resolve) => {
+         canvas.toBlob(resolve, 'image/png', 1);
+      });
+
+      this._replaceAssetBlob(assetId, blob, { pxW: canvas.width, pxH: canvas.height });
+      this._toasts?.show(`Imagen rotada ${degrees}°`, { type: 'success', duration: 1600 });
+   }
+
+   /**
+    * Voltea un asset horizontal o verticalmente usando canvas.
+    */
+   async _flipAsset(assetId, direction) {
+      this._pushHistory();
+      const asset = this._asset(assetId);
+      if (!asset?.url) return;
+
+      const imgEl = await new Promise((resolve) => {
+         const img = new Image();
+         img.crossOrigin = 'anonymous';
+         img.onload = () => resolve(img);
+         img.onerror = () => resolve(null);
+         img.src = asset.url;
+      });
+      if (!imgEl) return;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = imgEl.naturalWidth;
+      canvas.height = imgEl.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+
+      if (direction === 'horizontal') {
+         ctx.translate(canvas.width, 0);
+         ctx.scale(-1, 1);
+      } else {
+         ctx.translate(0, canvas.height);
+         ctx.scale(1, -1);
+      }
+      ctx.drawImage(imgEl, 0, 0);
+
+      const blob = await new Promise((resolve) => {
+         canvas.toBlob(resolve, 'image/png', 1);
+      });
+
+      this._replaceAssetBlob(assetId, blob, { pxW: canvas.width, pxH: canvas.height });
+      const label = direction === 'horizontal' ? 'horizontal' : 'vertical';
+      this._toasts?.show(`Imagen volteada ${label}`, { type: 'success', duration: 1600 });
+   }
+
    _onEmptyCellClick(slot) {
       if (this._pendingRefId) {
          this.assignToSlot(slot);
@@ -1326,10 +1852,15 @@ export default class LayoutsSection extends HTMLElement {
    /**
     * Renderiza todas las hojas offscreen, corre `fn(stages)` y limpia siempre.
     * Bloquea reentradas: dos clicks seguidos duplicaban toda la exportación.
+    * @param {boolean} activeOnly — si es true, solo exporta la hoja activa.
     */
-   async _withStages(label, fn) {
+   async _withStages(label, fn, { activeOnly = false } = {}) {
       if (this._exporting) return null;
       if (!this._state.sheets.length) return null;
+
+      const sheets = activeOnly
+         ? [this._sheet()]
+         : this._state.sheets;
 
       this._exporting = true;
       this._setBusy(true, `${label}…`);
@@ -1337,7 +1868,7 @@ export default class LayoutsSection extends HTMLElement {
       let stages = null;
       try {
          stages = await this._exportSvc.renderOffscreen(
-            this._state.sheets,
+            sheets,
             (sheet, node) => this._renderSheetInto(sheet, node, { interactive: false })
          );
          return await fn(stages, (done, total) =>
@@ -1349,10 +1880,10 @@ export default class LayoutsSection extends HTMLElement {
       }
    }
 
-   async exportPNGs() {
+   async exportPNGs({ activeOnly = false } = {}) {
       try {
          const count = await this._withStages('Exportando PNG', (stages, onProgress) =>
-            this._exportSvc.exportPNGs(stages, html2canvas, { onProgress }));
+            this._exportSvc.exportPNGs(stages, html2canvas, { onProgress }), { activeOnly });
          if (count) this._toasts?.show(`${count} hoja(s) exportadas como PNG`, { type: 'success' });
       } catch (err) {
          slice.logger?.logError?.('LayoutsSection', 'PNG export failed', err);
@@ -1364,9 +1895,11 @@ export default class LayoutsSection extends HTMLElement {
     * Traduce el estado a un plan puramente geométrico en milímetros. Es lo que
     * permite que el PDF no dependa de rasterizar la hoja: cada imagen ya viene
     * con su posición y tamaño físicos resueltos.
+    * @param {boolean} activeOnly — si es true, solo incluye la hoja activa.
     */
-   _buildExportPlan() {
-      return this._state.sheets.map((sheet) => {
+   _buildExportPlan({ activeOnly = false } = {}) {
+      const sheets = activeOnly ? [this._sheet()] : this._state.sheets;
+      return sheets.map((sheet) => {
          const tpl = this._templates.get(sheet.templateId);
          const page = this._templates.page(sheet.pageId);
          const preset = this._templates.preset(sheet.presetId);
@@ -1393,7 +1926,7 @@ export default class LayoutsSection extends HTMLElement {
       });
    }
 
-   async exportPDF() {
+   async exportPDF({ activeOnly = false } = {}) {
       if (this._exporting) return;
       if (!this._state.sheets.length) return;
 
@@ -1402,7 +1935,7 @@ export default class LayoutsSection extends HTMLElement {
 
       try {
          const ok = await this._exportSvc.exportPDFExact(
-            this._buildExportPlan(),
+            this._buildExportPlan({ activeOnly }),
             jsPDF,
             {
                onProgress: (done, total) =>
@@ -1410,7 +1943,8 @@ export default class LayoutsSection extends HTMLElement {
             }
          );
          if (ok) {
-            this._toasts?.show('PDF generado a tamaño real', { type: 'success' });
+            const msg = activeOnly ? 'PDF de hoja activa generado' : 'PDF generado a tamaño real';
+            this._toasts?.show(msg, { type: 'success' });
          }
       } catch (err) {
          slice.logger?.logError?.('LayoutsSection', 'PDF export failed', err);
@@ -1421,21 +1955,10 @@ export default class LayoutsSection extends HTMLElement {
       }
    }
 
-   exportCalibration() {
-      try {
-         this._exportSvc.exportCalibrationSheet(jsPDF, this._sheet().pageId);
-         this._toasts?.show(
-            'Imprimila con el escalado desactivado y medí la regla',
-            { type: 'info', duration: 5000 }
-         );
-      } catch (err) {
-         slice.logger?.logError?.('LayoutsSection', 'Calibration sheet failed', err);
-         this._toasts?.show('Error al generar la hoja de calibración', { type: 'error' });
-      }
-   }
 
-   async printSheets() {
-      const pages = new Set(this._state.sheets.map((s) => s.pageId));
+   async printSheets({ activeOnly = false } = {}) {
+      const sheets = activeOnly ? [this._sheet()] : this._state.sheets;
+      const pages = new Set(sheets.map((s) => s.pageId));
       if (pages.size > 1) {
          this._toasts?.show(
             'Las hojas tienen tamaños distintos: se imprimirán con el tamaño de la primera',
@@ -1453,7 +1976,7 @@ export default class LayoutsSection extends HTMLElement {
             // de que _withStages descarte los nodos originales.
             await new Promise((r) => setTimeout(r, 300));
             return started;
-         });
+         }, { activeOnly });
          if (!ok) this._toasts?.show('No se pudo abrir el diálogo de impresión', { type: 'error' });
       } catch (err) {
          slice.logger?.logError?.('LayoutsSection', 'Print failed', err);

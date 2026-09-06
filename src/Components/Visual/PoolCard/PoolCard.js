@@ -18,7 +18,8 @@ export default class PoolCard extends HTMLElement {
       quantity: { type: 'number', default: 1 },
       onSelect: { type: 'function', default: null },
       onRemove: { type: 'function', default: null },
-      onQuantityChange: { type: 'function', default: null }
+      onQuantityChange: { type: 'function', default: null },
+      onContextMenu: { type: 'function', default: null }
    };
 
    constructor(props) {
@@ -33,6 +34,25 @@ export default class PoolCard extends HTMLElement {
 
       this.$thumb.addEventListener('click', () => {
          this._onSelect?.(this._asset?.id);
+      });
+
+      this.$thumb.addEventListener('contextmenu', (e) => {
+         e.preventDefault();
+         if (this._asset) {
+            this._onContextMenu?.({ nativeEvent: e, asset: this._asset });
+         }
+      });
+
+      // Preview en hover: muestra imagen ampliada al pasar el mouse
+      this._previewEl = null;
+      this._showPreviewTimer = null;
+      this.$thumb.addEventListener('mouseenter', () => {
+         if (!this._asset?.url) return;
+         this._showPreviewTimer = setTimeout(() => this._showPreview(), 400);
+      });
+      this.$thumb.addEventListener('mouseleave', () => {
+         clearTimeout(this._showPreviewTimer);
+         this._hidePreview();
       });
 
       this.$del.addEventListener('click', (e) => {
@@ -54,13 +74,6 @@ export default class PoolCard extends HTMLElement {
    }
 
    init() {
-      this._tips = slice.getComponent('ToolTipProvider');
-      this._applyTooltips();
-   }
-
-   beforeDestroy() {
-      this._tips?.detach(this.$thumb);
-      this._tips?.detach(this.$del);
    }
 
    /** El nodo por el que se arrastra la tarjeta hacia una celda. */
@@ -75,18 +88,42 @@ export default class PoolCard extends HTMLElement {
       this._onQuantityChange?.(this._asset?.id, next);
    }
 
-   _applyTooltips() {
-      if (!this._tips || !this._asset) return;
-      this._tips.detach(this.$thumb);
-      this._tips.attach(this.$thumb, {
-         text: this._used
-            ? `${this._asset.name} · ya está en la hoja`
-            : `${this._asset.name} · arrastrá a una celda o hacé click para seleccionar`,
-         placement: 'bottom'
+   _showPreview() {
+      if (this._previewEl || !this._asset?.url) return;
+      const el = document.createElement('div');
+      el.className = 'poolcard-preview';
+      el.innerHTML = `<img src="${this._asset.url}" alt="${this._asset.name}" /><span>${this._asset.name}</span>`;
+      document.body.appendChild(el);
+      this._previewEl = el;
+
+      // Posicionar cerca del thumbnail
+      const rect = this.$thumb.getBoundingClientRect();
+      el.style.left = `${rect.right + 8}px`;
+      el.style.top = `${rect.top}px`;
+
+      // Ajustar si se sale de la pantalla
+      requestAnimationFrame(() => {
+         const pr = el.getBoundingClientRect();
+         if (pr.right > window.innerWidth - 8) {
+            el.style.left = `${rect.left - pr.width - 8}px`;
+         }
+         if (pr.bottom > window.innerHeight - 8) {
+            el.style.top = `${window.innerHeight - pr.height - 8}px`;
+         }
       });
    }
 
-   // --- props ---
+   _hidePreview() {
+      if (this._previewEl) {
+         this._previewEl.remove();
+         this._previewEl = null;
+      }
+   }
+
+   beforeDestroy() {
+      clearTimeout(this._showPreviewTimer);
+      this._hidePreview();
+   }
 
    get asset() { return this._asset; }
    set asset(value) {
@@ -98,7 +135,6 @@ export default class PoolCard extends HTMLElement {
       } else {
          this.$thumb.style.backgroundImage = '';
       }
-      this._applyTooltips();
    }
 
    get pending() { return this._pending; }
@@ -111,7 +147,6 @@ export default class PoolCard extends HTMLElement {
    set used(value) {
       this._used = !!value;
       this.$dot.classList.toggle('is-used', this._used);
-      this._applyTooltips();
    }
 
    get quantity() { return this._quantity; }
@@ -131,6 +166,9 @@ export default class PoolCard extends HTMLElement {
 
    get onQuantityChange() { return this._onQuantityChange; }
    set onQuantityChange(fn) { this._onQuantityChange = typeof fn === 'function' ? fn : null; }
+
+   get onContextMenu() { return this._onContextMenu; }
+   set onContextMenu(fn) { this._onContextMenu = typeof fn === 'function' ? fn : null; }
 }
 
 customElements.define('slice-pool-card', PoolCard);

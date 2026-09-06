@@ -149,14 +149,14 @@ export default class SheetStorage {
          return items
             .map((item) => {
                if (!item?.blob) return null;
-               const asset = this._pool.createAssetDirect({
-                  id: item.id,
-                  name: item.name,
-                  url: URL.createObjectURL(item.blob),
-                  w: item.w,
-                  h: item.h
-               });
-               if (asset) asset.quantity = item.quantity ?? 1;
+                const asset = this._pool.createAssetDirect({
+                   id: item.id,
+                   name: item.name,
+                   url: URL.createObjectURL(item.blob),
+                   w: item.w,
+                   h: item.h
+                });
+                if (asset) asset.quantity = item.quantity ?? 1;
                return asset;
             })
             .filter(Boolean);
