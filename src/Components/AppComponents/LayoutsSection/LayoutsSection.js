@@ -245,7 +245,7 @@ export default class LayoutsSection extends HTMLElement {
 
       const actionDefs = [
          { key: 'auto', label: 'Auto acomodar', icon: 'star', variant: 'filled', tip: 'Reparte todas las imágenes en la hoja actual y, si no entran, en hojas nuevas con la misma configuración', handler: () => this.smartAssign(true) },
-         { key: 'clear', label: 'Limpiar hoja', icon: 'x', variant: 'outlined', tip: 'Quita las imágenes de la hoja (quedan en la biblioteca)', handler: () => this.clearPlacements() },
+         { key: 'clear', label: 'Limpiar hoja', icon: 'minus', variant: 'outlined', tip: 'Quita las imágenes de la hoja (quedan en la biblioteca)', handler: () => this.clearPlacements() },
          { key: 'pngs', label: 'PNGs', icon: 'image', variant: 'outlined', tip: 'Descarga como imágenes (para uso digital)', handler: () => this.exportPNGs() },
          { key: 'pdf', label: 'PDF', icon: 'download', variant: 'outlined', tip: 'Descarga con medidas exactas (recomendado para imprimir)', handler: () => this.exportPDF() },
          { key: 'print', label: 'Imprimir', icon: 'printer', variant: 'soft', tip: 'Imprimir todas las hojas a tamaño real', handler: () => this.printSheets() }
@@ -1636,7 +1636,7 @@ export default class LayoutsSection extends HTMLElement {
          });
          items.push({
             label: 'Eliminar de la biblioteca',
-            icon: 'x',
+            icon: 'minus',
             danger: true,
             action: () => this.removeFromPool(img.id)
          });
@@ -1681,7 +1681,7 @@ export default class LayoutsSection extends HTMLElement {
          { type: 'separator' },
          {
             label: 'Eliminar de la biblioteca',
-            icon: 'x',
+            icon: 'minus',
             danger: true,
             action: () => this.removeFromPool(asset.id)
          }
