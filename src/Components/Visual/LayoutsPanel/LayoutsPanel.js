@@ -135,9 +135,9 @@ export default class LayoutsPanel extends HTMLElement {
       }
 
       const fits = [
-         { id: 'smart', label: 'Smart', icon: 'wand-sparkles', tip: 'Recorta si el encuadre es parecido; respeta proporciones si no' },
-         { id: 'cover', label: 'Cubrir', icon: 'layout-grid', tip: 'Llena la celda recortando lo que sobre' },
-         { id: 'contain', label: 'Contener', icon: 'images', tip: 'Imagen completa dentro de la celda' }
+         { id: 'smart', label: 'Smart', icon: 'wand-magic-sparkles', tip: 'Recorta si el encuadre es parecido; respeta proporciones si no' },
+         { id: 'cover', label: 'Cubrir', icon: 'grid', tip: 'Llena la celda recortando lo que sobre' },
+         { id: 'contain', label: 'Contener', icon: 'image', tip: 'Imagen completa dentro de la celda' }
       ];
       for (const f of fits) {
          const btn = await slice.build('Button', {

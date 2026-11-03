@@ -2,26 +2,60 @@
 // Crear, eliminar, cambiar hoja activa, sincronizar configuración.
 // Sin estado de UI — opera sobre objetos hoja planos.
 
+/**
+ * Configuración de una hoja (todo lo que no es contenido).
+ * @typedef {object} SheetConfig
+ * @property {string} [pageId]
+ * @property {string} [templateId]
+ * @property {string} [presetId]
+ * @property {string} [fitMode]
+ * @property {number} [imageScale]
+ * @property {string|null} [productId]
+ * @property {{w:number, h:number}|null} [cellSizeMm]
+ * @property {number[]} [cols]
+ * @property {number[]} [rows]
+ */
+
 export default class SheetService {
    constructor(props = {}) {
       this._tpl = props.templatesService;
    }
 
    /**
-    * Crea una hoja nueva heredando configuración de la hoja actual.
-    * @param {number} seq — número de secuencia
-    * @param {object} [current] — hoja de la que copiar config
+    * Crea una hoja nueva heredando la configuración de la hoja actual.
+    *
+    * Hereda **todo lo que define cómo se ve la hoja** —papel, plantilla,
+    * márgenes, ajuste, escala, tamaño fijo de producto y los pesos de
+    * columnas/filas— pero **no el contenido**: `placement` arranca vacío. Copiar
+    * con imágenes es `duplicateSheet`, que es otra acción.
+    *
+    * Los arrays de pesos y `cellSizeMm` se copian: compartir la referencia hacía
+    * que mover un splitter en la hoja nueva deformara también la original.
+    *
+    * @param {number} seq - número de secuencia
+    * @param {SheetConfig} [current] - hoja de la que copiar config
     * @returns {object} hoja nueva
     */
    createSheet(seq, current) {
       const fresh = this._tpl.createSheet(seq);
-      if (current) {
-         fresh.pageId = current.pageId;
-         fresh.templateId = current.templateId;
-         fresh.presetId = current.presetId;
-         fresh.fitMode = current.fitMode;
-         fresh.imageScale = current.imageScale;
-      }
+      if (!current) return fresh;
+
+      fresh.pageId = current.pageId ?? fresh.pageId;
+      fresh.templateId = current.templateId ?? fresh.templateId;
+      fresh.presetId = current.presetId ?? fresh.presetId;
+      fresh.fitMode = current.fitMode ?? fresh.fitMode;
+      fresh.imageScale = current.imageScale ?? fresh.imageScale;
+
+      // Tamaño fijo de producto: sin esto "Nueva hoja" volvía a la grilla
+      // elástica y perdía las celdas de 5×5 cm, por ejemplo.
+      fresh.productId = current.productId ?? null;
+      fresh.cellSizeMm = current.cellSizeMm ? { ...current.cellSizeMm } : null;
+
+      // Pesos por columna/fila de los splitters. Se validan contra la plantilla
+      // al calcular la geometría, así que copiarlos de más no rompe nada.
+      fresh.cols = Array.isArray(current.cols) ? [...current.cols] : undefined;
+      fresh.rows = Array.isArray(current.rows) ? [...current.rows] : undefined;
+
       return fresh;
    }
 

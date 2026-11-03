@@ -32,6 +32,40 @@ describe('SheetService', () => {
          expect(sheet.presetId).toBe('wide');
          expect(sheet.fitMode).toBe('contain');
       });
+
+      it('hereda escala, producto y pesos de columnas/filas sin compartir referencias', () => {
+         const current = {
+            pageId: 'a4',
+            templateId: 'grid-3x5',
+            presetId: 'compact',
+            fitMode: 'cover',
+            imageScale: 0.7,
+            productId: 'sticker-5',
+            cellSizeMm: { w: 50, h: 50 },
+            cols: [2, 1, 1],
+            rows: [1, 1, 1, 1, 1]
+         };
+         const sheet = svc.createSheet(2, current);
+
+         expect(sheet.imageScale).toBe(0.7);
+         expect(sheet.productId).toBe('sticker-5');
+         expect(sheet.cellSizeMm).toEqual({ w: 50, h: 50 });
+         expect(sheet.cols).toEqual([2, 1, 1]);
+         expect(sheet.rows).toEqual([1, 1, 1, 1, 1]);
+
+         // Copia profunda: mover un splitter en la hoja nueva no puede deformar
+         // la original.
+         sheet.cellSizeMm.w = 40;
+         sheet.cols[0] = 9;
+         expect(current.cellSizeMm.w).toBe(50);
+         expect(current.cols[0]).toBe(2);
+      });
+
+      it('la hoja nueva arranca sin contenido', () => {
+         const current = { pageId: 'a4', templateId: 'm3x3', placement: { 0: { refId: 'a' } } };
+         const sheet = svc.createSheet(2, current);
+         expect(sheet.placement).toEqual({});
+      });
    });
 
    describe('removeSheet', () => {

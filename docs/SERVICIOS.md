@@ -80,6 +80,10 @@ dos métodos clave:
 - `ensureGrid(cols, rows)` — registra al vuelo una plantilla derivada (`grid-4x5`),
   porque las grillas de producto son arbitrarias y no están en el catálogo fijo.
 
+> `get('grid-3x5')` **rehidrata** la grilla derivada si no está en memoria. Las
+> derivadas no se persisten: sin esto, tras un F5 la capacidad de una hoja de
+> producto bajaba a la de `m2x2` y el siguiente commit borraba las celdas de más.
+
 ### `SheetGeometry`
 Matemática pura de la hoja. Sin estado y sin DOM.
 
@@ -100,9 +104,11 @@ Recibe **assets**, no ids.
 ### `SheetService`
 Alta, baja y cambio de hoja activa.
 
-> `createSheet(seq, current)` acepta una hoja de la que heredar configuración.
-> La vista **no le pasa** ese segundo argumento a propósito: "Nueva hoja" crea en
-> blanco, y copiar es `duplicateSheet`.
+> `createSheet(seq, current)` hereda **toda** la configuración de la hoja
+> actual: papel, plantilla, márgenes, ajuste, escala, producto con tamaño fijo y
+> pesos de columnas/filas (copiados, no compartidos). **No** copia el contenido:
+> `placement` arranca vacío. "Nueva hoja" usa esa herencia; copiar las imágenes
+> es `duplicateSheet`.
 
 ### `PoolService`
 CRUD de la biblioteca: `measure`, `createAsset`, `createAssetDirect`,
@@ -125,6 +131,21 @@ Las tres salidas, y **no son equivalentes en precisión**:
 | **PDF** (`exportPDFExact`) | Exacto. Estampa cada imagen en coordenadas en mm; no rasteriza el layout |
 | **Impresión** (`printSheets`) | Exacto en CSS, pero el driver puede reescalar |
 | **PNG** (`exportPNGs`) | Sin tamaño físico: un PNG son píxeles. Para imprimir, PDF |
+
+`exportPDFExact()` devuelve `{ ok, paginas, items, imagenes, fallidas }` y **no
+guarda** el archivo si había piezas y ninguna imagen pudo estamparse: un PDF de
+páginas en blanco parece un bug del layout y esconde la causa real. La vista
+entonces cae a `exportPDFRaster()`, que rasteriza cada hoja offscreen (el mismo
+camino que PNG/Imprimir) para que el usuario se lleve lo que ve.
+
+Además:
+
+- las imágenes se precargan **una vez por URL** (dos celdas del mismo sticker no
+  la decodifican dos veces);
+- el `format` que recibe `addImage` se deduce del **data URL real**, no de la
+  extensión del archivo (rotar/voltear guardan PNG con nombre `.jpg`);
+- las hojas sin ninguna imagen colocada no se exportan: no generan páginas
+  fantasma en el PDF/PNG ni una hoja de más al imprimir.
 
 `exportCalibrationSheet()` genera una hoja de prueba con una regla de 100 mm.
 Sirve para que el usuario distinga "la app mide mal" de "mi impresora reescala",

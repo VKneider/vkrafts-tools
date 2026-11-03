@@ -141,7 +141,11 @@ describe('ExportService', () => {
             naturalHeight: 300
          });
          // jsdom no tiene canvas nativo: mockear la conversión a data URL.
-         vi.spyOn(svc, '_imageToDataURL').mockReturnValue('data:image/jpeg;base64,mock');
+         // El formato real sale del prefijo del data URL, así que el mock tiene
+         // que devolver PNG cuando se pide transparencia.
+         vi.spyOn(svc, '_imageToDataURL').mockImplementation((img, keepAlpha) =>
+            keepAlpha ? 'data:image/png;base64,mock' : 'data:image/jpeg;base64,mock'
+         );
          // _cropToRatio también usa canvas; mockear para tests de crop.
          vi.spyOn(svc, '_cropToRatio').mockReturnValue(mockCanvas());
       });
@@ -198,9 +202,69 @@ describe('ExportService', () => {
          expect(pdfSpy.addImage).toHaveBeenCalled();
       });
 
+      it('reporta piezas, imágenes estampadas y fallidas', async () => {
+         const res = await svc.exportPDFExact([page([item(), item({ url: 'blob:y' })])], MockJsPDF);
+         expect(res).toMatchObject({ ok: true, paginas: 1, items: 2, imagenes: 2, fallidas: [] });
+      });
+
+      it('no guarda el PDF si había piezas y ninguna imagen cargó', async () => {
+         svc._loadImage.mockResolvedValue(null);
+         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+         const res = await svc.exportPDFExact([page([item(), item()])], MockJsPDF);
+
+         expect(res.ok).toBe(false);
+         expect(res.imagenes).toBe(0);
+         expect(pdfSpy.save).not.toHaveBeenCalled();
+         expect(warn).toHaveBeenCalled();
+      });
+
+      it('estampa solo las imágenes que cargaron y reporta las fallidas', async () => {
+         svc._loadImage.mockImplementation(async (url) =>
+            url === 'blob:rota' ? null : { naturalWidth: 400, naturalHeight: 300 });
+
+         const res = await svc.exportPDFExact(
+            [page([item(), item({ url: 'blob:rota' })])],
+            MockJsPDF
+         );
+
+         expect(res.ok).toBe(true);
+         expect(res.imagenes).toBe(1);
+         expect(res.fallidas).toEqual(['blob:rota']);
+         expect(pdfSpy.addImage).toHaveBeenCalledTimes(1);
+      });
+
+      it('decodifica cada URL una sola vez aunque se repita en la hoja', async () => {
+         await svc.exportPDFExact([page([item(), item(), item()])], MockJsPDF);
+         expect(svc._loadImage).toHaveBeenCalledTimes(1);
+      });
+
       it('retorna false si no hay hojas', async () => {
          expect(await svc.exportPDFExact([], MockJsPDF)).toBe(false);
          expect(await svc.exportPDFExact(null, MockJsPDF)).toBe(false);
+      });
+   });
+
+   describe('exportPDFRaster', () => {
+      it('estampa una página por hoja con el tamaño del papel', async () => {
+         const html2canvas = vi.fn().mockResolvedValue(mockCanvas());
+         let received = null;
+         const api = { addPage: vi.fn(), save: vi.fn(), addImage: vi.fn() };
+         class MockJsPDF {
+            constructor(opts) { received = opts; Object.assign(this, api); }
+         }
+
+         const ok = await svc.exportPDFRaster([stageOf('carta'), stageOf('a4')], html2canvas, MockJsPDF);
+
+         expect(ok).toBe(true);
+         expect(received.format).toEqual([216, 279]);
+         expect(api.addPage).toHaveBeenCalledWith([210, 297]);
+         expect(api.addImage).toHaveBeenCalledTimes(2);
+         expect(api.save).toHaveBeenCalledWith('vkrafts-hojas.pdf');
+      });
+
+      it('retorna false sin hojas', async () => {
+         expect(await svc.exportPDFRaster([], vi.fn(), class {})).toBe(false);
       });
    });
 

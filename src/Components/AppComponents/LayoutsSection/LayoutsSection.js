@@ -209,10 +209,10 @@ export default class LayoutsSection extends HTMLElement {
       const sheet = this._sheet();
 
       const actionDefs = [
-         { key: 'auto', label: 'Auto acomodar', icon: 'wand-sparkles', variant: 'filled', tip: 'Distribuye automáticamente las imágenes en la hoja', handler: () => this.smartAssign(true) },
-         { key: 'clear', label: 'Limpiar hoja', icon: 'trash-2', variant: 'outlined', tip: 'Quita las imágenes de la hoja (quedan en la biblioteca)', handler: () => this.clearPlacements() },
-         { key: 'pngs', label: 'PNGs', icon: 'images', variant: 'outlined', tip: 'Descarga como imágenes (para uso digital)', handler: () => this.exportPNGs() },
-         { key: 'pdf', label: 'PDF', icon: 'file-text', variant: 'outlined', tip: 'Descarga con medidas exactas (recomendado para imprimir)', handler: () => this.exportPDF() },
+         { key: 'auto', label: 'Auto acomodar', icon: 'wand-magic-sparkles', variant: 'filled', tip: 'Reparte todas las imágenes en la hoja actual y, si no entran, en hojas nuevas con la misma configuración', handler: () => this.smartAssign(true) },
+         { key: 'clear', label: 'Limpiar hoja', icon: 'trash-bin', variant: 'outlined', tip: 'Quita las imágenes de la hoja (quedan en la biblioteca)', handler: () => this.clearPlacements() },
+         { key: 'pngs', label: 'PNGs', icon: 'image', variant: 'outlined', tip: 'Descarga como imágenes (para uso digital)', handler: () => this.exportPNGs() },
+         { key: 'pdf', label: 'PDF', icon: 'file-lines', variant: 'outlined', tip: 'Descarga con medidas exactas (recomendado para imprimir)', handler: () => this.exportPDF() },
          { key: 'print', label: 'Imprimir', icon: 'printer', variant: 'soft', tip: 'Imprimir todas las hojas a tamaño real', handler: () => this.printSheets() }
       ];
 
@@ -681,30 +681,85 @@ export default class LayoutsSection extends HTMLElement {
       return out;
    }
 
+   /**
+    * Reparte **todas** las copias de la biblioteca, no solo las que entran en la
+    * hoja activa. La activa recibe las primeras `capacidad` piezas y, cuando
+    * sobran, se crean hojas nuevas a continuación con **la misma configuración**
+    * (papel, plantilla, márgenes, producto y pesos de columnas/filas).
+    *
+    * Antes esto se detenía en la capacidad de una hoja: las imágenes que no
+    * entraban quedaban en la biblioteca y el usuario tenía que crear hojas a
+    * mano con la configuración por defecto.
+    *
+    * @param {boolean} notify — muestra el resumen al terminar
+    * @returns {Promise<number>} cantidad de hojas nuevas
+    */
    async smartAssign(notify = false) {
-      if (this._placing) return;
+      if (this._placing) return 0;
 
       const sheet = this._sheet();
       if (!this._state.pool.length) {
          this._toasts?.show('No hay imágenes en la biblioteca todavía', { type: 'info' });
-         return;
+         return 0;
+      }
+
+      const capacity = this._capacity();
+      if (!capacity) {
+         this._toasts?.show('Esta plantilla no tiene celdas', { type: 'warning' });
+         return 0;
       }
 
       const requested = this._expandByQuantity(this._state.pool);
       const cellRatio = this._cellRatio(sheet);
-      const queue = this._placeSvc.smartAssign(
-         requested, sheet, this._capacity(), cellRatio
-      );
 
+      // Una sola entrada de historial para todo el acomodo (incluye las hojas
+      // nuevas): deshacerlo tiene que devolver la planilla como estaba.
+      this._pushHistory();
+
+      // 1) La hoja activa se vacía y se llena con las primeras piezas.
+      const first = requested.slice(0, capacity);
+      const rest = requested.slice(capacity);
+      const queue = this._placeSvc.smartAssign(first, sheet, capacity, cellRatio);
       this._commitSheet((s) => this._placeSvc.clearPlacements(s));
       await this._replay(queue);
 
-      if (notify) {
-         const out = this._state.pool.length - queue.length;
-         this._toasts?.show(out > 0
-            ? `${queue.length} colocadas · ${out} sin lugar en la hoja`
-            : `${queue.length} imágenes acomodadas`, { type: 'info' });
+      // 2) El resto se reparte en hojas nuevas clonadas de la activa. Cada
+      //    bloque se acomoda con el mismo criterio que la primera hoja.
+      const nuevas = [];
+      for (let i = 0; i < rest.length; i += capacity) {
+         const chunk = rest.slice(i, i + capacity);
+         const nueva = this._sheetSvc.createSheet(
+            this._state.sheets.length + nuevas.length + 1,
+            sheet
+         );
+         const cola = this._placeSvc.smartAssign(chunk, nueva, capacity, cellRatio);
+         for (const step of cola) {
+            nueva.placement[step.slot] = { refId: step.refId, fit: step.fit };
+         }
+         nuevas.push(nueva);
       }
+
+      if (nuevas.length) {
+         this._ctx.set((prev) => {
+            const index = prev.sheets.findIndex((sh) => sh.id === sheet.id);
+            const sheets = [...prev.sheets];
+            // A continuación de la hoja acomodada, no al final: el orden de la
+            // planilla sigue el orden en que se fue armando.
+            sheets.splice(index < 0 ? sheets.length : index + 1, 0, ...nuevas);
+            return { ...prev, sheets, activeId: sheet.id };
+         });
+      }
+
+      if (notify) {
+         const hojas = 1 + nuevas.length;
+         this._toasts?.show(
+            `${requested.length} ${requested.length === 1 ? 'imagen' : 'imágenes'} · ` +
+            `${hojas} ${hojas === 1 ? 'hoja' : 'hojas'}`,
+            { type: 'success' }
+         );
+      }
+
+      return nuevas.length;
    }
 
    /**
@@ -844,7 +899,7 @@ export default class LayoutsSection extends HTMLElement {
       add.type = 'button';
       add.className = 'layoutssection__sheetchip-add';
       add.textContent = '+ Nueva hoja';
-      add.setAttribute('data-tooltip', 'Hoja vacía con la configuración por defecto');
+      add.setAttribute('data-tooltip', 'Hoja vacía con la misma configuración que la actual');
       add.addEventListener('click', () => this.addSheet());
       bar.appendChild(add);
 
@@ -860,23 +915,41 @@ export default class LayoutsSection extends HTMLElement {
    }
 
    /**
-    * Hoja NUEVA: en blanco, con la configuración por defecto del catálogo.
-    * No se le pasa la hoja activa a `createSheet` a propósito — hacerlo heredaba
-    * página, plantilla, márgenes, ajuste y escala, y "nueva hoja" terminaba
-    * comportándose como un clon. Para copiar una hoja está `duplicateSheet`.
+    * Hoja NUEVA: en blanco, pero **con la configuración de la hoja activa**.
+    *
+    * El contenido no se copia (para eso está `duplicateSheet`): heredar papel,
+    * plantilla, márgenes, ajuste, escala, producto y pesos de columnas/filas es
+    * lo que se espera de "otra hoja igual". Antes arrancaba con los valores por
+    * defecto del catálogo y el usuario tenía que reconfigurar cada hoja.
     */
    addSheet() {
+      let creada = null;
+
+      this._pushHistory();
       // `set` REEMPLAZA el estado: sin esparcir `prev` acá se perdían el pool
       // de imágenes y el zoom cada vez que se creaba una hoja.
       this._ctx.set((prev) => {
-         const fresh = this._sheetSvc.createSheet(prev.sheets.length + 1);
-         return { ...prev, activeId: fresh.id, sheets: [...prev.sheets, fresh] };
+         const actual = this._sheetSvc.getActiveSheet(prev);
+         const fresh = this._sheetSvc.createSheet(prev.sheets.length + 1, actual);
+         creada = fresh;
+
+         const index = prev.sheets.findIndex((sh) => sh.id === prev.activeId);
+         const sheets = [...prev.sheets];
+         // Al lado de la actual: la planilla conserva el orden en que se armó.
+         sheets.splice(index < 0 ? sheets.length : index + 1, 0, fresh);
+         return { ...prev, activeId: fresh.id, sheets };
       });
-      this._toasts?.show(`Hoja ${this._state.sheets.length} creada en blanco`, { type: 'success' });
+
+      const pos = this._state.sheets.findIndex((sh) => sh.id === creada?.id) + 1;
+      this._toasts?.show(
+         `Hoja ${pos || this._state.sheets.length} creada con la configuración de la anterior`,
+         { type: 'success' }
+      );
    }
 
    /** Copia exacta de una hoja: ajustes, medidas de celda e imágenes colocadas. */
    duplicateSheet(id) {
+      this._pushHistory();
       this._ctx.set((prev) => {
          const index = prev.sheets.findIndex((sh) => sh.id === id);
          if (index < 0) return prev;
@@ -918,6 +991,7 @@ export default class LayoutsSection extends HTMLElement {
    }
 
    _doRemoveSheet(id) {
+      this._pushHistory();
       this._ctx.set((prev) => {
          if (prev.sheets.length <= 1) return prev;
          return { ...prev, ...this._sheetSvc.removeSheet(prev.sheets, prev.activeId, id) };
@@ -1483,7 +1557,7 @@ export default class LayoutsSection extends HTMLElement {
       const items = [
          {
             label: 'Editar medidas…',
-            icon: 'pen-tool',
+            icon: 'pen',
             action: () => this._openSizeModal(info)
          }
       ];
@@ -1492,46 +1566,46 @@ export default class LayoutsSection extends HTMLElement {
          items.push({ type: 'separator' });
          items.push({
             label: 'Recortar',
-            icon: 'scissors',
+            icon: 'draw-square',
             action: () => this._openCropModal(info)
          });
          items.push({
             label: 'Editar',
-            icon: 'pen-tool',
+            icon: 'pen',
             action: () => this._openEditModal(info)
          });
          items.push({ type: 'separator' });
          items.push({
             label: 'Rotar 90° izquierda',
-            icon: 'rotate-ccw',
+            icon: 'undo',
             action: () => this._rotateAsset(img.id, -90)
          });
          items.push({
             label: 'Rotar 90° derecha',
-            icon: 'rotate-cw',
+            icon: 'redo',
             action: () => this._rotateAsset(img.id, 90)
          });
          items.push({ type: 'separator' });
          items.push({
             label: 'Voltear horizontal',
-            icon: 'flip-horizontal',
+            icon: 'arrow-up-right-down-left',
             action: () => this._flipAsset(img.id, 'horizontal')
          });
          items.push({
             label: 'Voltear vertical',
-            icon: 'flip-vertical',
+            icon: 'arrow-up-down',
             action: () => this._flipAsset(img.id, 'vertical')
          });
          items.push({ type: 'separator' });
          items.push({
             label: 'Quitar de la celda',
-            icon: 'trash-2',
+            icon: 'trash-bin',
             danger: true,
             action: () => this.removePlacement(info.slot)
          });
          items.push({
             label: 'Eliminar de la biblioteca',
-            icon: 'trash-2',
+            icon: 'trash-bin',
             danger: true,
             action: () => this.removeFromPool(img.id)
          });
@@ -1547,40 +1621,40 @@ export default class LayoutsSection extends HTMLElement {
       const items = [
          {
             label: 'Recortar',
-            icon: 'scissors',
+            icon: 'draw-square',
             action: () => this._openCropModal({ img: asset })
          },
          {
             label: 'Editar',
-            icon: 'pen-tool',
+            icon: 'pen',
             action: () => this._openEditModal({ img: asset })
          },
          { type: 'separator' },
          {
             label: 'Rotar 90° izquierda',
-            icon: 'rotate-ccw',
+            icon: 'undo',
             action: () => this._rotateAsset(asset.id, -90)
          },
          {
             label: 'Rotar 90° derecha',
-            icon: 'rotate-cw',
+            icon: 'redo',
             action: () => this._rotateAsset(asset.id, 90)
          },
          { type: 'separator' },
          {
             label: 'Voltear horizontal',
-            icon: 'flip-horizontal',
+            icon: 'arrow-up-right-down-left',
             action: () => this._flipAsset(asset.id, 'horizontal')
          },
          {
             label: 'Voltear vertical',
-            icon: 'flip-vertical',
+            icon: 'arrow-up-down',
             action: () => this._flipAsset(asset.id, 'vertical')
          },
          { type: 'separator' },
          {
             label: 'Eliminar de la biblioteca',
-            icon: 'trash-2',
+            icon: 'trash-bin',
             danger: true,
             action: () => this.removeFromPool(asset.id)
          }
@@ -1850,17 +1924,35 @@ export default class LayoutsSection extends HTMLElement {
    }
 
    /**
+    * Hojas que tienen al menos una imagen **resoluble** colocada.
+    *
+    * Exportar una hoja vacía produce una página en blanco en el PDF/PNG (y una
+    * hoja de más al imprimir). Se exige que el asset exista: una hoja cuyas
+    * únicas celdas apuntan a imágenes perdidas tampoco tiene nada que imprimir.
+    */
+   _sheetsConContenido({ activeOnly = false } = {}) {
+      const base = activeOnly ? [this._sheet()] : this._state.sheets;
+      return base.filter((sh) => Object.values(sh.placement || {})
+         .some((ref) => ref && this._asset(ref.refId)));
+   }
+
+   /**
     * Renderiza todas las hojas offscreen, corre `fn(stages)` y limpia siempre.
     * Bloquea reentradas: dos clicks seguidos duplicaban toda la exportación.
-    * @param {boolean} activeOnly — si es true, solo exporta la hoja activa.
+    * @param {{activeOnly?:boolean}} [opts] - activeOnly: solo la hoja activa.
     */
    async _withStages(label, fn, { activeOnly = false } = {}) {
       if (this._exporting) return null;
       if (!this._state.sheets.length) return null;
 
-      const sheets = activeOnly
-         ? [this._sheet()]
-         : this._state.sheets;
+      const sheets = this._sheetsConContenido({ activeOnly });
+      if (!sheets.length) {
+         this._toasts?.show(
+            'No hay imágenes colocadas en la hoja. Usa Auto acomodar o arrastra imágenes a las celdas.',
+            { type: 'warning', duration: 4000 }
+         );
+         return null;
+      }
 
       this._exporting = true;
       this._setBusy(true, `${label}…`);
@@ -1892,13 +1984,12 @@ export default class LayoutsSection extends HTMLElement {
    }
 
    /**
-    * Traduce el estado a un plan puramente geométrico en milímetros. Es lo que
+    * Traduce las hojas a un plan puramente geométrico en milímetros. Es lo que
     * permite que el PDF no dependa de rasterizar la hoja: cada imagen ya viene
     * con su posición y tamaño físicos resueltos.
-    * @param {boolean} activeOnly — si es true, solo incluye la hoja activa.
+    * @param {object[]} [sheets] - hojas a exportar (por defecto, todas)
     */
-   _buildExportPlan({ activeOnly = false } = {}) {
-      const sheets = activeOnly ? [this._sheet()] : this._state.sheets;
+   _buildExportPlan(sheets = this._state.sheets) {
       return sheets.map((sheet) => {
          const tpl = this._templates.get(sheet.templateId);
          const page = this._templates.page(sheet.pageId);
@@ -1930,22 +2021,53 @@ export default class LayoutsSection extends HTMLElement {
       if (this._exporting) return;
       if (!this._state.sheets.length) return;
 
+      // Solo las hojas con contenido: una hoja vacía da una página en blanco.
+      const sheets = this._sheetsConContenido({ activeOnly });
+      if (!sheets.length) {
+         this._toasts?.show(
+            'No hay imágenes colocadas en la hoja. Usa Auto acomodar o arrastra imágenes a las celdas.',
+            { type: 'warning', duration: 4000 }
+         );
+         return;
+      }
+
+      const plan = this._buildExportPlan(sheets);
+
       this._exporting = true;
       this._setBusy(true, 'Generando PDF…');
 
       try {
-         const ok = await this._exportSvc.exportPDFExact(
-            this._buildExportPlan({ activeOnly }),
-            jsPDF,
-            {
-               onProgress: (done, total) =>
-                  this._setBusy(true, `Generando PDF ${Math.min(done + 1, total)}/${total}`)
+         const res = await this._exportSvc.exportPDFExact(plan, jsPDF, {
+            onProgress: (done, pages) =>
+               this._setBusy(true, `Generando PDF ${Math.min(done + 1, pages)}/${pages}`)
+         });
+
+         if (res && res.ok) {
+            if (res.fallidas?.length) {
+               this._toasts?.show(
+                  `${res.fallidas.length} imagen(es) no se pudieron leer; esa(s) celda(s) puede(n) salir vacía(s).`,
+                  { type: 'warning', duration: 5000 }
+               );
             }
-         );
-         if (ok) {
             const msg = activeOnly ? 'PDF de hoja activa generado' : 'PDF generado a tamaño real';
             this._toasts?.show(msg, { type: 'success' });
+            return;
          }
+
+         // Ninguna imagen se pudo estampar: último recurso, rasterizar cada hoja
+         // (el mismo camino que PNG/Imprimir). Se pierde el vector pero el
+         // usuario se lleva lo que ve en pantalla.
+         slice.logger?.logWarn?.(
+            'LayoutsSection',
+            'El PDF exacto no pudo estampar imágenes; se rasterizan las hojas',
+            res
+         );
+         this._setBusy(true, 'Generando PDF como imagen…');
+         await this._exportPDFRaster(sheets);
+         this._toasts?.show('PDF generado como imagen (no se pudieron leer las imágenes originales)', {
+            type: 'warning',
+            duration: 5000
+         });
       } catch (err) {
          slice.logger?.logError?.('LayoutsSection', 'PDF export failed', err);
          this._toasts?.show('Error al generar el PDF', { type: 'error' });
@@ -1955,9 +2077,26 @@ export default class LayoutsSection extends HTMLElement {
       }
    }
 
+   /**
+    * Fallback del PDF: renderiza las hojas offscreen y las estampa enteras.
+    * No usa `_withStages` porque `exportPDF` ya tiene tomado `_exporting`.
+    */
+   async _exportPDFRaster(sheets) {
+      let stages = null;
+      try {
+         stages = await this._exportSvc.renderOffscreen(
+            sheets,
+            (sheet, node) => this._renderSheetInto(sheet, node, { interactive: false })
+         );
+         return await this._exportSvc.exportPDFRaster(stages, html2canvas, jsPDF);
+      } finally {
+         this._exportSvc.cleanupStages(stages);
+      }
+   }
+
 
    async printSheets({ activeOnly = false } = {}) {
-      const sheets = activeOnly ? [this._sheet()] : this._state.sheets;
+      const sheets = this._sheetsConContenido({ activeOnly });
       const pages = new Set(sheets.map((s) => s.pageId));
       if (pages.size > 1) {
          this._toasts?.show(

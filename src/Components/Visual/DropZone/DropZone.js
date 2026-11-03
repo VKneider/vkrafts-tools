@@ -22,7 +22,9 @@ export default class DropZone extends HTMLElement {
    async init() {
       const tips = slice.getComponent('ToolTipProvider');
 
-      const icon = await slice.build('Icon', { name: 'images', size: 30, color: 'currentColor' });
+      // `image` (singular) es el nombre válido del Icon; `images` no existe y
+      // renderizaba un <svg> vacío sin avisar.
+      const icon = await slice.build('Icon', { name: 'image', size: 30, color: 'currentColor' });
       if (icon) this.$icon.appendChild(icon);
 
       if (tips) {

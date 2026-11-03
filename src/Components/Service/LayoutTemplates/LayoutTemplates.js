@@ -120,8 +120,21 @@ export default class LayoutTemplates {
       return this.templates;
    }
 
+   /**
+    * Plantilla por id. Las grillas derivadas de un producto (`grid-3x5`) se
+    * registran al elegir el producto, pero **no se persisten**: tras un F5 el id
+    * queda en el estado y la tabla vuelve vacía. Sin rehidratarlas, `get()`
+    * devolvía 2×2, la capacidad bajaba de 15 a 4 y el siguiente commit borraba
+    * las celdas 4..14. Se reconstruyen desde el propio id.
+    */
    get(id) {
-      return this.templates.find((t) => t.id === id) || this.templates[2];
+      const found = this.templates.find((t) => t.id === id);
+      if (found) return found;
+
+      const m = /^grid-(\d+)x(\d+)$/.exec(String(id || ''));
+      if (m) return this.ensureGrid(Number(m[1]), Number(m[2]));
+
+      return this.templates[2];
    }
 
    pages() {

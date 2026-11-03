@@ -12,6 +12,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // scale 3 sobre una base de 96dpi ⇒ ~288dpi, suficiente para impresión.
 const RASTER_SCALE = 3;
 const IMAGE_WAIT_MS = 4000;
+// Tope de espera por imagen al estampar un PDF. Un data URL corrupto que
+// dispara `onerror` no hace falta esperarlo, pero uno que nunca resuelve sí.
+const IMAGE_LOAD_TIMEOUT_MS = 10000;
 
 export default class ExportService {
    constructor(props = {}) {
@@ -177,16 +180,57 @@ export default class ExportService {
    // resampleada por un canvas del tamaño de la página.
 
    /** Carga y decodifica una imagen por URL. */
-   _loadImage(url) {
+   _loadImage(url, timeoutMs = IMAGE_LOAD_TIMEOUT_MS) {
+      if (!url) return Promise.resolve(null);
+
       return new Promise((resolve) => {
          const img = new Image();
+         let done = false;
+         const finish = (value) => {
+            if (done) return;
+            done = true;
+            resolve(value);
+         };
+
          // crossOrigin 'anonymous' es necesario para CORS, pero las object URLs
-         // no lo necesitan — solo se activa cuando la URL es remota.
-         if (!url.startsWith('blob:')) img.crossOrigin = 'anonymous';
-         img.onload = () => resolve(img);
-         img.onerror = () => resolve(null);
+         // y los data URLs no lo necesitan — solo se activa cuando corresponde.
+         if (!url.startsWith('blob:') && !url.startsWith('data:')) img.crossOrigin = 'anonymous';
+         img.onload = () => finish(img.naturalWidth > 0 && img.naturalHeight > 0 ? img : null);
+         img.onerror = () => finish(null);
+         // Sin timeout, un data URL corrupto dejaba la exportación esperando
+         // para siempre y el botón de PDF trabado en "Generando…".
+         setTimeout(() => finish(null), timeoutMs);
          img.src = url;
       });
+   }
+
+   /** Extensiones que valen la pena conservar con transparencia. */
+   _keepsAlpha(name) {
+      return /\.(png|webp|gif|svg)$/i.test(String(name || ''));
+   }
+
+   /**
+    * Convierte una imagen a data URL y devuelve el formato REAL de los bytes.
+    *
+    * jsPDF necesita que el `format` coincida con el data URL; si no, la imagen
+    * se descarta y la página sale en blanco. Deducirlo del nombre del archivo es
+    * frágil (rotar/voltear guardan PNG aunque el nombre diga `.jpg`), así que se
+    * lee el prefijo del data URL.
+    */
+   _payload(img, keepAlpha, canvas = null) {
+      const data = canvas
+         ? canvas.toDataURL(keepAlpha ? 'image/png' : 'image/jpeg', 0.94)
+         : this._imageToDataURL(img, keepAlpha);
+
+      const match = /^data:image\/([a-z+]+)/i.exec(String(data || ''));
+      const kind = (match?.[1] || '').toLowerCase();
+      const format = kind === 'png'
+         ? 'PNG'
+         : kind === 'jpeg' || kind === 'jpg'
+            ? 'JPEG'
+            : (keepAlpha ? 'PNG' : 'JPEG');
+
+      return { data, format };
    }
 
    /**
@@ -236,12 +280,19 @@ export default class ExportService {
    /**
     * Genera el PDF a partir de un plan ya resuelto en milímetros.
     *
+    * Las imágenes se precargan **una vez por URL** y se cuenta cuántas se
+    * pudieron estampar. Si había piezas y ninguna imagen se pudo leer, **no se
+    * guarda** el PDF: un archivo con las hojas vacías parece un bug del layout y
+    * esconde el problema real (una imagen que no decodifica). La vista decide
+    * entonces rasterizar las hojas como último recurso.
+    *
     * @param {{widthMm:number, heightMm:number,
     *   items:{url:string, xMm:number, yMm:number, wMm:number, hMm:number,
-    *          crop:boolean, cellRatio:number}[]}[]} pages
+    *          crop:boolean, cellRatio:number, name?:string}[]}[]} pages
     * @param {function} jsPDF
     * @param {{onProgress?:function, fileName?:string, dpi?:number}} [options]
-    * @returns {Promise<boolean>}
+    * @returns {Promise<false|{ok:boolean, paginas:number, items:number,
+    *   imagenes:number, fallidas:string[]}>}
     */
    async exportPDFExact(pages, jsPDF, {
       onProgress = null,
@@ -250,7 +301,22 @@ export default class ExportService {
    } = {}) {
       if (!pages?.length) return false;
 
+      // Precarga sin repetir: dos celdas del mismo sticker comparten URL y no
+      // tiene sentido decodificarlo dos veces.
+      const cache = new Map();
+      const fallidas = [];
+      for (const page of pages) {
+         for (const item of page.items || []) {
+            if (!item?.url || cache.has(item.url)) continue;
+            const img = await this._loadImage(item.url);
+            cache.set(item.url, img);
+            if (!img) fallidas.push(item.url);
+         }
+      }
+
       let pdf = null;
+      let items = 0;
+      let colocadas = 0;
 
       for (let i = 0; i < pages.length; i++) {
          onProgress?.(i, pages.length);
@@ -266,35 +332,89 @@ export default class ExportService {
             pdf.addPage([page.widthMm, page.heightMm]);
          }
 
-         for (const item of page.items) {
-            const img = await this._loadImage(item.url);
+         for (const item of page.items || []) {
+            items++;
+            const img = cache.get(item.url);
             if (!img) continue;
 
-            // PNG conserva la transparencia — un sticker recortado la necesita.
-            const keepAlpha = /\.(png|webp|gif)$/i.test(item.name || '');
+            const keepAlpha = this._keepsAlpha(item.name);
+            const canvas = item.crop
+               ? this._cropToRatio(img, item.cellRatio || 1, dpi, item.wMm)
+               : null;
+            if (canvas && (!canvas.width || !canvas.height)) continue;
 
-            let data;
-            if (item.crop) {
-               // crop → canvas recortado → data URL
-               const canvas = this._cropToRatio(img, item.cellRatio, dpi, item.wMm);
-               data = canvas.toDataURL(keepAlpha ? 'image/png' : 'image/jpeg', 0.94);
-            } else {
-               // Sin crop: siempre pasar por data URL, nunca el Image directo.
-               // addImage con un HTMLImageElement produce páginas en blanco.
-               data = this._imageToDataURL(img, keepAlpha);
-            }
+            const { data, format } = this._payload(img, keepAlpha, canvas);
+            // `data:,` es lo que devuelve un canvas vacío; jsPDF lo ignora y la
+            // página quedaría sin nada.
+            if (!/^data:image\//i.test(String(data || ''))) continue;
 
             pdf.addImage(
                data,
-               keepAlpha ? 'PNG' : 'JPEG',
+               format,
                item.xMm, item.yMm, item.wMm, item.hMm,
                undefined,
                'FAST'
             );
+            colocadas++;
          }
       }
 
       onProgress?.(pages.length, pages.length);
+
+      const ok = colocadas > 0;
+      if (ok) pdf?.save(fileName);
+
+      if (!ok && items > 0) {
+         console.warn(
+            `[ExportService] El PDF tiene ${items} pieza(s) pero no se pudo estampar ninguna imagen. ` +
+            'Revisa que las URLs del pool sigan vivas.'
+         );
+      }
+
+      return { ok, paginas: pages.length, items, imagenes: colocadas, fallidas };
+   }
+
+   /**
+    * PDF de último recurso: rasteriza cada hoja offscreen y la estampa como
+    * página completa. Se usa solo cuando el PDF exacto no pudo leer ninguna
+    * imagen; el layout se ve igual, pero no es vectorial.
+    *
+    * @param {{sheet:{pageId:string}, node:HTMLElement}[]} stages
+    * @param {function} html2canvas
+    * @param {function} jsPDF
+    * @returns {Promise<boolean>}
+    */
+   async exportPDFRaster(stages, html2canvas, jsPDF, {
+      fileName = 'vkrafts-hojas.pdf',
+      onProgress = null
+   } = {}) {
+      if (!stages?.length) return false;
+
+      let pdf = null;
+      for (let i = 0; i < stages.length; i++) {
+         onProgress?.(i, stages.length);
+
+         const { sheet, node } = stages[i];
+         const canvas = await this._rasterize(node, html2canvas);
+         if (!canvas?.width || !canvas?.height) continue;
+
+         const page = this._tpl.page(sheet.pageId);
+         if (!pdf) {
+            pdf = new jsPDF({ unit: 'mm', format: [page.w, page.h], compress: true });
+         } else {
+            pdf.addPage([page.w, page.h]);
+         }
+         pdf.addImage(
+            canvas.toDataURL('image/jpeg', 0.95),
+            'JPEG',
+            0, 0, page.w, page.h,
+            undefined,
+            'FAST'
+         );
+      }
+
+      if (!pdf) return false;
+      onProgress?.(stages.length, stages.length);
       pdf.save(fileName);
       return true;
    }

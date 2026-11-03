@@ -110,6 +110,19 @@ Dos detalles que conviene tener presentes antes de tocarla:
   (`sheet-cell-<n>`, `pool-card-<id>`): se refrescan con `setComponentProps` en
   vez de destruirse y reconstruirse.
 
+### Hojas y auto acomodar
+
+- **+ Nueva hoja** hereda la configuración de la hoja activa (papel, plantilla,
+  márgenes, ajuste, escala, producto y pesos de columnas/filas) y arranca
+  vacía. **⧉ Duplicar** es la que copia además las imágenes.
+- **Auto acomodar** reparte **todas** las copias de la biblioteca: llena la hoja
+  activa y, si no entran, inserta a continuación tantas hojas nuevas como haga
+  falta, clonando la configuración de la activa. El resumen dice
+  `N imágenes · M hojas`.
+- Agregar/duplicar/quitar hoja y auto acomodar entran al historial
+  (`Ctrl+Z` / `Ctrl+Y`).
+
+
 ---
 
 ## FontDetailSection — `/font/${id}`
