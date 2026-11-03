@@ -244,10 +244,10 @@ export default class LayoutsSection extends HTMLElement {
       const sheet = this._sheet();
 
       const actionDefs = [
-         { key: 'auto', label: 'Auto acomodar', icon: 'wand-magic-sparkles', variant: 'filled', tip: 'Reparte todas las imágenes en la hoja actual y, si no entran, en hojas nuevas con la misma configuración', handler: () => this.smartAssign(true) },
-         { key: 'clear', label: 'Limpiar hoja', icon: 'trash-bin', variant: 'outlined', tip: 'Quita las imágenes de la hoja (quedan en la biblioteca)', handler: () => this.clearPlacements() },
+         { key: 'auto', label: 'Auto acomodar', icon: 'star', variant: 'filled', tip: 'Reparte todas las imágenes en la hoja actual y, si no entran, en hojas nuevas con la misma configuración', handler: () => this.smartAssign(true) },
+         { key: 'clear', label: 'Limpiar hoja', icon: 'x', variant: 'outlined', tip: 'Quita las imágenes de la hoja (quedan en la biblioteca)', handler: () => this.clearPlacements() },
          { key: 'pngs', label: 'PNGs', icon: 'image', variant: 'outlined', tip: 'Descarga como imágenes (para uso digital)', handler: () => this.exportPNGs() },
-         { key: 'pdf', label: 'PDF', icon: 'file-lines', variant: 'outlined', tip: 'Descarga con medidas exactas (recomendado para imprimir)', handler: () => this.exportPDF() },
+         { key: 'pdf', label: 'PDF', icon: 'download', variant: 'outlined', tip: 'Descarga con medidas exactas (recomendado para imprimir)', handler: () => this.exportPDF() },
          { key: 'print', label: 'Imprimir', icon: 'printer', variant: 'soft', tip: 'Imprimir todas las hojas a tamaño real', handler: () => this.printSheets() }
       ];
 
@@ -1592,7 +1592,7 @@ export default class LayoutsSection extends HTMLElement {
       const items = [
          {
             label: 'Editar medidas…',
-            icon: 'pen',
+            icon: 'palette',
             action: () => this._openSizeModal(info)
          }
       ];
@@ -1601,46 +1601,42 @@ export default class LayoutsSection extends HTMLElement {
          items.push({ type: 'separator' });
          items.push({
             label: 'Recortar',
-            icon: 'draw-square',
+            icon: 'image',
             action: () => this._openCropModal(info)
          });
          items.push({
             label: 'Editar',
-            icon: 'pen',
+            icon: 'palette',
             action: () => this._openEditModal(info)
          });
          items.push({ type: 'separator' });
          items.push({
             label: 'Rotar 90° izquierda',
-            icon: 'undo',
             action: () => this._rotateAsset(img.id, -90)
          });
          items.push({
             label: 'Rotar 90° derecha',
-            icon: 'redo',
             action: () => this._rotateAsset(img.id, 90)
          });
          items.push({ type: 'separator' });
          items.push({
             label: 'Voltear horizontal',
-            icon: 'arrow-up-right-down-left',
             action: () => this._flipAsset(img.id, 'horizontal')
          });
          items.push({
             label: 'Voltear vertical',
-            icon: 'arrow-up-down',
             action: () => this._flipAsset(img.id, 'vertical')
          });
          items.push({ type: 'separator' });
          items.push({
             label: 'Quitar de la celda',
-            icon: 'trash-bin',
+            icon: 'minus',
             danger: true,
             action: () => this.removePlacement(info.slot)
          });
          items.push({
             label: 'Eliminar de la biblioteca',
-            icon: 'trash-bin',
+            icon: 'x',
             danger: true,
             action: () => this.removeFromPool(img.id)
          });
@@ -1656,40 +1652,36 @@ export default class LayoutsSection extends HTMLElement {
       const items = [
          {
             label: 'Recortar',
-            icon: 'draw-square',
+            icon: 'image',
             action: () => this._openCropModal({ img: asset })
          },
          {
             label: 'Editar',
-            icon: 'pen',
+            icon: 'palette',
             action: () => this._openEditModal({ img: asset })
          },
          { type: 'separator' },
          {
             label: 'Rotar 90° izquierda',
-            icon: 'undo',
             action: () => this._rotateAsset(asset.id, -90)
          },
          {
             label: 'Rotar 90° derecha',
-            icon: 'redo',
             action: () => this._rotateAsset(asset.id, 90)
          },
          { type: 'separator' },
          {
             label: 'Voltear horizontal',
-            icon: 'arrow-up-right-down-left',
             action: () => this._flipAsset(asset.id, 'horizontal')
          },
          {
             label: 'Voltear vertical',
-            icon: 'arrow-up-down',
             action: () => this._flipAsset(asset.id, 'vertical')
          },
          { type: 'separator' },
          {
             label: 'Eliminar de la biblioteca',
-            icon: 'trash-bin',
+            icon: 'x',
             danger: true,
             action: () => this.removeFromPool(asset.id)
          }
