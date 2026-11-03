@@ -74,10 +74,12 @@ export default class ExportService {
    /**
     * Espera a que todas las imágenes de fondo del subárbol estén decodificadas.
     * html2canvas no espera por su cuenta y captura celdas en blanco si el blob
-    * todavía no se resolvió.
+    * todavía no se resolvió. El `win` opcional permite precargarlas en **otro
+    * documento** (el iframe de impresión).
     * @param {HTMLElement} node
+    * @param {Window} [win]
     */
-   async waitForImages(node) {
+   async waitForImages(node, win = null) {
       const urls = new Set();
       const collect = (el) => {
          const bg = el.style?.backgroundImage || '';
@@ -89,10 +91,12 @@ export default class ExportService {
 
       if (!urls.size) return;
 
+      const view = win || (typeof window !== 'undefined' ? window : null);
       const loads = [...urls].map(
          (url) =>
             new Promise((resolve) => {
-               const img = new Image();
+               if (!view?.Image && typeof Image === 'undefined') return resolve();
+               const img = view?.Image ? new view.Image() : new Image();
                img.onload = img.onerror = () => resolve();
                img.src = url;
             })
@@ -480,11 +484,16 @@ export default class ExportService {
     * a la ventana correcta (con `window.open` se escuchaba en la ventana que
     * abría, así que la ventana de impresión nunca se cerraba).
     *
+    * Es async porque **espera a que el iframe cargue las imágenes** antes de
+    * abrir el diálogo. Las celdas se pintan con `background-image` de object
+    * URLs; el iframe es otro documento y las decodifica de cero. Llamar a
+    * `print()` en el frame siguiente dejaba la vista previa en blanco.
+    *
     * @param {{sheet:object, node:HTMLElement}[]} stages
     * @param {{onDone?:function}} [options]
-    * @returns {boolean} false si no había nada que imprimir
+    * @returns {Promise<boolean>} false si no había nada que imprimir
     */
-   printSheets(stages, { onDone = null } = {}) {
+   async printSheets(stages, { onDone = null } = {}) {
       if (!stages?.length) return false;
 
       const page = this._tpl.page(stages[0].sheet.pageId);
@@ -540,6 +549,10 @@ export default class ExportService {
       // Red de seguridad: algunos navegadores no emiten afterprint desde un
       // iframe, y el frame quedaría colgado en el DOM para siempre.
       setTimeout(cleanup, 60000);
+
+      // Sin esto, el diálogo de impresión puede abrirse antes de que el
+      // documento nuevo tenga las imágenes decodificadas (hojas en blanco).
+      await this.waitForImages(doc.body, win);
 
       // Un frame de margen para que el layout del iframe se asiente.
       requestAnimationFrame(() => {

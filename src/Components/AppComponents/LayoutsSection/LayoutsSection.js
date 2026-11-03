@@ -1,6 +1,41 @@
 import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 import heic2any from 'heic2any';
+
+// jsPDF se carga en tiempo de ejecución desde `src/public/vendor/`.
+//
+// No se importa con `import { jsPDF } from 'jspdf'` porque el empaquetador de
+// Slice (4.2/4.5) indenta las líneas del código minificado de las dependencias
+// externas, y eso mete 4 espacios dentro de los literales de plantilla de
+// jsPDF. Resultado: TODOS los streams del PDF (contenido e imágenes) quedan
+// corridos 4 bytes y el archivo sale con las hojas en blanco.
+//
+// Se usa el build **UMD** (autocontenido) y no el ESM: el ESM de jsPDF importa
+// `@babel/runtime` y `fflate` por nombre, que solo resuelve el empaquetador.
+// Servido como asset estático, el archivo no pasa por ese paso.
+let _jsPDFPromise = null;
+
+function cargarJsPDF() {
+   if (window.jspdf?.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+
+   if (!_jsPDFPromise) {
+      _jsPDFPromise = new Promise((resolve, reject) => {
+         const script = document.createElement('script');
+         script.src = '/vendor/jspdf.umd.min.js';
+         script.async = true;
+         script.onload = () => {
+            if (window.jspdf?.jsPDF) resolve(window.jspdf.jsPDF);
+            else reject(new Error('jsPDF no se registró'));
+         };
+         script.onerror = () => reject(new Error('No se pudo cargar jsPDF'));
+         document.head.appendChild(script);
+      }).catch((err) => {
+         _jsPDFPromise = null;
+         throw err;
+      });
+   }
+
+   return _jsPDFPromise;
+}
 
 // 1 mm real en píxeles CSS a 96dpi. El valor exacto importa: con la constante
 // anterior (3.4) la hoja se renderizaba al ~90% y todo lo impreso/exportado
@@ -406,7 +441,7 @@ export default class LayoutsSection extends HTMLElement {
    /** Copia el placement de la primera celda con imagen al clipboard. */
    _copyPlacement() {
       const placement = this._sheet().placement || {};
-      for (const [slot, ref] of Object.entries(placement)) {
+      for (const ref of Object.values(placement)) {
          if (ref) {
             this._clipboard = { ...ref };
             this._toasts?.show('Placement copiado', { type: 'info', duration: 1200 });
@@ -2034,9 +2069,12 @@ export default class LayoutsSection extends HTMLElement {
       const plan = this._buildExportPlan(sheets);
 
       this._exporting = true;
-      this._setBusy(true, 'Generando PDF…');
+      this._setBusy(true, 'Preparando el PDF…');
 
       try {
+         const jsPDF = await cargarJsPDF();
+         this._setBusy(true, 'Generando PDF…');
+
          const res = await this._exportSvc.exportPDFExact(plan, jsPDF, {
             onProgress: (done, pages) =>
                this._setBusy(true, `Generando PDF ${Math.min(done + 1, pages)}/${pages}`)
@@ -2063,14 +2101,17 @@ export default class LayoutsSection extends HTMLElement {
             res
          );
          this._setBusy(true, 'Generando PDF como imagen…');
-         await this._exportPDFRaster(sheets);
+         await this._exportPDFRaster(sheets, jsPDF);
          this._toasts?.show('PDF generado como imagen (no se pudieron leer las imágenes originales)', {
             type: 'warning',
             duration: 5000
          });
       } catch (err) {
          slice.logger?.logError?.('LayoutsSection', 'PDF export failed', err);
-         this._toasts?.show('Error al generar el PDF', { type: 'error' });
+         this._toasts?.show(
+            'No se pudo generar el PDF. Revisá la conexión y volvé a intentar.',
+            { type: 'error', duration: 5000 }
+         );
       } finally {
          this._setBusy(false);
          this._exporting = false;
@@ -2081,7 +2122,7 @@ export default class LayoutsSection extends HTMLElement {
     * Fallback del PDF: renderiza las hojas offscreen y las estampa enteras.
     * No usa `_withStages` porque `exportPDF` ya tiene tomado `_exporting`.
     */
-   async _exportPDFRaster(sheets) {
+   async _exportPDFRaster(sheets, jsPDF) {
       let stages = null;
       try {
          stages = await this._exportSvc.renderOffscreen(
@@ -2110,7 +2151,10 @@ export default class LayoutsSection extends HTMLElement {
             // Se imprime desde los nodos offscreen (planos y medidos en mm
             // reales). Clonar la hoja de pantalla arrastraba el transform de
             // zoom y salía impresa al 70%.
-            const started = this._exportSvc.printSheets(stages);
+            //
+            // printSheets() es async: espera a que el iframe decodifique las
+            // imágenes antes de abrir el diálogo (si no, sale en blanco).
+            const started = await this._exportSvc.printSheets(stages);
             // Un respiro para que el iframe termine de disponer el layout antes
             // de que _withStages descarte los nodos originales.
             await new Promise((r) => setTimeout(r, 300));

@@ -289,13 +289,14 @@ describe('ExportService', () => {
    });
 
    describe('printSheets', () => {
-      it('monta un iframe con una página por hoja y el @page del tamaño real', () => {
+      it('monta un iframe con una página por hoja y el @page del tamaño real', async () => {
          vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 0);
+         const wait = vi.spyOn(svc, 'waitForImages').mockResolvedValue();
 
          const stages = [stageOf('a4'), stageOf('a4')];
          stages.forEach((s) => (s.node.textContent = 'hoja'));
 
-         const ok = svc.printSheets(stages);
+         const ok = await svc.printSheets(stages);
 
          expect(ok).toBe(true);
          const frame = document.querySelector('iframe');
@@ -305,15 +306,19 @@ describe('ExportService', () => {
          expect(doc.head.querySelector('style').textContent)
             .toContain('size: 210mm 297mm');
          expect(doc.body.querySelectorAll('.vk-print-sheet')).toHaveLength(2);
+         // Espera a las imágenes DENTRO del iframe antes de imprimir: el
+         // documento nuevo las decodifica de cero y la vista previa salía vacía.
+         expect(wait).toHaveBeenCalledWith(doc.body, frame.contentWindow);
       });
 
-      it('neutraliza el transform de preview en las hojas importadas', () => {
+      it('neutraliza el transform de preview en las hojas importadas', async () => {
          vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 0);
+         vi.spyOn(svc, 'waitForImages').mockResolvedValue();
 
          const stage = stageOf('carta');
          stage.node.style.transform = 'scale(0.7)';
 
-         svc.printSheets([stage]);
+         await svc.printSheets([stage]);
 
          const printed = document
             .querySelector('iframe')
@@ -321,9 +326,9 @@ describe('ExportService', () => {
          expect(printed.style.transform).toBe('none');
       });
 
-      it('retorna false si no hay hojas', () => {
-         expect(svc.printSheets([])).toBe(false);
-         expect(svc.printSheets(null)).toBe(false);
+      it('retorna false si no hay hojas', async () => {
+         expect(await svc.printSheets([])).toBe(false);
+         expect(await svc.printSheets(null)).toBe(false);
       });
    });
 

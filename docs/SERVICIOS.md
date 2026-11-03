@@ -145,7 +145,18 @@ Además:
 - el `format` que recibe `addImage` se deduce del **data URL real**, no de la
   extensión del archivo (rotar/voltear guardan PNG con nombre `.jpg`);
 - las hojas sin ninguna imagen colocada no se exportan: no generan páginas
-  fantasma en el PDF/PNG ni una hoja de más al imprimir.
+  fantasma en el PDF/PNG ni una hoja de más al imprimir;
+- `printSheets()` es **async** y espera a que el iframe decodifique las imágenes
+  (`waitForImages(doc.body, win)`) antes de llamar a `print()`. Sin eso la vista
+  previa podía abrirse en blanco: el iframe es otro documento y carga los
+  `background-image` de cero.
+
+> **jsPDF se carga desde `/vendor/jspdf.umd.min.js`** (`src/public/vendor/`) con
+> un `<script>` en vez de `import ... from 'jspdf'`. El empaquetador de Slice
+> indenta el código minificado de las dependencias externas y eso inyecta 4
+> espacios dentro de los literales de plantilla de jsPDF: todos los streams del
+> PDF quedan corridos y el archivo sale con las hojas en blanco. Como asset
+> estático no pasa por ese paso.
 
 `exportCalibrationSheet()` genera una hoja de prueba con una regla de 100 mm.
 Sirve para que el usuario distinga "la app mide mal" de "mi impresora reescala",
