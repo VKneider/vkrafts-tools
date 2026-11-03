@@ -356,7 +356,9 @@ export default class CanvasSection extends HTMLElement {
 
    async _buildDrawingPanel() {
       this._brushBtn = await this._panelButton(this.$brushToggle, {
-         value: 'Modo Pincel', icon: { name: 'paintbrush' }, variant: 'outlined',
+         // `_panelButton` ya envuelve el icono en `{ name: def.icon }`: acá va el
+         // nombre, no el objeto (si no, Icon recibía `name: { name: ... }`).
+         value: 'Modo Pincel', icon: 'paintbrush', variant: 'outlined',
          onClick: () => this.toggleBrushMode()
       });
 
