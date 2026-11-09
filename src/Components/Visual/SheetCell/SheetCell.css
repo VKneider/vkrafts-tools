@@ -14,6 +14,11 @@ slice-sheet-cell .sheetcell {
   overflow: hidden;
 }
 
+slice-sheet-cell .sheetcell:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+}
+
 slice-sheet-cell .sheetcell--img {
   background-position: center;
   background-repeat: no-repeat;
@@ -77,6 +82,63 @@ slice-sheet-cell .sheetcell__remove {
 }
 
 slice-sheet-cell:hover .sheetcell__remove { opacity: 1; }
+
+/* ── Slider de zoom per-celda ─────────────────────────────────── */
+
+slice-sheet-cell .sheetcell__zoom {
+  position: absolute;
+  left: 6px;
+  right: 32px;
+  bottom: 6px;
+  z-index: 4;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(3px);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+slice-sheet-cell .sheetcell--img:hover .sheetcell__zoom,
+slice-sheet-cell .sheetcell--img.sheetcell--selected .sheetcell__zoom,
+slice-sheet-cell .sheetcell__zoom:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+slice-sheet-cell .sheetcell__zoom slice-slider .slice_slider_container {
+  margin: 0;
+  padding: 2px 8px 4px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  backdrop-filter: blur(2px);
+}
+
+slice-sheet-cell .sheetcell__zoom slice-slider .slice_slider_header {
+  gap: 6px;
+}
+
+slice-sheet-cell .sheetcell__zoom slice-slider .slice_slider_label {
+  padding-bottom: 2px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+slice-sheet-cell .sheetcell__zoom slice-slider .slice_slider_value {
+  padding-bottom: 2px;
+  font-size: 0.68rem;
+  color: #fff;
+}
+
+slice-sheet-cell .sheetcell__zoom slice-slider .slice_slider_control {
+  min-width: 0;
+}
+
+slice-sheet-cell .sheetcell__zoom slice-slider .slice_slider_track {
+  background: rgba(255, 255, 255, 0.28);
+}
 
 /* ── Celda seleccionada ───────────────────────────────────────── */
 

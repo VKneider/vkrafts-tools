@@ -225,6 +225,44 @@ slice-layouts-panel .layoutspanel__gallery {
   gap: 8px;
 }
 
+slice-layouts-panel .layoutspanel__gallery-search {
+  width: 100%;
+  padding: 6px 9px;
+  font-size: 12px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(var(--primary-color-rgb), 0.25);
+  background: var(--secondary-background-color);
+  color: var(--font-primary-color);
+}
+
+slice-layouts-panel .layoutspanel__gallery-search:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+slice-layouts-panel .layoutspanel__gallery-empty {
+  margin: 0;
+  padding: 8px 2px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--medium-color);
+}
+
+slice-layouts-panel .layoutspanel__gallery-empty[hidden] {
+  display: none;
+}
+
+/* Paginador de la biblioteca: vive debajo del grid, con el mismo ancho útil. */
+slice-layouts-panel .layoutspanel__gallery-pager {
+  display: flex;
+  justify-content: center;
+  padding-top: 2px;
+}
+
+slice-layouts-panel .layoutspanel__gallery-pager[hidden] {
+  display: none;
+}
+
 /* Las miniaturas de la biblioteca viven ahora en el componente PoolCard, que
    se trajo su propio CSS. Acá solo queda el contenedor. */
 
@@ -253,4 +291,57 @@ slice-layouts-panel .layoutspanel__hint {
 
 slice-layouts-panel .layoutspanel__hint[hidden] {
   display: none;
+}
+
+/* ---------- grilla / márgenes personalizados ---------- */
+
+slice-layouts-panel .layoutspanel__customgrid,
+slice-layouts-panel .layoutspanel__custommargins {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+slice-layouts-panel .layoutspanel__customgrid label,
+slice-layouts-panel .layoutspanel__custommargins label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--medium-color);
+}
+
+slice-layouts-panel .layoutspanel__customgrid input,
+slice-layouts-panel .layoutspanel__custommargins input {
+  width: 56px;
+  padding: 4px 6px;
+  font-size: 12px;
+  text-align: right;
+  border-radius: 7px;
+  border: 1.5px solid rgba(var(--primary-color-rgb), 0.25);
+  background: var(--secondary-background-color);
+  color: var(--font-primary-color);
+}
+
+slice-layouts-panel .layoutspanel__customgrid input:focus,
+slice-layouts-panel .layoutspanel__custommargins input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+slice-layouts-panel .layoutspanel__mini-apply {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(var(--primary-color-rgb), 0.35);
+  background: transparent;
+  color: var(--font-secondary-color);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+slice-layouts-panel .layoutspanel__mini-apply:hover {
+  border-color: var(--primary-color);
+  color: var(--font-primary-color);
 }

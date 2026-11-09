@@ -16,6 +16,7 @@ export default class SheetCell extends HTMLElement {
       onRemove: { type: 'function', default: null },
       onMenu: { type: 'function', default: null },
       onSelect: { type: 'function', default: null },
+      onFocus: { type: 'function', default: null },
       onCropChange: { type: 'function', default: null }
    };
 
@@ -26,8 +27,13 @@ export default class SheetCell extends HTMLElement {
       this.$root = this.querySelector('.sheetcell');
       this.$plus = this.querySelector('.sheetcell__plus');
       this.$remove = this.querySelector('.sheetcell__remove');
+      this.$zoom = this.querySelector('.sheetcell__zoom');
       this._img = null;
       this._bound = false;
+      // Slider de zoom per-celda, construido de forma diferida (solo al
+      // seleccionar o pasar el mouse) para no crear decenas de componentes.
+      this._zoomSlider = null;
+      this._zoomBuilding = null;
 
       // Zoom/pan state
       this._cropScale = 1;
@@ -40,11 +46,26 @@ export default class SheetCell extends HTMLElement {
       this._dragStartCropY = 0;
 
       // Listeners se registran UNA sola vez; _render() solo pinta estado.
-      this.$root.addEventListener('click', () => {
+      this.$root.addEventListener('click', (e) => {
+         if (e.target.closest('.sheetcell__zoom')) return;
          if (this._img) {
-            this._onSelect?.(this._slot);
+            this._onSelect?.(this._slot, e);
          } else {
             this._onPick?.(this._slot);
+         }
+      });
+      this.$root.addEventListener('pointerenter', () => {
+         if (this._img) this._ensureZoomSlider();
+      });
+      this.$root.addEventListener('focus', () => {
+         // Solo el foco por teclado selecciona; el click lo maneja onSelect.
+         if (this.$root.matches(':focus-visible')) this._onFocus?.(this._slot);
+      });
+      this.$root.addEventListener('keydown', (e) => {
+         if (e.target.closest('.sheetcell__zoom')) return;
+         if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            this.$root.click();
          }
       });
       this.$root.addEventListener('contextmenu', (e) => {
@@ -73,6 +94,7 @@ export default class SheetCell extends HTMLElement {
 
       // Pan: pointer drag
       this.$root.addEventListener('pointerdown', (e) => {
+         if (e.target.closest('.sheetcell__zoom')) return;
          if (!this._selected || !this._img || this._cropScale <= 1) return;
          e.preventDefault();
          this._dragging = true;
@@ -100,6 +122,7 @@ export default class SheetCell extends HTMLElement {
 
       // Double-click: reset crop
       this.$root.addEventListener('dblclick', (e) => {
+         if (e.target.closest('.sheetcell__zoom')) return;
          if (!this._selected || !this._img) return;
          e.preventDefault();
          e.stopPropagation();
@@ -118,10 +141,15 @@ export default class SheetCell extends HTMLElement {
       this._tips = tips;
       tips?.attach(this.$remove, { text: 'Quitar de la celda', placement: 'bottom' });
       this.paint();
+      if (this._selected && this._img) this._ensureZoomSlider();
    }
 
    beforeDestroy() {
       this._tips?.detach(this.$remove);
+      if (this._zoomSlider) {
+         slice.controller.destroyComponent(this._zoomSlider);
+         this._zoomSlider = null;
+      }
    }
 
    paint() {
@@ -129,6 +157,13 @@ export default class SheetCell extends HTMLElement {
       const filled = !!img;
 
       this.$root.dataset.slot = String(this._slot);
+      this.$root.setAttribute(
+         'aria-label',
+         filled
+            ? `Celda ${this._slot + 1}: ${img.name || 'imagen'}`
+            : `Celda ${this._slot + 1} vacía`
+      );
+      this.$root.setAttribute('aria-pressed', this._selected ? 'true' : 'false');
       this.$root.classList.toggle('sheetcell--img', filled);
       this.$root.classList.toggle('sheetcell--empty', !filled);
       this.$root.classList.toggle('is-entering', !!this._animate);
@@ -169,6 +204,63 @@ export default class SheetCell extends HTMLElement {
       }
 
       this._animate = false;
+      this._syncZoomSlider();
+   }
+
+   /**
+    * Slider de zoom per-celda. Se construye una sola vez y de forma diferida
+    * (hover o selección) para no crear un componente por cada celda de la hoja.
+    */
+   _ensureZoomSlider() {
+      if (this._zoomSlider) return this._zoomSlider;
+      if (this._zoomBuilding) return this._zoomBuilding;
+      if (!this._img || !this.$zoom) return null;
+
+      this._zoomBuilding = (async () => {
+         const slider = await slice.build('Slider', {
+            min: ZOOM_MIN,
+            max: ZOOM_MAX,
+            step: ZOOM_STEP,
+            value: this._cropScale,
+            label: 'Zoom',
+            size: 'sm',
+            variant: 'plain',
+            formatValue: (value) => `${Math.round(value * 100)}%`,
+            onInput: (value) => this._setZoomFromSlider(value)
+         });
+
+         this._zoomBuilding = null;
+         if (!this.isConnected || !this.$zoom) {
+            slice.controller.destroyComponent(slider);
+            return null;
+         }
+         this.$zoom.appendChild(slider);
+         this._zoomSlider = slider;
+         return slider;
+      })();
+
+      return this._zoomBuilding;
+   }
+
+   _setZoomFromSlider(value) {
+      if (!this._img) return;
+      const next = this._clamp(Number(value), ZOOM_MIN, ZOOM_MAX);
+      if (next === this._cropScale) return;
+
+      this._cropScale = next;
+      if (next <= 1) {
+         this._cropX = 0.5;
+         this._cropY = 0.5;
+      }
+      this._clampCropPosition();
+      this._applyCropStyles();
+      this._notifyCropChange();
+   }
+
+   _syncZoomSlider() {
+      if (this._zoomSlider && this._zoomSlider.value !== this._cropScale) {
+         this._zoomSlider.value = this._cropScale;
+      }
    }
 
    _applyCropStyles() {
@@ -188,6 +280,7 @@ export default class SheetCell extends HTMLElement {
             this.$root.style.backgroundRepeat = '';
          }
       }
+      this._syncZoomSlider();
    }
 
    _clampCropPosition() {
@@ -236,6 +329,8 @@ export default class SheetCell extends HTMLElement {
    set selected(value) {
       this._selected = !!value;
       this.$root.classList.toggle('sheetcell--selected', this._selected);
+      this.$root.setAttribute('aria-pressed', this._selected ? 'true' : 'false');
+      if (this._selected && this._img && this.isConnected) this._ensureZoomSlider();
    }
 
    get animate() { return this._animate; }
@@ -252,6 +347,9 @@ export default class SheetCell extends HTMLElement {
 
    get onSelect() { return this._onSelect; }
    set onSelect(fn) { this._onSelect = typeof fn === 'function' ? fn : null; }
+
+   get onFocus() { return this._onFocus; }
+   set onFocus(fn) { this._onFocus = typeof fn === 'function' ? fn : null; }
 
    get onCropChange() { return this._onCropChange; }
    set onCropChange(fn) { this._onCropChange = typeof fn === 'function' ? fn : null; }

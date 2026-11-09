@@ -85,18 +85,39 @@ describe('ExportService', () => {
    });
 
    describe('exportPNGs', () => {
-      it('genera y descarga un PNG por hoja', async () => {
+      it('con varias hojas genera un único ZIP', async () => {
          const html2canvas = vi.fn().mockResolvedValue(mockCanvas());
-         const clickSpy = vi
-            .spyOn(HTMLAnchorElement.prototype, 'click')
-            .mockImplementation(() => {});
+         const downloads = { blob: vi.fn(() => true), canvas: vi.fn(() => true) };
+         svc._downloads = downloads;
 
          const stages = [stageOf('carta'), stageOf('a4')];
          const count = await svc.exportPNGs(stages, html2canvas);
 
          expect(count).toBe(2);
          expect(html2canvas).toHaveBeenCalledTimes(2);
-         expect(clickSpy).toHaveBeenCalledTimes(2);
+         expect(downloads.canvas).not.toHaveBeenCalled();
+         expect(downloads.blob).toHaveBeenCalledTimes(1);
+
+         const [blob, name] = downloads.blob.mock.calls[0];
+         expect(name).toBe('vkrafts-hojas.zip');
+         expect(blob.type).toBe('application/zip');
+      });
+
+      it('con una sola hoja descarga el PNG directo', async () => {
+         const html2canvas = vi.fn().mockResolvedValue(mockCanvas());
+         const downloads = { blob: vi.fn(() => true), canvas: vi.fn(() => true) };
+         svc._downloads = downloads;
+
+         const count = await svc.exportPNGs([stageOf('carta')], html2canvas);
+
+         expect(count).toBe(1);
+         expect(downloads.blob).not.toHaveBeenCalled();
+         expect(downloads.canvas).toHaveBeenCalledWith(
+            expect.anything(),
+            'hoja-1-carta.png',
+            'image/png',
+            1.0
+         );
       });
 
       it('reporta progreso', async () => {
@@ -156,13 +177,17 @@ describe('ExportService', () => {
          xMm: 10, yMm: 20, wMm: 50, hMm: 50, crop: false, ...over
       });
 
-      it('usa el tamaño de página real y no fuerza orientación', async () => {
+      it('usa el tamaño real y la orientación de la página', async () => {
          await svc.exportPDFExact([page([])], MockJsPDF);
          expect(received.unit).toBe('mm');
          expect(received.format).toEqual([210, 297]);
-         // El formato explícito ya define la orientación; pasarla además hace
-         // que jsPDF intercambie los lados.
-         expect(received.orientation).toBeUndefined();
+         expect(received.orientation).toBe('portrait');
+      });
+
+      it('usa landscape para una página horizontal (jsPDF no lo infiere del format)', async () => {
+         await svc.exportPDFExact([{ widthMm: 297, heightMm: 210, items: [] }], MockJsPDF);
+         expect(received.format).toEqual([297, 210]);
+         expect(received.orientation).toBe('landscape');
       });
 
       it('estampa cada imagen en sus coordenadas en milímetros', async () => {
@@ -175,6 +200,7 @@ describe('ExportService', () => {
       it('agrega una página por hoja', async () => {
          await svc.exportPDFExact([page([item()]), page([item()])], MockJsPDF);
          expect(pdfSpy.addPage).toHaveBeenCalledTimes(1);
+         expect(pdfSpy.addPage).toHaveBeenCalledWith([210, 297], 'portrait');
          expect(pdfSpy.addImage).toHaveBeenCalledTimes(2);
          expect(pdfSpy.save).toHaveBeenCalledWith('vkrafts-hojas.pdf');
       });
@@ -258,7 +284,7 @@ describe('ExportService', () => {
 
          expect(ok).toBe(true);
          expect(received.format).toEqual([216, 279]);
-         expect(api.addPage).toHaveBeenCalledWith([210, 297]);
+         expect(api.addPage).toHaveBeenCalledWith([210, 297], 'portrait');
          expect(api.addImage).toHaveBeenCalledTimes(2);
          expect(api.save).toHaveBeenCalledWith('vkrafts-hojas.pdf');
       });

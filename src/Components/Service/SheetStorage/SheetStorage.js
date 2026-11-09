@@ -11,24 +11,82 @@
 // Los ids de los assets se preservan entre sesiones, así que los `refId` que
 // guarda cada celda siguen apuntando a la imagen correcta al restaurar.
 
-const LAYOUT_KEY = 'vkrafts:sheet-layout';
+// StorageService se configura con namespace 'vkrafts'; la clave completa en
+// localStorage sigue siendo 'vkrafts:sheet-layout' (la misma que usaba
+// LocalStorageManager), así que las sesiones existentes se mantienen.
+const LAYOUT_KEY = 'sheet-layout';
 const SAVE_DEBOUNCE_MS = 600;
 const SCHEMA_VERSION = 1;
 
 export default class SheetStorage {
    constructor(props = {}) {
       this._db = props.db || null;
-      this._local = props.local || null;
+      // StorageService (localStorage con namespace y JSON). Se acepta `local`
+      // como alias para no romper builds viejos.
+      this._local = props.storage || props.local || null;
       this._pool = props.poolService || null;
 
       this._saveTimer = 0;
       this._pendingState = null;
       this._available = true;
+      this._quotaWarned = false;
+
+      // El debounce de 600 ms no alcanza si el usuario cierra o recarga la
+      // pestaña justo después de un cambio: pagehide/visibilitychange fuerzan
+      // el flush sincrónico (localStorage.setItem es sincrónico).
+      this._onPageHide = () => this.flush();
+      this._onVisibilityChange = () => {
+         if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+            this.flush();
+         }
+      };
+   }
+
+   init() {
+      if (typeof window === 'undefined' || typeof document === 'undefined') return;
+      window.addEventListener('pagehide', this._onPageHide);
+      document.addEventListener('visibilitychange', this._onVisibilityChange);
+   }
+
+   /** Store de blobs del IndexedDbManager actual (API store(name)). */
+   _store() {
+      return this._db && typeof this._db.store === 'function'
+         ? this._db.store('pool')
+         : null;
    }
 
    /** false si el navegador bloquea el almacenamiento (modo privado, cuota). */
    get available() {
       return this._available;
+   }
+
+   /** Avisa el estado del guardado sin acoplar el servicio a la vista. */
+   _emitStatus(status, message = '') {
+      if (typeof slice === 'undefined') return;
+      slice.events?.emit?.('sheet:save', { status, message });
+   }
+
+   /**
+    * Chequeo proactivo de cuota: `saveAsset` ya avisa si la escritura falla,
+    * pero conviene avisar antes de que el usuario siga cargando imágenes.
+    */
+   async _checkQuota() {
+      if (this._quotaWarned) return;
+      if (typeof navigator === 'undefined' || !navigator.storage?.estimate) return;
+      try {
+         const { usage = 0, quota = 0 } = await navigator.storage.estimate();
+         if (!(quota > 0)) return;
+         const ratio = usage / quota;
+         if (ratio >= 0.85) {
+            this._quotaWarned = true;
+            this._emitStatus(
+               'warning',
+               `Queda poco espacio para imágenes (${Math.round(ratio * 100)}% de la cuota usada). Eliminá algunas de la biblioteca.`
+            );
+         }
+      } catch {
+         // estimate() no está disponible en este navegador: no es un error.
+      }
    }
 
    // ---------- estructura (localStorage) ----------
@@ -41,6 +99,7 @@ export default class SheetStorage {
    scheduleSave(state) {
       this._pendingState = state;
       if (this._saveTimer) return;
+      this._emitStatus('saving');
       this._saveTimer = setTimeout(() => {
          this._saveTimer = 0;
          const pending = this._pendingState;
@@ -64,21 +123,35 @@ export default class SheetStorage {
     * URLs muertas fuera de esta sesión y los binarios ya viven en IndexedDB.
     */
    saveLayout(state) {
-      if (!this._local || !state) return false;
-      const ok = this._local.setItem(LAYOUT_KEY, {
+      if (!this._local || !state) {
+         this._emitStatus('error', 'El almacenamiento no está disponible.');
+         return false;
+      }
+
+      const ok = this._local.set(LAYOUT_KEY, {
          version: SCHEMA_VERSION,
          savedAt: Date.now(),
          activeId: state.activeId,
          zoom: state.zoom,
          sheets: state.sheets
       });
-      if (!ok) this._available = false;
+
+      if (!ok) {
+         this._available = false;
+         this._emitStatus(
+            'error',
+            'No se pudo guardar la planilla: el almacenamiento está lleno o bloqueado.'
+         );
+      } else {
+         this._available = true;
+         this._emitStatus('saved');
+      }
       return ok;
    }
 
    /** @returns {{activeId:string, sheets:object[], zoom:number}|null} */
    loadLayout() {
-      const raw = this._local?.getItem(LAYOUT_KEY);
+      const raw = this._local?.get(LAYOUT_KEY, null);
       if (!raw || raw.version !== SCHEMA_VERSION) return null;
       if (!Array.isArray(raw.sheets) || !raw.sheets.length) return null;
       return {
@@ -96,19 +169,29 @@ export default class SheetStorage {
     * @param {Blob} blob — el File original
     */
    async saveAsset(asset, blob) {
-      if (!this._db || !asset || !blob) return false;
+      const store = this._store();
+      if (!store || !asset || !blob) return false;
       try {
-         await this._db.updateItem({
+         await store.put({
             id: asset.id,
             name: asset.name,
             w: asset.pxW,
             h: asset.pxH,
             quantity: asset.quantity ?? 1,
+            cropScale: asset.cropScale ?? 1,
+            cropX: asset.cropX ?? 0.5,
+            cropY: asset.cropY ?? 0.5,
             blob
          });
+         // Aviso proactivo: el error de cuota real llega recién al escribir.
+         await this._checkQuota();
          return true;
       } catch (err) {
          this._available = false;
+         this._emitStatus(
+            'error',
+            'No se pudo guardar una imagen en la biblioteca (IndexedDB).'
+         );
          slice.logger?.logWarn?.('SheetStorage', 'No se pudo guardar la imagen', err);
          return false;
       }
@@ -119,20 +202,40 @@ export default class SheetStorage {
     * El blob puede pesar megas: reescribirlo por cada click en "+" sería caro.
     */
    async updateAssetQuantity(id, quantity) {
-      if (!this._db) return;
+      const store = this._store();
+      if (!store) return;
       try {
-         const item = await this._db.getItem(id);
+         const item = await store.get(id);
          if (!item) return;
-         await this._db.updateItem({ ...item, quantity });
+         await store.put({ ...item, quantity });
       } catch (err) {
+         this._emitStatus('error', 'No se pudo guardar la cantidad de copias.');
          slice.logger?.logWarn?.('SheetStorage', 'No se pudo guardar la cantidad', err);
       }
    }
 
-   async deleteAsset(id) {
-      if (!this._db) return;
+   /**
+    * Guarda el zoom/encuadre global del asset sin reescribir el blob.
+    * Es la misma estrategia que la cantidad: el binario puede pesar megas.
+    */
+   async updateAssetCrop(id, { cropScale = 1, cropX = 0.5, cropY = 0.5 } = {}) {
+      const store = this._store();
+      if (!store) return;
       try {
-         await this._db.deleteItem(id);
+         const item = await store.get(id);
+         if (!item) return;
+         await store.put({ ...item, cropScale, cropX, cropY });
+      } catch (err) {
+         this._emitStatus('error', 'No se pudo guardar el encuadre de la imagen.');
+         slice.logger?.logWarn?.('SheetStorage', 'No se pudo guardar el crop', err);
+      }
+   }
+
+   async deleteAsset(id) {
+      const store = this._store();
+      if (!store) return;
+      try {
+         await store.delete(id);
       } catch (err) {
          slice.logger?.logWarn?.('SheetStorage', 'No se pudo borrar la imagen', err);
       }
@@ -143,9 +246,10 @@ export default class SheetStorage {
     * @returns {Promise<object[]>}
     */
    async loadPool() {
-      if (!this._db || !this._pool) return [];
+      const store = this._store();
+      if (!store || !this._pool) return [];
       try {
-         const items = await this._db.getAllItems();
+         const items = await store.getAll();
          return items
             .map((item) => {
                if (!item?.blob) return null;
@@ -156,7 +260,15 @@ export default class SheetStorage {
                    w: item.w,
                    h: item.h
                 });
-                if (asset) asset.quantity = item.quantity ?? 1;
+                if (asset) {
+                   asset.quantity = item.quantity ?? 1;
+                   if (item.cropScale !== undefined || item.cropX !== undefined
+                      || item.cropY !== undefined) {
+                      asset.cropScale = item.cropScale ?? 1;
+                      asset.cropX = item.cropX ?? 0.5;
+                      asset.cropY = item.cropY ?? 0.5;
+                   }
+                }
                return asset;
             })
             .filter(Boolean);
@@ -216,8 +328,10 @@ export default class SheetStorage {
 
    /** Vacía solo la biblioteca de imágenes; las hojas siguen guardadas. */
    async clearAssets() {
+      const store = this._store();
+      if (!store) return;
       try {
-         await this._db?.clearItems();
+         await store.clear();
       } catch (err) {
          slice.logger?.logWarn?.('SheetStorage', 'No se pudo vaciar la biblioteca', err);
       }
@@ -228,9 +342,15 @@ export default class SheetStorage {
    // hojas— y convivir con dos métodos de nombre parecido, uno de los cuales
    // borra el doble que el otro, es una trampa para el próximo que lea esto.
    // Si algún día hace falta un "empezar de cero", son `clearAssets()` más
-   // `this._local?.removeItem(LAYOUT_KEY)`.
+   // `this._local?.remove(LAYOUT_KEY)`.
 
    beforeDestroy() {
+      if (typeof window !== 'undefined') {
+         window.removeEventListener('pagehide', this._onPageHide);
+      }
+      if (typeof document !== 'undefined') {
+         document.removeEventListener('visibilitychange', this._onVisibilityChange);
+      }
       this.flush();
    }
 }

@@ -85,11 +85,12 @@ La vista más grande, y la única con una familia entera de componentes propios.
 
 | Propio | Rol |
 |---|---|
-| `LayoutsPanel` | Panel lateral: carga, biblioteca, plantillas, productos, márgenes, ajuste y escala |
+| `LayoutsPanel` | Panel lateral: carga, biblioteca, plantillas, grilla/márgenes personalizados, productos, ajuste y escala |
 | `PoolCard` | Miniatura de la biblioteca, con el control de cantidad de copias |
 | `SheetCell` | Celda de la hoja: imagen, estado vacío y menú contextual |
-| `CellSizeModal` | Edición de medidas de celda en centímetros |
-| `ContextMenu` | Menú del click derecho sobre una celda |
+| `CellSizeModal` | Edición de medidas de columna/fila (con uniforme y bloqueo de proporción) |
+| `ExportSheetsModal` | Selección de hojas y formato para exportar (PDF, PNGs/ZIP, imprimir) |
+| `ContextMenu` | Menú del click derecho sobre una celda y sobre un chip de hoja |
 
 | Compartido | También lo usa |
 |---|---|
@@ -115,12 +116,40 @@ Dos detalles que conviene tener presentes antes de tocarla:
 - **+ Nueva hoja** hereda la configuración de la hoja activa (papel, plantilla,
   márgenes, ajuste, escala, producto y pesos de columnas/filas) y arranca
   vacía. **⧉ Duplicar** es la que copia además las imágenes.
+- **El papel es global**: cambiarlo aplica el mismo tamaño a todas las hojas.
+  Se elige **solo con el Select** (A4/Carta/A5, horizontales incluidas); el PDF
+  respeta esa orientación. No hay inputs de ancho/alto.
+- **Grilla y márgenes personalizados** desde el panel: columnas/filas (1–12) y
+  margen/separación en cm; se rehidratan desde el id después de recargar.
+- **Productos estándar**: fotos, stickers, tarjeta, credencial, etiqueta y
+  tamaños de **carnet (3×4, 4×4, 2,5×3,5) / pasaporte (3,5×4,5)**.
+- **Zoom por celda**: rueda, arrastre para encuadrar, doble clic para resetear y
+  un **Slider** visible al pasar el mouse o seleccionar la imagen (100–300 %).
+  El encuadre se guarda en la imagen: todas sus copias y hojas lo comparten.
+- **Selección múltiple**: `Ctrl/Cmd` alterna celdas, `Shift` toma rangos;
+  `Shift+flechas` extiende el rango y `Ctrl/Cmd+A` selecciona toda la hoja. El
+  menú contextual ajusta (cubrir/contener) o quita en lote.
+- **Biblioteca**: búsqueda por nombre, paginación de a 12 y estado vacío.
+  **Vaciar** borra las imágenes y reinicia la planilla a una sola hoja blanca.
+  Se puede arrastrar una imagen a una celda, intercambiar celdas arrastrando y
+  pegar imágenes con `Ctrl+V`.
+- **Guardado**: el topbar muestra “Guardando… / Guardado” y “Error al guardar”
+  (cuota llena o storage bloqueado) con un toast.
+- **Renombrar / mover hojas**: doble clic en el chip o menú contextual
+  (“Renombrar hoja”, “Mover a la izquierda/derecha”). También duplicar/eliminar.
+  Con 5+ hojas aparece **“Hojas (N)”**, un menú de desborde que las lista todas
+  con su ocupación sin recorrer el carril.
 - **Auto acomodar** reparte **todas** las copias de la biblioteca: llena la hoja
   activa y, si no entran, inserta a continuación tantas hojas nuevas como haga
   falta, clonando la configuración de la activa. El resumen dice
   `N imágenes · M hojas`.
-- Agregar/duplicar/quitar hoja y auto acomodar entran al historial
+- Agregar/duplicar/quitar/mover hoja y auto acomodar entran al historial
   (`Ctrl+Z` / `Ctrl+Y`).
+- **Exportar…** abre un modal con una hoja por checkbox (las vacías quedan
+  deshabilitadas) y permite elegir PDF, PNGs o Imprimir solo sobre las
+  seleccionadas. Con varias hojas, PNGs se descarga como un único ZIP.
+- El **zoom** solo actualiza el transform de la hoja; no reconstruye el rail,
+  la galería ni las celdas.
 
 
 ---

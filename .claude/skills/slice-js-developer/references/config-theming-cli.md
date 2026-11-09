@@ -129,7 +129,98 @@ Absolute imports are kept only when the file exists under `src/public/`; otherwi
 
 ## Build validation
 
-`slice build` validates every component's `static props` (the same checks as `slice doctor`) **before** building and **blocks** on definition errors — unknown `type`, `schema` on a non-`object` prop, `items` on a non-`array` prop, or `allowedValues` that don't match the `type`. Style issues (`type: "any"`, a `required` prop without a default) warn but don't block. Bypass with `slice build --no-validate` (not recommended).
+`slice build` runs **one validation pass** before bundling, and `slice doctor` reports the same pass
+(same validator, same classifier, so they cannot disagree):
+
+- **Blocks** `sliceConfig` combinations that build but misbehave (`context.enabled` with
+  `events.enabled: false` — ContextManager reactivity needs EventManager), component files that cannot
+  be bundled (syntax error, no default export while registered, unresolved relative import), a
+  component registered in `components.js` whose file is missing or whose category has no
+  `paths.components` entry (or no folder), a syntax error in `api/index.js` (the deploy entrypoint is
+  never executed by the build),
+  `src/routes.js` with a syntax error or an unresolved relative import (it is served as-is, so the
+  router breaks at load), and prop definition errors (unknown `type`, `schema` on a non-`object` prop,
+  `items` on a non-`array` prop, `allowedValues` that don't match the `type`).
+- **Warns only:** `type: "any"`, a `required` prop without a default, a `slice.build('X')` of an
+  unregistered name, a component folder without `<Name>.js`, a route whose `component` is not
+  registered (it throws only when that route is visited), a route written `:id` instead of `${id}`
+  (never matches), a declared framework range that rejects the installed version, prop metadata
+  written as an expression (`type: TYPE`, `allowedValues: SIZES`, `schema: SHARED`): the type
+  generator reads the AST, so the prop degrades to `any`; an `async beforeDestroy` (the framework
+  does not await it), a `destroy()`/`dispose()`/`teardown()` the controller never calls, and a
+  `window`/`document` listener with no `removeEventListener` in the same file.
+- **Doctor only:** component CSS selectors not scoped under the component tag. The CSS is global, so
+  a bare selector leaks; `:host` and tag-scoped selectors pass, and `/* slice:unscoped */` opts a
+  portaled widget out. Kept out of the build because it never blocks and can be dozens of files.
+
+`slice doctor` exits 1 when any row fails (0 with only warnings), so `slice doctor && slice build` is a
+usable pre-deploy gate. `slice build --no-validate` skips the component pass; the `sliceConfig` and
+`routes.js` rules always run. Neither command executes `api/index.js` or proves framework behavior —
+that needs a boot of a real app.
+
+## Linting
+
+`slice lint` runs the project's ESLint. The shared flat config ships with the CLI. For an existing
+project, `slice setup lint` installs the tools, writes the config (only if missing) and adds the
+scripts; it never overwrites what you already have. `--with-types` also installs TypeScript, adds the
+`typecheck` script, and generates the first declarations plus `jsconfig.json`, so both commands work
+immediately.
+
+```js
+// eslint.config.js (app)
+import slice from 'slicejs-cli/eslint-config.js';
+export default [...slice, { languageOptions: { globals: { ToastProvider: 'writable' } } }];
+```
+
+```js
+// eslint.config.js (tooling that runs in Node)
+import { nodeConfig } from 'slicejs-cli/eslint-config.js';
+export default nodeConfig;
+```
+
+It brings the browser environment plus `slice`/`Slice` globals **only for `src/`**, Node globals for
+`api/`, `scripts/` and config files, `js.configs.recommended`, a set of advisory rules, ignores for
+generated and vendored output, and a Node/browser override for specs. The browser globals are scoped,
+not additive: `document` in `api/` is a real `no-undef`. A folder that mixes both (a build script that
+drives a headless browser, docs templates that are browser components) opts in explicitly:
+
+```js
+import slice, { nodeGlobals, sliceGlobals } from 'slicejs-cli/eslint-config.js';
+export default [
+  ...slice,
+  { files: ['scripts/og/**'], languageOptions: { globals: { ...nodeGlobals, ...sliceGlobals } } },
+];
+```
+
+`slice lint` also refreshes `src/slice-build.generated.d.ts` (and the event manifest) before running
+ESLint when the project has a `slice:types` script or that file, so the editor never reads stale
+declarations; `--no-types` skips it. ESLint itself does not type-check (no tsconfig): that is the
+separate `slice typecheck` step below.
+
+`slice typecheck` is that compiler step: it refreshes the declarations first (the registry changes with
+every `slice get`; a stale map makes installed components look unregistered), then runs the project's
+`tsc --noEmit` with `jsconfig.json` (`-p` overrides, `--no-types` skips the refresh). It needs
+`typescript` in the project; `slice setup lint --with-types` installs it, adds the `slice:types` and
+`typecheck` scripts, and generates the first declarations + jsconfig. Keep it separate from lint: type
+checking is much slower.
+
+The generated jsconfig includes `src/Components/**/*.js`, `src/App/**/*.js`, `src/routes.js` and the
+declarations, and the generator writes a small `slice-runtime.generated.d.ts` so the app entry's
+`import Slice from '/Slice/Slice.js'` resolves without tsc following the framework source. Registered
+events are typed: after `slice.events.register({ 'toast:show': { payload: { message: 'string' } } })`,
+`emit`/`subscribe` reject a wrong payload, while unregistered names stay `unknown`. Lint never does
+this comparison; it only refreshes the declarations.
+
+Rules that decide whether a project ships are **not** in lint: they are `slice build`/`slice doctor` and live in exactly one place.
+
+## Bundles are build output
+
+`slice build` writes bundles, the route manifest and `bundle.config.json` to `dist/bundles` — never
+into `src/`. Nothing in a project's source tree should reference or commit them; `dist/` is ignored
+by the `.gitignore` `slice init` writes. `slice build clean` removes the generated files (including
+the `.br`/`.gz` siblings of a compressed build) and `slice build info` summarizes the current config.
+The server serves bundles with `no-store`: they are unversioned, so caching them is how a deploy
+serves yesterday's app.
 
 ## Reproducible builds
 
@@ -158,7 +249,12 @@ Node ≥ 20. Use `npx slicejs-cli <cmd>` or the `npm run` scripts `slice init` s
 | `slice browse` | List registry components (Visual/Service) |
 | `slice sync` | Update local Visual components from registry (`-f`). Services NOT updated — use `slice get <Name> --service --force` |
 | `slice skill add` | Install the Slice.js Claude Code skill into `.claude/skills/` (also `update` / `status`) |
-| `slice doctor` (`diagnose`) | Project diagnostics (structure, config, deps, components + `static props`, missing npm imports, port) |
+| `slice doctor` (`diagnose`) | Project diagnostics (structure, config + schema, SEO, deps + version skew, components/routes/server entry, missing npm imports, port) |
+| `slice lint` | Runs the project's ESLint; refreshes `src/slice-build.generated.d.ts` first when the project uses types (`--no-types` opts out); the shared config is `slicejs-cli/eslint-config.js` |
+| `slice typecheck` | Refreshes the declarations, then runs the project's `tsc --noEmit` over `jsconfig.json` (needs `typescript`; `--no-types` skips the refresh); `slice setup lint --with-types` installs it |
+| `slice setup lint` | Adds ESLint + the shared config + `lint` scripts to an existing project (`--dry-run`). With `--with-types` it also installs TypeScript, adds `typecheck`, and generates the declarations + `jsconfig.json` |
+| `slice seo sitemap` / `seo check` | Write / validate the committed `public/sitemap.xml` from `seo.json` |
+| `slice seo images` (`og`) | Render each route's 1200×630 social card into `public/og/` + its `manifest.json` (needs Playwright) |
 | `slice version` / `slice update` | Versions / update CLI+framework |
 | `slice types generate` | Generate a `.d.ts` from `static props` for `slice.build` autocomplete (`-o <path>`) |
 

@@ -23,6 +23,7 @@ export interface BreadcrumbsProps {
 export interface ButtonProps {
   [key: string]: unknown;
   customColor?: Record<string, unknown>;
+  disabled?: boolean;
   icon?: Record<string, unknown>;
   onClick?: (...args: unknown[]) => unknown;
   onClickCallback?: (...args: unknown[]) => unknown;
@@ -66,7 +67,15 @@ export interface CheckboxProps {
   labelPlacement?: string;
 }
 
+export interface ConfirmActionModalProps {
+  [key: string]: unknown;
+}
+
 export interface ContextMenuProps {
+  [key: string]: unknown;
+}
+
+export interface DataGridEngineProps {
   [key: string]: unknown;
 }
 
@@ -75,6 +84,10 @@ export interface DesignerSectionProps {
 }
 
 export interface DesignerToolbarProps {
+  [key: string]: unknown;
+}
+
+export interface DownloadServiceProps {
   [key: string]: unknown;
 }
 
@@ -93,6 +106,14 @@ export interface DropZoneProps {
   hint?: string;
   onFiles?: (...args: unknown[]) => unknown;
   title?: string;
+}
+
+export interface ExportServiceProps {
+  [key: string]: unknown;
+}
+
+export interface ExportSheetsModalProps {
+  [key: string]: unknown;
 }
 
 export interface FontCardProps {
@@ -127,10 +148,6 @@ export interface GridProps {
   rowTemplate?: string;
 }
 
-export interface HomeSectionProps {
-  [key: string]: unknown;
-}
-
 export interface HtmlServiceProps {
   [key: string]: unknown;
 }
@@ -147,6 +164,14 @@ export interface IconProps {
   size?: string;
 }
 
+export interface ImageCropModalProps {
+  [key: string]: unknown;
+}
+
+export interface ImageEditModalProps {
+  [key: string]: unknown;
+}
+
 export interface IndexedDbManagerProps {
   [key: string]: unknown;
 }
@@ -160,6 +185,23 @@ export interface InputProps {
   secret?: boolean;
   type?: string;
   value?: string;
+}
+
+export interface LayoutsPanelProps {
+  [key: string]: unknown;
+  actions?: unknown[];
+  onCustomGrid?: (...args: unknown[]) => unknown;
+  onCustomPreset?: (...args: unknown[]) => unknown;
+  onFiles?: (...args: unknown[]) => unknown;
+  onFitChange?: (...args: unknown[]) => unknown;
+  onPageChange?: (...args: unknown[]) => unknown;
+  onPresetChange?: (...args: unknown[]) => unknown;
+  onProductChange?: (...args: unknown[]) => unknown;
+  onScaleChange?: (...args: unknown[]) => unknown;
+  onScaleStart?: (...args: unknown[]) => unknown;
+  onTemplateChange?: (...args: unknown[]) => unknown;
+  sheet?: Record<string, unknown>;
+  templates?: Record<string, unknown>;
 }
 
 export interface LayoutsSectionProps {
@@ -181,10 +223,6 @@ export interface LoadingProps {
   isActive?: boolean;
 }
 
-export interface LocalStorageManagerProps {
-  [key: string]: unknown;
-}
-
 export interface ModalProps {
   [key: string]: unknown;
   customColor?: Record<string, unknown>;
@@ -200,11 +238,15 @@ export interface ModalProps {
 
 export interface ModuleCardProps {
   [key: string]: unknown;
+  accent?: string;
+  accentInk?: string;
   actionLabel?: string;
   description?: string;
   features?: unknown[];
   icon?: string;
+  index?: number;
   path?: string;
+  revealDelay?: number;
   title?: string;
 }
 
@@ -216,6 +258,7 @@ export interface NavbarProps {
   [key: string]: unknown;
   buttons?: unknown[];
   direction?: string;
+  extraNodes?: unknown[];
   extras?: unknown[];
   items?: unknown[];
   logo?: Record<string, unknown>;
@@ -223,6 +266,53 @@ export interface NavbarProps {
 }
 
 export interface NotFoundProps {
+  [key: string]: unknown;
+}
+
+export interface PaginationProps {
+  [key: string]: unknown;
+  align?: string;
+  boundaryCount?: number;
+  controlled?: boolean;
+  currentPage?: number;
+  disabled?: boolean;
+  hrefTemplate?: string;
+  mode?: string;
+  onPageChange?: (...args: unknown[]) => unknown;
+  onPageSizeChange?: (...args: unknown[]) => unknown;
+  pageSize?: number;
+  pageSizes?: unknown[];
+  shape?: string;
+  showFirstLast?: boolean;
+  showInfo?: boolean;
+  showJump?: boolean;
+  showLabels?: boolean;
+  showPrevNext?: boolean;
+  siblingCount?: number;
+  size?: string;
+  texts?: Record<string, unknown>;
+  totalItems?: number;
+  totalPages?: number;
+  variant?: string;
+}
+
+export interface PlacementServiceProps {
+  [key: string]: unknown;
+}
+
+export interface PoolCardProps {
+  [key: string]: unknown;
+  asset?: Record<string, unknown>;
+  onContextMenu?: (...args: unknown[]) => unknown;
+  onQuantityChange?: (...args: unknown[]) => unknown;
+  onRemove?: (...args: unknown[]) => unknown;
+  onSelect?: (...args: unknown[]) => unknown;
+  pending?: boolean;
+  quantity?: number;
+  used?: boolean;
+}
+
+export interface PoolServiceProps {
   [key: string]: unknown;
 }
 
@@ -256,13 +346,53 @@ export interface SheetCellProps {
   [key: string]: unknown;
   animate?: boolean;
   col?: number;
+  imageScale?: number;
   img?: Record<string, unknown>;
-  onEdgeDrag?: (...args: unknown[]) => unknown;
+  onCropChange?: (...args: unknown[]) => unknown;
+  onFocus?: (...args: unknown[]) => unknown;
   onMenu?: (...args: unknown[]) => unknown;
   onPick?: (...args: unknown[]) => unknown;
   onRemove?: (...args: unknown[]) => unknown;
+  onSelect?: (...args: unknown[]) => unknown;
   row?: number;
-  slot: number;
+  selected?: boolean;
+  slot?: number;
+}
+
+export interface SheetGeometryProps {
+  [key: string]: unknown;
+}
+
+export interface SheetServiceProps {
+  [key: string]: unknown;
+}
+
+export interface SheetStorageProps {
+  [key: string]: unknown;
+}
+
+export interface SliderProps {
+  [key: string]: unknown;
+  customColor?: Record<string, unknown>;
+  disabled?: boolean;
+  formatValue?: (...args: unknown[]) => unknown;
+  label?: string;
+  marks?: unknown[];
+  max?: number;
+  min?: number;
+  name?: string;
+  onChange?: (...args: unknown[]) => unknown;
+  onInput?: (...args: unknown[]) => unknown;
+  range?: boolean;
+  showValue?: boolean;
+  size?: 'sm' | 'md' | 'lg';
+  step?: number;
+  value?: number;
+  variant?: 'default' | 'outlined' | 'soft' | 'plain';
+}
+
+export interface StorageServiceProps {
+  [key: string]: unknown;
 }
 
 export interface TabsProps {
@@ -322,37 +452,52 @@ export interface SliceComponentPropsMap {
   Card: CardProps;
   CellSizeModal: CellSizeModalProps;
   Checkbox: CheckboxProps;
+  ConfirmActionModal: ConfirmActionModalProps;
   ContextMenu: ContextMenuProps;
+  DataGridEngine: DataGridEngineProps;
   DesignerSection: DesignerSectionProps;
   DesignerToolbar: DesignerToolbarProps;
+  DownloadService: DownloadServiceProps;
   DragDropService: DragDropServiceProps;
   DropDown: DropDownProps;
   DropZone: DropZoneProps;
+  ExportService: ExportServiceProps;
+  ExportSheetsModal: ExportSheetsModalProps;
   FontCard: FontCardProps;
   FontDetailSection: FontDetailSectionProps;
   FontsCatalog: FontsCatalogProps;
   Grid: GridProps;
-  HomeSection: HomeSectionProps;
   HtmlService: HtmlServiceProps;
   HubSection: HubSectionProps;
   Icon: IconProps;
+  ImageCropModal: ImageCropModalProps;
+  ImageEditModal: ImageEditModalProps;
   IndexedDbManager: IndexedDbManagerProps;
   Input: InputProps;
+  LayoutsPanel: LayoutsPanelProps;
   LayoutsSection: LayoutsSectionProps;
   LayoutTemplates: LayoutTemplatesProps;
   Link: LinkProps;
   Loading: LoadingProps;
-  LocalStorageManager: LocalStorageManagerProps;
   Modal: ModalProps;
   ModuleCard: ModuleCardProps;
   MultiRoute: MultiRouteProps;
   Navbar: NavbarProps;
   NotFound: NotFoundProps;
+  Pagination: PaginationProps;
+  PlacementService: PlacementServiceProps;
+  PoolCard: PoolCardProps;
+  PoolService: PoolServiceProps;
   Providers: ProvidersProps;
   Route: RouteProps;
   Select: SelectProps;
   ShareService: ShareServiceProps;
   SheetCell: SheetCellProps;
+  SheetGeometry: SheetGeometryProps;
+  SheetService: SheetServiceProps;
+  SheetStorage: SheetStorageProps;
+  Slider: SliderProps;
+  StorageService: StorageServiceProps;
   Tabs: TabsProps;
   ThemeSelector: ThemeSelectorProps;
   ThemeSwitcher: ThemeSwitcherProps;
@@ -366,7 +511,10 @@ export type SliceComponentName = keyof SliceComponentPropsMap;
 export type SliceDynamicElement = HTMLElement & Record<string, any>;
 
 export interface SliceEventRegistry {
-  "toast:show": { message: string; type: string; duration: number };
+  "confirm:request": { title?: string; message?: string; confirmLabel?: string; cancelLabel?: string; danger?: boolean; onConfirm?: (...args: unknown[]) => unknown; onCancel?: (...args: unknown[]) => unknown };
+  "confirm:resolved": { confirmed?: boolean; title?: string };
+  "sheet:save": { status?: string; message?: string };
+  "toast:show": { message?: string; type?: string; duration?: number };
 }
 
 type SliceEventCatalog = Record<string, { description?: string; payload?: unknown }>;

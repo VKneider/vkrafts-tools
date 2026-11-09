@@ -5,8 +5,11 @@ export default class LayoutsPanel extends HTMLElement {
       templates: { type: 'object', default: null },
       onPageChange: { type: 'function', default: null },
       onTemplateChange: { type: 'function', default: null },
+      onCustomGrid: { type: 'function', default: null },
       onPresetChange: { type: 'function', default: null },
+      onCustomPreset: { type: 'function', default: null },
       onFitChange: { type: 'function', default: null },
+      onScaleStart: { type: 'function', default: null },
       onScaleChange: { type: 'function', default: null },
       onProductChange: { type: 'function', default: null },
       onFiles: { type: 'function', default: null },
@@ -35,12 +38,17 @@ export default class LayoutsPanel extends HTMLElement {
 
       if (sheet.templateId !== prevProps?.sheet?.templateId) {
          this._highlightTemplate(sheet.templateId);
+         this._syncCustomGrid(sheet);
+      }
+      if (sheet.pageId !== prevProps?.sheet?.pageId) {
+         this._refreshPageOptions(sheet);
       }
       if (sheet.productId !== prevProps?.sheet?.productId) {
          this._highlightProduct(sheet);
       }
       if (sheet.presetId !== prevProps?.sheet?.presetId) {
          this._highlightPreset(sheet.presetId);
+         this._syncCustomMargins(sheet);
       }
       if (sheet.fitMode !== prevProps?.sheet?.fitMode) {
          this._highlightFit(sheet.fitMode);
@@ -82,8 +90,9 @@ export default class LayoutsPanel extends HTMLElement {
          }
       });
       if (pageSelect) {
-         pageSelect.value = [pageOptions.find((o) => o.id === sheet.pageId)];
          this.$refs.page.appendChild(pageSelect);
+         this._pageSelect = pageSelect;
+         this._refreshPageOptions(sheet);
       }
 
       for (const p of templates.allProducts()) {
@@ -123,7 +132,9 @@ export default class LayoutsPanel extends HTMLElement {
          this.$refs.tplPicker.appendChild(btn);
       }
 
-      for (const p of templates.presets) {
+      // Los presets personalizados viven en el catálogo para la geometría, pero
+      // no ensucian la lista fija de chips.
+      for (const p of templates.presets.filter((x) => !x.derived)) {
          const btn = document.createElement('button');
          btn.type = 'button';
          btn.className = 'layoutspanel__chip';
@@ -133,6 +144,9 @@ export default class LayoutsPanel extends HTMLElement {
          btn.addEventListener('click', () => this._onPresetChange?.(p.id));
          this.$refs.preset.appendChild(btn);
       }
+
+      this._bindCustomGrid();
+      this._bindCustomMargins();
 
       const fits = [
          { id: 'smart', label: 'Smart', icon: 'star', tip: 'Recorta si el encuadre es parecido; respeta proporciones si no' },
@@ -160,6 +174,14 @@ export default class LayoutsPanel extends HTMLElement {
       const scaleLabel = document.createElement('span');
       scaleLabel.className = 'layoutspanel__scale-label';
       scaleLabel.textContent = `${Math.round((sheet.imageScale ?? 1) * 100)}%`;
+
+      // Un solo snapshot de historial por gesto, no uno por cada `input`.
+      scaleSlider.addEventListener('pointerdown', () => this._onScaleStart?.());
+      scaleSlider.addEventListener('keydown', (e) => {
+         const keys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'];
+         if (keys.includes(e.key)) this._onScaleStart?.();
+      });
+
       scaleSlider.addEventListener('input', () => {
          const val = parseFloat(scaleSlider.value);
          scaleLabel.textContent = `${Math.round(val * 100)}%`;
@@ -177,6 +199,89 @@ export default class LayoutsPanel extends HTMLElement {
       this._highlightPreset(sheet.presetId);
       this._highlightFit(sheet.fitMode);
       this._highlightProduct(sheet);
+   }
+
+   _bindCustomGrid() {
+      const apply = () => {
+         const cols = this._clampInt(this.$refs.customCols?.value, 1, 12);
+         const rows = this._clampInt(this.$refs.customRows?.value, 1, 12);
+         this._onCustomGrid?.(cols, rows);
+      };
+
+      this.$refs.customGridApply?.addEventListener('click', apply);
+      [this.$refs.customCols, this.$refs.customRows].forEach((input) => {
+         input?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+               e.preventDefault();
+               apply();
+            }
+         });
+      });
+
+      this._syncCustomGrid(this.sheet);
+   }
+
+   _syncCustomGrid(sheet) {
+      if (!sheet || !this.$refs.customCols) return;
+      const tpl = this.templates.get(sheet.templateId);
+      this.$refs.customCols.value = String(tpl.cols);
+      this.$refs.customRows.value = String(tpl.rows);
+      if (this.$refs.customGridHint) {
+         this.$refs.customGridHint.textContent = tpl.derived
+            ? `Grilla activa: ${tpl.cols} × ${tpl.rows}`
+            : 'Fija filas y columnas; reemplaza la plantilla activa.';
+      }
+   }
+
+   _bindCustomMargins() {
+      const apply = () => {
+         const marginCm = this._clampNumber(this.$refs.customMargin?.value, 0, 5);
+         const gapCm = this._clampNumber(this.$refs.customGap?.value, 0, 5);
+         this._onCustomPreset?.({
+            marginMm: marginCm * 10,
+            gapMm: gapCm * 10
+         });
+      };
+
+      this.$refs.customMarginsApply?.addEventListener('click', apply);
+      [this.$refs.customMargin, this.$refs.customGap].forEach((input) => {
+         input?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+               e.preventDefault();
+               apply();
+            }
+         });
+      });
+
+      this._syncCustomMargins(this.sheet);
+   }
+
+   _syncCustomMargins(sheet) {
+      if (!sheet || !this.$refs.customMargin) return;
+      const preset = this.templates.preset(sheet.presetId);
+      this.$refs.customMargin.value = (preset.marginMm / 10).toFixed(1);
+      this.$refs.customGap.value = (preset.gapMm / 10).toFixed(1);
+   }
+
+   _clampInt(value, min, max) {
+      const n = Math.round(Number(value));
+      return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : min;
+   }
+
+   _clampNumber(value, min, max) {
+      const n = Number(value);
+      return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : min;
+   }
+
+   _refreshPageOptions(sheet) {
+      if (!this._pageSelect || !sheet) return;
+
+      const options = this.templates.pages().map((p) => ({ ...p, text: p.label }));
+      this._pageSelect.options = options;
+
+      const current = options.find((o) => o.id === sheet.pageId)
+         || options.find((o) => o.id === 'a4');
+      if (current) this._pageSelect.value = [current];
    }
 
    _highlightProduct(sheet) {
@@ -245,11 +350,20 @@ export default class LayoutsPanel extends HTMLElement {
    get onTemplateChange() { return this._onTemplateChange; }
    set onTemplateChange(fn) { this._onTemplateChange = typeof fn === 'function' ? fn : null; }
 
+   get onCustomGrid() { return this._onCustomGrid; }
+   set onCustomGrid(fn) { this._onCustomGrid = typeof fn === 'function' ? fn : null; }
+
    get onPresetChange() { return this._onPresetChange; }
    set onPresetChange(fn) { this._onPresetChange = typeof fn === 'function' ? fn : null; }
 
+   get onCustomPreset() { return this._onCustomPreset; }
+   set onCustomPreset(fn) { this._onCustomPreset = typeof fn === 'function' ? fn : null; }
+
    get onFitChange() { return this._onFitChange; }
    set onFitChange(fn) { this._onFitChange = typeof fn === 'function' ? fn : null; }
+
+   get onScaleStart() { return this._onScaleStart; }
+   set onScaleStart(fn) { this._onScaleStart = typeof fn === 'function' ? fn : null; }
 
    get onScaleChange() { return this._onScaleChange; }
    set onScaleChange(fn) { this._onScaleChange = typeof fn === 'function' ? fn : null; }

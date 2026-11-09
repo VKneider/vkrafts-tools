@@ -43,6 +43,8 @@ export default class AppShell extends HTMLElement {
             { path: '/designer', component: 'DesignerSection' },
             { path: '/canvas', component: 'CanvasSection' },
             { path: '/layouts', component: 'LayoutsSection' },
+            // Sintaxis de ruta de Slice: `${id}` es un parámetro, no un template.
+            // eslint-disable-next-line no-template-curly-in-string
             { path: '/font/${id}', component: 'FontDetailSection' },
             { path: '/about', component: 'AboutSection' }
          ]

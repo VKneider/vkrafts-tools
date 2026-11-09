@@ -33,25 +33,30 @@
     "slice:types": "node ./node_modules/slicejs-cli/client.js types generate",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint src api",
-    "lint:fix": "eslint src api --fix",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:install": "playwright install chromium",
+    "lint": "eslint src api tests playwright.config.js",
+    "lint:fix": "eslint src api tests playwright.config.js --fix",
     "run": "node ./node_modules/slicejs-cli/client.js dev"
   },
   "packageManager": "pnpm@11.5.0",
   "dependencies": {
     "dompurify": "^3.4.14",
     "fabric": "^7.4.0",
+    "fflate": "^0.8.3",
     "heic2any": "^0.0.4",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "lucide": "^1.33.0",
-    "slicejs-web-framework": "4.0.2"
+    "slicejs-web-framework": "4.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.64.1",
     "eslint": "^10.9.0",
     "globals": "^17.11.0",
-    "slicejs-cli": "4.2.0",
+    "slicejs-cli": "4.5.0",
     "vitest": "^4.1.11"
   }
 }

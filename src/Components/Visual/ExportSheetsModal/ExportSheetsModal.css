@@ -1,0 +1,94 @@
+slice-export-sheets-modal {
+  display: block;
+}
+
+slice-export-sheets-modal .exsm__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+slice-export-sheets-modal .exsm__summary {
+  margin: 0;
+  font-size: 12px;
+  color: var(--medium-color);
+}
+
+slice-export-sheets-modal .exsm__summary.is-warning {
+  color: var(--danger-color);
+  font-weight: 600;
+}
+
+slice-export-sheets-modal .exsm__list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+slice-export-sheets-modal .exsm__row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--primary-color-rgb), 0.18);
+  font-size: 12px;
+  color: var(--font-primary-color);
+  cursor: pointer;
+}
+
+slice-export-sheets-modal .exsm__row.is-empty {
+  opacity: 0.55;
+  cursor: default;
+}
+
+slice-export-sheets-modal .exsm__row input {
+  accent-color: var(--primary-color);
+  width: 15px;
+  height: 15px;
+  margin: 0;
+}
+
+slice-export-sheets-modal .exsm__name {
+  flex: 1;
+  font-weight: 600;
+}
+
+slice-export-sheets-modal .exsm__count {
+  color: var(--medium-color);
+  font-variant-numeric: tabular-nums;
+}
+
+slice-export-sheets-modal .exsm__tools {
+  display: flex;
+  gap: 6px;
+}
+
+slice-export-sheets-modal .exsm__tool {
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--primary-color-rgb), 0.3);
+  background: transparent;
+  color: var(--font-secondary-color);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+slice-export-sheets-modal .exsm__tool:hover {
+  border-color: var(--primary-color);
+  color: var(--font-primary-color);
+}
+
+slice-export-sheets-modal .exsm__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+slice-export-sheets-modal .exsm__footer slice-button .slice_button {
+  min-width: 0;
+}

@@ -3,8 +3,11 @@
 // celda se deriva del tamaño de página para el mecanismo de auto-asignación.
 const PAGE_SIZES = {
    a4: { label: 'A4 (210×297)', w: 210, h: 297 },
+   'a4-h': { label: 'A4 horizontal (297×210)', w: 297, h: 210 },
    carta: { label: 'Carta (216×279)', w: 216, h: 279 },
-   a5: { label: 'A5 (148×210)', w: 148, h: 210 }
+   'carta-h': { label: 'Carta horizontal (279×216)', w: 279, h: 216 },
+   a5: { label: 'A5 (148×210)', w: 148, h: 210 },
+   'a5-h': { label: 'A5 horizontal (210×148)', w: 210, h: 148 }
 };
 
 const TEMPLATES = [
@@ -31,6 +34,10 @@ const PRODUCTS = [
    { id: 'foto-10x15', name: 'Foto 10×15', wMm: 100, hMm: 150 },
    { id: 'foto-13x18', name: 'Foto 13×18', wMm: 130, hMm: 180 },
    { id: 'foto-9x13', name: 'Foto 9×13', wMm: 90, hMm: 130 },
+   { id: 'carnet-3x4', name: 'Carnet 3×4', wMm: 30, hMm: 40 },
+   { id: 'carnet-4x4', name: 'Carnet 4×4', wMm: 40, hMm: 40 },
+   { id: 'carnet-2.5x3.5', name: 'Carnet 2,5×3,5', wMm: 25, hMm: 35 },
+   { id: 'pasaporte-3.5x4.5', name: 'Pasaporte 3,5×4,5', wMm: 35, hMm: 45 },
    { id: 'sticker-5', name: 'Sticker 5×5', wMm: 50, hMm: 50 },
    { id: 'sticker-7', name: 'Sticker 7×7', wMm: 70, hMm: 70 },
    { id: 'tarjeta', name: 'Tarjeta 9×5', wMm: 90, hMm: 50 },
@@ -41,8 +48,9 @@ const PRODUCTS = [
 export default class LayoutTemplates {
    constructor(props = {}) {
       this.props = props || {};
-      this.pageSizes = PAGE_SIZES;
-      // Copia propia: `ensureGrid` agrega plantillas derivadas de un producto.
+      // Copia propia: `ensureGrid`/`ensurePreset` agregan entradas derivadas;
+      // no deben contaminar el catálogo entre instancias.
+      this.pageSizes = { ...PAGE_SIZES };
       this.templates = [...TEMPLATES];
       this.presets = PRESETS;
       this.products = PRODUCTS;
@@ -98,8 +106,35 @@ export default class LayoutTemplates {
       return { cols, rows, total: cols * rows, fits: cols > 0 && rows > 0 };
    }
 
+   /**
+    * Devuelve (creándolo si hace falta) un preset de márgenes/separación
+    * personalizado. Se rehidrata desde su id después de recargar, igual que las
+    * grillas derivadas.
+    * @param {number} marginMm
+    * @param {number} gapMm
+    * @returns {{id:string,name:string,marginMm:number,gapMm:number,derived:true}}
+    */
+   ensurePreset(marginMm, gapMm) {
+      const m = Math.max(0, Math.min(50, Number(marginMm) || 0));
+      const g = Math.max(0, Math.min(50, Number(gapMm) || 0));
+      const id = `custom-${m.toFixed(1)}-${g.toFixed(1)}`;
+
+      let preset = this.presets.find((p) => p.id === id);
+      if (!preset) {
+         preset = { id, name: 'Personalizado', marginMm: m, gapMm: g, derived: true };
+         this.presets.push(preset);
+      }
+      return preset;
+   }
+
    preset(id) {
-      return this.presets.find((p) => p.id === id) || this.presets[2];
+      const found = this.presets.find((p) => p.id === id);
+      if (found) return found;
+
+      const custom = /^custom-([\d.]+)-([\d.]+)$/.exec(String(id || ''));
+      if (custom) return this.ensurePreset(Number(custom[1]), Number(custom[2]));
+
+      return this.presets[2];
    }
 
    createSheet(seq = 1) {
@@ -142,7 +177,8 @@ export default class LayoutTemplates {
    }
 
    page(id) {
-      return this.pageSizes[id] || this.pageSizes.a4;
+      if (this.pageSizes[id]) return this.pageSizes[id];
+      return this.pageSizes.a4;
    }
 
    /**

@@ -12,6 +12,8 @@
  * @property {number} [imageScale]
  * @property {string|null} [productId]
  * @property {{w:number, h:number}|null} [cellSizeMm]
+ * @property {number[]|null} [colSizesMm] — medidas exactas por columna (mm)
+ * @property {number[]|null} [rowSizesMm] — medidas exactas por fila (mm)
  * @property {number[]} [cols]
  * @property {number[]} [rows]
  */
@@ -56,7 +58,72 @@ export default class SheetService {
       fresh.cols = Array.isArray(current.cols) ? [...current.cols] : undefined;
       fresh.rows = Array.isArray(current.rows) ? [...current.rows] : undefined;
 
+      // Medidas exactas por eje (si la hoja venía de "Editar medidas").
+      fresh.colSizesMm = Array.isArray(current.colSizesMm) ? [...current.colSizesMm] : null;
+      fresh.rowSizesMm = Array.isArray(current.rowSizesMm) ? [...current.rowSizesMm] : null;
+
       return fresh;
+   }
+
+   /**
+    * Renombra una hoja. Un nombre vacío vuelve a mostrar el label por índice.
+    * @param {object[]} sheets
+    * @param {string} id
+    * @param {string} name
+    * @returns {object[]}
+    */
+   renameSheet(sheets, id, name) {
+      const clean = String(name ?? '').trim();
+      return sheets.map((sheet) => {
+         if (sheet.id !== id) return sheet;
+         if (!clean) {
+            const { name: _removed, ...rest } = sheet;
+            return rest;
+         }
+         return { ...sheet, name: clean };
+      });
+   }
+
+   /**
+    * Mueve una hoja a `toIndex` (0-based), preservando el resto del orden.
+    * @param {object[]} sheets
+    * @param {string} id
+    * @param {number} toIndex
+    * @returns {object[]}
+    */
+   moveSheet(sheets, id, toIndex) {
+      const from = sheets.findIndex((sheet) => sheet.id === id);
+      if (from < 0) return sheets;
+
+      const requested = Number.isFinite(Number(toIndex)) ? Math.trunc(Number(toIndex)) : from;
+      const target = Math.max(0, Math.min(sheets.length - 1, requested));
+      if (from === target) return sheets;
+
+      const next = [...sheets];
+      const [moved] = next.splice(from, 1);
+      next.splice(target, 0, moved);
+      return next;
+   }
+
+   /**
+    * Aplica el mismo tamaño de papel a TODAS las hojas. Es una regla del
+    * módulo: se trabaja con una sola medida de hoja para que el PDF y la
+    * impresión salgan homogéneos. Las hojas que cambian de papel pierden sus
+    * medidas exactas (estaban calculadas para otra página).
+    * @param {object[]} sheets
+    * @param {string} pageId
+    * @returns {object[]}
+    */
+   setPageForAll(sheets, pageId) {
+      return sheets.map((sheet) => {
+         if (sheet.pageId === pageId) return sheet;
+         return {
+            ...sheet,
+            pageId,
+            colSizesMm: null,
+            rowSizesMm: null
+         };
+      });
    }
 
    /**

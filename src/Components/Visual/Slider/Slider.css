@@ -1,0 +1,333 @@
+/* Encapsulated under the custom element so the slider styles never leak. */
+
+/* ----------------------------------------------------------------- theme knobs
+   Declared on the HOST so any of them can be retuned per instance; variants
+   override them on the container (same model as Checkbox / RadioGroup). The
+   control is em-based, so `data-size` scales track, thumb and marks together. */
+slice-slider {
+  display: block;
+
+  --slice-slider-accent: var(--primary-color);
+  /* Neutral, derived from the text colour: a primary-tinted track is too close
+     to the (primary) fill in light themes to tell filled from empty. */
+  --slice-slider-track: color-mix(in srgb, var(--font-primary-color) 14%, transparent);
+  --slice-slider-track-height: 0.375em;
+  --slice-slider-thumb: #ffffff;
+  --slice-slider-thumb-size: 1.15em;
+  --slice-slider-thumb-border-width: 2px;
+  --slice-slider-surface: color-mix(in srgb, var(--secondary-background-color) 72%, transparent);
+  --slice-slider-surface-border: color-mix(in srgb, var(--primary-color-shade) 60%, transparent);
+  --slice-slider-surface-border-hover: color-mix(in srgb, var(--primary-color) 55%, transparent);
+  --slice-slider-surface-border-width: 1px;
+}
+
+slice-slider .slice_slider_container {
+  box-sizing: border-box;
+  margin: 10px 0;
+  padding: 10px 14px 12px;
+  border-radius: 10px;
+  background: var(--slice-slider-surface);
+  border: var(--slice-slider-surface-border-width) solid var(--slice-slider-surface-border);
+  font-family: var(--font-family);
+  color: var(--font-primary-color);
+}
+
+slice-slider .slice_slider_container:hover {
+  border-color: var(--slice-slider-surface-border-hover);
+}
+
+/* ------------------------------------------------------------------ header */
+
+slice-slider .slice_slider_header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+slice-slider .slice_slider_label {
+  padding-bottom: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+slice-slider .slice_slider_value {
+  margin-left: auto;
+  padding-bottom: 6px;
+  font-size: 0.9rem;
+  color: var(--font-secondary-color);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* JS toggles `.hidden` on these (§8.2). */
+slice-slider .slice_slider_label[hidden],
+slice-slider .slice_slider_value[hidden],
+slice-slider .slice_slider_marks[hidden],
+slice-slider .slice_slider_input[hidden] {
+  display: none;
+}
+
+/* ----------------------------------------------------------------- control */
+
+slice-slider .slice_slider_control {
+  /* `customColor.accent` lands on the HOST and is resolved here, below the
+     container, so a variant's accent cannot shadow it. */
+  --slice-slider-accent-effective: var(--slice-slider-custom-accent, var(--slice-slider-accent));
+  --slice-slider-start: 0;
+  --slice-slider-end: 0;
+  position: relative;
+  height: var(--slice-slider-thumb-size);
+  /* A range input has no intrinsic width: in a shrink-to-fit parent (a flex
+     row, an inline-block) it would collapse to a few pixels. */
+  min-width: 12rem;
+}
+
+slice-slider .slice_slider_track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: var(--slice-slider-track-height);
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: var(--slice-slider-track);
+  overflow: hidden;
+}
+
+/* The thumb's CENTRE travels from thumb/2 to (100% - thumb/2), so the fill is
+   measured on that same span; otherwise it would lead or lag the thumb. */
+slice-slider .slice_slider_fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(var(--slice-slider-thumb-size) / 2 + (100% - var(--slice-slider-thumb-size)) * var(--slice-slider-end));
+  border-radius: inherit;
+  background: var(--slice-slider-accent-effective);
+}
+
+slice-slider .slice_slider--range .slice_slider_fill {
+  left: calc(var(--slice-slider-thumb-size) / 2 + (100% - var(--slice-slider-thumb-size)) * var(--slice-slider-start));
+  width: calc((100% - var(--slice-slider-thumb-size)) * (var(--slice-slider-end) - var(--slice-slider-start)));
+  border-radius: 0;
+}
+
+/* The native inputs cover the control with an invisible track; only their
+   thumbs take pointer input, so in range mode each thumb is grabbable even
+   though the two inputs overlap. */
+slice-slider .slice_slider_input {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  pointer-events: none;
+  outline: none;
+  font: inherit;
+}
+
+slice-slider .slice_slider_input--raised {
+  z-index: 2;
+}
+
+/* With a single thumb nothing overlaps, so the whole track is the input: a
+   click anywhere jumps the thumb there, natively. */
+slice-slider .slice_slider_container:not(.slice_slider--range) .slice_slider_input {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* In range mode the inputs let clicks through to the track, which moves the
+   nearest thumb (Slider.js `_onTrackPointerDown`). */
+slice-slider .slice_slider--range .slice_slider_control {
+  cursor: pointer;
+}
+
+slice-slider .slice_slider_input::-webkit-slider-runnable-track {
+  height: 100%;
+  background: transparent;
+  border: 0;
+}
+
+slice-slider .slice_slider_input::-moz-range-track {
+  height: 100%;
+  background: transparent;
+  border: 0;
+}
+
+slice-slider .slice_slider_input::-moz-range-progress {
+  background: transparent;
+}
+
+slice-slider .slice_slider_input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: auto;
+  box-sizing: border-box;
+  width: var(--slice-slider-thumb-size);
+  height: var(--slice-slider-thumb-size);
+  border-radius: 50%;
+  border: var(--slice-slider-thumb-border-width) solid var(--slice-slider-accent-effective);
+  background: var(--slice-slider-thumb);
+  box-shadow: var(--slice-shadow-sm, 0 1px 3px rgb(0 0 0 / 0.25));
+  cursor: grab;
+}
+
+slice-slider .slice_slider_input::-moz-range-thumb {
+  pointer-events: auto;
+  box-sizing: border-box;
+  width: var(--slice-slider-thumb-size);
+  height: var(--slice-slider-thumb-size);
+  border-radius: 50%;
+  border: var(--slice-slider-thumb-border-width) solid var(--slice-slider-accent-effective);
+  background: var(--slice-slider-thumb);
+  box-shadow: var(--slice-shadow-sm, 0 1px 3px rgb(0 0 0 / 0.25));
+  cursor: grab;
+}
+
+slice-slider .slice_slider_input:active::-webkit-slider-thumb {
+  cursor: grabbing;
+}
+
+slice-slider .slice_slider_input:active::-moz-range-thumb {
+  cursor: grabbing;
+}
+
+/* The input itself has no visible box, so the keyboard ring goes on the thumb. */
+slice-slider .slice_slider_input:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 2px var(--secondary-background-color), 0 0 0 4px var(--primary-color);
+}
+
+slice-slider .slice_slider_input:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 2px var(--secondary-background-color), 0 0 0 4px var(--primary-color);
+}
+
+/* ----------------------------------------------------------------- disabled */
+
+slice-slider .slice_slider--disabled {
+  opacity: 0.6;
+}
+
+slice-slider .slice_slider--disabled:hover {
+  border-color: var(--slice-slider-surface-border);
+}
+
+slice-slider .slice_slider--disabled .slice_slider_fill {
+  background: var(--disabled-color);
+}
+
+slice-slider .slice_slider_input:disabled::-webkit-slider-thumb {
+  border-color: var(--disabled-color);
+  cursor: not-allowed;
+}
+
+slice-slider .slice_slider_input:disabled::-moz-range-thumb {
+  border-color: var(--disabled-color);
+  cursor: not-allowed;
+}
+
+/* -------------------------------------------------------------------- marks */
+
+slice-slider .slice_slider_marks {
+  position: relative;
+  height: 1.6em;
+  margin-top: 2px;
+}
+
+slice-slider .slice_slider_mark {
+  position: absolute;
+  top: 0;
+  left: calc(var(--slice-slider-thumb-size) / 2 + (100% - var(--slice-slider-thumb-size)) * var(--slice-slider-mark-at));
+  transform: translateX(-50%);
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  font-family: inherit;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  color: var(--font-secondary-color);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+slice-slider .slice_slider_mark:hover {
+  color: var(--font-primary-color);
+}
+
+slice-slider .slice_slider--disabled .slice_slider_mark {
+  cursor: not-allowed;
+}
+
+/* -------------------------------------------------------------------- variants */
+
+slice-slider .slice_slider_container.slice_slider--default {
+  --slice-slider-accent: var(--primary-color);
+}
+
+slice-slider .slice_slider_container.slice_slider--outlined {
+  --slice-slider-surface: transparent;
+  --slice-slider-surface-border: color-mix(in srgb, var(--primary-color) 45%, transparent);
+  --slice-slider-surface-border-hover: var(--primary-color);
+}
+
+slice-slider .slice_slider_container.slice_slider--soft {
+  --slice-slider-surface: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  --slice-slider-surface-border: transparent;
+  --slice-slider-surface-border-hover: transparent;
+  --slice-slider-track: color-mix(in srgb, var(--primary-color) 18%, var(--secondary-background-color));
+}
+
+/* ----------------------------------------------------------------------- sizes
+   Implemented locally, like Checkbox: the shared scale.css is a shelved
+   prototype (DESIGN_SYSTEM.md). Scaling the control's font-size scales every
+   em-based part of it. */
+
+slice-slider[data-size='sm'] .slice_slider_container {
+  padding: 6px 10px 8px;
+  border-radius: 8px;
+  margin: 6px 0;
+}
+
+slice-slider[data-size='sm'] .slice_slider_control,
+slice-slider[data-size='sm'] .slice_slider_marks {
+  font-size: 0.85em;
+}
+
+slice-slider[data-size='sm'] .slice_slider_label {
+  font-size: 0.85rem;
+}
+
+slice-slider[data-size='lg'] .slice_slider_container {
+  padding: 12px 16px 14px;
+  border-radius: 12px;
+}
+
+slice-slider[data-size='lg'] .slice_slider_control,
+slice-slider[data-size='lg'] .slice_slider_marks {
+  font-size: 1.2em;
+}
+
+slice-slider[data-size='lg'] .slice_slider_label {
+  font-size: 1.05rem;
+}
+
+/* ------------------------------------------------------------------- plain
+   After the sizes block on purpose: it ties with
+   `[data-size='…'] .slice_slider_container` on specificity, so source order is
+   what makes `plain` win the container padding. */
+slice-slider .slice_slider_container.slice_slider--plain {
+  --slice-slider-surface: transparent;
+  --slice-slider-surface-border: transparent;
+  --slice-slider-surface-border-hover: transparent;
+  --slice-slider-surface-border-width: 0;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+}

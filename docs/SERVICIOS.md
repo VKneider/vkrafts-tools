@@ -17,7 +17,7 @@ JavaScript común, que es por qué la lógica pesada vive acá y no en las vista
 | `DragDropService` | LayoutsSection, Modal |
 | `LayoutTemplates`, `SheetGeometry`, `PoolService`, `SheetStorage` | LayoutsSection |
 | `ExportService`, `PlacementService`, `SheetService` | solo LayoutsSection |
-| `IndexedDbManager`, `LocalStorageManager` | solo `SheetStorage`, vía Providers |
+| `IndexedDbManager`, `StorageService` | solo `SheetStorage`, vía Providers |
 
 ---
 
@@ -132,6 +132,9 @@ Las tres salidas, y **no son equivalentes en precisión**:
 | **Impresión** (`printSheets`) | Exacto en CSS, pero el driver puede reescalar |
 | **PNG** (`exportPNGs`) | Sin tamaño físico: un PNG son píxeles. Para imprimir, PDF |
 
+`exportPNGs` descarga un PNG cuando hay una sola hoja; con varias arma un único
+ZIP (`fflate`) para evitar que el navegador bloquee descargas encadenadas.
+
 `exportPDFExact()` devuelve `{ ok, paginas, items, imagenes, fallidas }` y **no
 guarda** el archivo si había piezas y ninguna imagen pudo estamparse: un PDF de
 páginas en blanco parece un bug del layout y esconde la causa real. La vista
@@ -146,6 +149,10 @@ Además:
   extensión del archivo (rotar/voltear guardan PNG con nombre `.jpg`);
 - las hojas sin ninguna imagen colocada no se exportan: no generan páginas
   fantasma en el PDF/PNG ni una hoja de más al imprimir;
+- el crop global del asset se respeta en la exportación: con zoom manual
+  (`cropScale > 1`) el PDF rasteriza la vista recortada con la misma semántica
+  de `background-size`/`background-position` que la celda; PNG e impresión usan
+  la hoja offscreen, que aplica el mismo encuadre;
 - `printSheets()` es **async** y espera a que el iframe decodifique las imágenes
   (`waitForImages(doc.body, win)`) antes de llamar a `print()`. Sin eso la vista
   previa podía abrirse en blanco: el iframe es otro documento y carga los
@@ -160,7 +167,8 @@ Además:
 
 `exportCalibrationSheet()` genera una hoja de prueba con una regla de 100 mm.
 Sirve para que el usuario distinga "la app mide mal" de "mi impresora reescala",
-que es lo que casi todos los drivers hacen por defecto.
+que es lo que casi todos los drivers hacen por defecto. El método y su unit test
+se conservan, pero **ya no se expone como botón** en la barra de acciones.
 
 **Contrato de geometría:** el renderizado usa píxeles CSS que equivalen 1:1 a
 milímetros reales (96dpi ⇒ 1 mm = 96/25.4 px). Gracias a eso la impresión sale a
@@ -172,13 +180,30 @@ html2canvas.
 ## Infraestructura de datos
 
 ### `IndexedDbManager`
-Wrapper de IndexedDB (`addItem`, `updateItem`, `getItem`, `deleteItem`,
-`getAllItems`, `clearItems`). Se instancia con `databaseName` y `storeName`, así
-que lleva `sliceId` propio en vez de `singleton: true`.
+Wrapper de IndexedDB con la API actual: una sola conexión compartida,
+`stores` declarativos (stores e índices se crean/actualizan sin perder datos),
+`store(name)` para `get/getAll/count/query/add/put/delete/clear` y
+`transaction([...], mode, fn)` para operaciones atómicas. La API vieja
+(`addItem`, `getItem`, …) sigue existiendo como compatibilidad deprecada, pero
+`SheetStorage` ya usa `store('pool')`.
 
-### `LocalStorageManager`
-`getItem` / `setItem` con JSON y try-catch. Devuelve `null` o `false` en vez de
-tirar, para degradar sin romper cuando el navegador bloquea el almacenamiento.
+Se instancia con `databaseName`, `storeName` y `stores`, así que lleva `sliceId`
+propio (`vkrafts-pool-db`) en vez de `singleton: true`.
+
+### `StorageService`
+Wrapper de localStorage/sessionStorage con JSON, **namespace**, `ttl` por valor,
+`watch()` (misma pestaña y otras), fallback a memoria si el navegador bloquea el
+storage y `false` en vez de excepción cuando la cuota está llena.
+
+`SheetStorage` lo construye con `namespace: 'vkrafts'` y la key `sheet-layout`,
+que produce `vkrafts:sheet-layout` (la misma clave histórica de la app). Los
+blobs siguen en `IndexedDbManager`. Emite `sheet:save`
+(`saving`/`saved`/`warning`/`error`) para que la vista muestre el estado de
+guardado. `saveAsset()` consulta `navigator.storage.estimate()` y emite
+`warning` cuando la cuota está al 85% o más, antes de que la escritura falle.
+
+> `LocalStorageManager` era la API anterior y Slice la marca como deprecada. La
+> app ya no lo usa y se eliminó del proyecto; `StorageService` es el reemplazo.
 
 ---
 

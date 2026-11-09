@@ -1,0 +1,362 @@
+/* Pagination — five looks over the same controls. */
+
+slice-pagination {
+  --slice-pagination-accent: var(--primary-color);
+  --slice-pagination-accent-text: var(--primary-color-contrast, #fff);
+  --slice-pagination-text: var(--font-primary-color);
+  --slice-pagination-muted: var(--font-secondary-color);
+  --slice-pagination-bg: var(--primary-background-color);
+  --slice-pagination-border: var(--slice-border-raised, color-mix(in srgb, var(--font-primary-color) 14%, transparent));
+  --slice-pagination-size: 36px;
+  --slice-pagination-radius: 10px;
+  --slice-pagination-gap: 6px;
+  --slice-pagination-font: 0.9rem;
+
+  display: block;
+  min-width: 0;
+  color: var(--slice-pagination-text);
+  font-family: inherit;
+}
+
+slice-pagination[hidden] {
+  display: none;
+}
+
+/* Numbered pages measure their room to turn compact when it runs out. A
+   container cannot size itself from its content, so this mode takes the
+   full width; compact and dots size to their content. */
+slice-pagination[data-mode='pages'] {
+  width: 100%;
+  container-type: inline-size;
+}
+
+slice-pagination[data-size='sm'] {
+  --slice-pagination-size: 30px;
+  --slice-pagination-radius: 8px;
+  --slice-pagination-gap: 4px;
+  --slice-pagination-font: 0.82rem;
+}
+
+slice-pagination[data-size='lg'] {
+  --slice-pagination-size: 44px;
+  --slice-pagination-radius: 12px;
+  --slice-pagination-gap: 8px;
+  --slice-pagination-font: 1rem;
+}
+
+slice-pagination[data-shape='circle'] {
+  --slice-pagination-radius: 999px;
+}
+
+slice-pagination .slice-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  font-size: var(--slice-pagination-font);
+}
+
+slice-pagination[data-align='center'] .slice-pagination { justify-content: center; }
+slice-pagination[data-align='end'] .slice-pagination { justify-content: flex-end; }
+slice-pagination[data-align='between'] .slice-pagination { justify-content: space-between; }
+
+slice-pagination .slice-pagination__info[hidden],
+slice-pagination .slice-pagination__tools[hidden],
+slice-pagination .slice-pagination__pages[hidden] {
+  display: none;
+}
+
+slice-pagination .slice-pagination__info {
+  color: var(--slice-pagination-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The info sits after the pages, except when the pages are pushed to the end. */
+slice-pagination .slice-pagination__info { order: 2; }
+slice-pagination .slice-pagination__bar { order: 1; }
+slice-pagination .slice-pagination__tools { order: 3; }
+slice-pagination[data-align='between'] .slice-pagination__info,
+slice-pagination[data-align='end'] .slice-pagination__info { order: 0; }
+
+slice-pagination .slice-pagination__bar,
+slice-pagination .slice-pagination__pages,
+slice-pagination .slice-pagination__dots {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--slice-pagination-gap);
+}
+
+/* ── Controls ───────────────────────────────────────────────────── */
+
+slice-pagination .slice-pagination__item {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: var(--slice-pagination-size);
+  height: var(--slice-pagination-size);
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--slice-pagination-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+slice-pagination .slice-pagination__item--edge {
+  padding: 0 8px;
+}
+
+slice-pagination .slice-pagination__item:focus-visible {
+  outline: 2px solid var(--slice-pagination-accent);
+  outline-offset: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+slice-pagination .slice-pagination__item:hover:not([disabled]):not([aria-disabled='true']):not(.slice-pagination__item--current) {
+  background: color-mix(in srgb, transparent 90%, var(--slice-pagination-accent));
+}
+
+slice-pagination .slice-pagination__item--current {
+  font-weight: 650;
+  cursor: default;
+}
+
+slice-pagination .slice-pagination__item[disabled],
+slice-pagination .slice-pagination__item[aria-disabled='true'] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+slice-pagination .slice-pagination__ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: calc(var(--slice-pagination-size) * 0.7);
+  height: var(--slice-pagination-size);
+  color: var(--slice-pagination-muted);
+  user-select: none;
+}
+
+slice-pagination .slice-pagination__compact {
+  display: none;
+  padding: 0 6px;
+  color: var(--slice-pagination-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+slice-pagination[data-mode='compact'] .slice-pagination__compact {
+  display: inline-flex;
+}
+
+/* ── outlined (default): each control in a border, the current one filled ── */
+
+slice-pagination.slice-pagination--outlined .slice-pagination__item {
+  border-color: var(--slice-pagination-border);
+  background: var(--slice-pagination-bg);
+}
+
+slice-pagination.slice-pagination--outlined .slice-pagination__item:hover:not([disabled]):not([aria-disabled='true']):not(.slice-pagination__item--current) {
+  border-color: color-mix(in srgb, var(--slice-pagination-accent) 40%, transparent);
+}
+
+
+/* ── soft: tinted controls ──────────────────────────────────────── */
+
+slice-pagination.slice-pagination--soft .slice-pagination__item {
+  background: color-mix(in srgb, var(--slice-pagination-bg) 92%, var(--slice-pagination-accent));
+}
+
+slice-pagination.slice-pagination--soft .slice-pagination__item:hover:not([disabled]):not([aria-disabled='true']):not(.slice-pagination__item--current) {
+  background: color-mix(in srgb, var(--slice-pagination-bg) 82%, var(--slice-pagination-accent));
+}
+
+/* ── ghost: nothing around the controls until hover ─────────────── */
+
+/* (the base styles are the ghost look) */
+
+/* The filled current page of outlined, soft and ghost. After their own rules, so it wins. */
+slice-pagination.slice-pagination--outlined .slice-pagination__item--current,
+slice-pagination.slice-pagination--soft .slice-pagination__item--current,
+slice-pagination.slice-pagination--ghost .slice-pagination__item--current {
+  border-color: var(--slice-pagination-accent);
+  background: var(--slice-pagination-accent);
+  color: var(--slice-pagination-accent-text);
+}
+
+/* ── segmented: one joined bar ──────────────────────────────────── */
+
+slice-pagination.slice-pagination--segmented .slice-pagination__bar {
+  gap: 0;
+  border: 1px solid var(--slice-pagination-border);
+  border-radius: var(--slice-pagination-radius);
+  background: var(--slice-pagination-bg);
+  overflow: hidden;
+}
+
+slice-pagination.slice-pagination--segmented .slice-pagination__pages,
+slice-pagination.slice-pagination--segmented .slice-pagination__dots {
+  gap: 0;
+}
+
+slice-pagination.slice-pagination--segmented .slice-pagination__item,
+slice-pagination.slice-pagination--segmented .slice-pagination__ellipsis,
+slice-pagination.slice-pagination--segmented .slice-pagination__compact {
+  border-radius: 0;
+  border: 0;
+  border-inline-start: 1px solid var(--slice-pagination-border);
+  height: var(--slice-pagination-size);
+  align-items: center;
+}
+
+slice-pagination.slice-pagination--segmented .slice-pagination__bar > :first-child {
+  border-inline-start: 0;
+}
+
+slice-pagination.slice-pagination--segmented .slice-pagination__pages > :first-child,
+slice-pagination.slice-pagination--segmented .slice-pagination__dots > :first-child {
+  border-inline-start: 1px solid var(--slice-pagination-border);
+}
+
+slice-pagination.slice-pagination--segmented .slice-pagination__item--current {
+  background: color-mix(in srgb, var(--slice-pagination-bg) 86%, var(--slice-pagination-accent));
+  color: var(--slice-pagination-accent);
+  box-shadow: inset 0 -2px 0 var(--slice-pagination-accent);
+}
+
+/* ── underline: text links, the current one underlined ──────────── */
+
+slice-pagination.slice-pagination--underline .slice-pagination__item {
+  min-width: calc(var(--slice-pagination-size) * 0.85);
+  padding: 0 6px;
+  border-radius: 6px;
+  color: var(--slice-pagination-muted);
+}
+
+slice-pagination.slice-pagination--underline .slice-pagination__item:hover:not([disabled]):not([aria-disabled='true']):not(.slice-pagination__item--current) {
+  background: transparent;
+  color: var(--slice-pagination-text);
+}
+
+slice-pagination.slice-pagination--underline .slice-pagination__item--current {
+  color: var(--slice-pagination-accent);
+  box-shadow: inset 0 -2px 0 var(--slice-pagination-accent);
+  border-radius: 0;
+}
+
+/* ── dots ───────────────────────────────────────────────────────── */
+
+slice-pagination .slice-pagination__item--dot {
+  min-width: 0;
+  width: calc(var(--slice-pagination-size) * 0.5);
+  height: calc(var(--slice-pagination-size) * 0.5);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  position: relative;
+}
+
+slice-pagination .slice-pagination__item--dot::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--slice-pagination-text) 25%, transparent);
+  transition: width 0.25s ease, background-color 0.2s ease;
+}
+
+slice-pagination .slice-pagination__item--dot.slice-pagination__item--current {
+  width: calc(var(--slice-pagination-size) * 0.75);
+  background: transparent;
+  box-shadow: none;
+}
+
+slice-pagination .slice-pagination__item--dot.slice-pagination__item--current::before {
+  width: 22px;
+  background: var(--slice-pagination-accent);
+}
+
+slice-pagination .slice-pagination__item--dot:hover:not(.slice-pagination__item--current)::before {
+  background: color-mix(in srgb, var(--slice-pagination-text) 45%, transparent);
+}
+
+slice-pagination[data-mode='dots'] .slice-pagination__item--dot:hover {
+  background: transparent !important;
+}
+
+slice-pagination.slice-pagination--segmented[data-mode='dots'] .slice-pagination__item--dot {
+  border: 0 !important;
+}
+
+/* ── Tools ──────────────────────────────────────────────────────── */
+
+slice-pagination .slice-pagination__tools {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+slice-pagination .slice-pagination__tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--slice-pagination-muted);
+  white-space: nowrap;
+}
+
+slice-pagination .slice-pagination__tool slice-select {
+  width: 112px;
+  min-width: 0;
+}
+
+slice-pagination .slice-pagination__jump {
+  box-sizing: border-box;
+  width: 64px;
+  height: var(--slice-pagination-size);
+  padding: 0 8px;
+  border: 1px solid var(--slice-pagination-border);
+  border-radius: calc(var(--slice-pagination-radius) * 0.8);
+  background: var(--slice-pagination-bg);
+  color: var(--slice-pagination-text);
+  font: inherit;
+  text-align: center;
+}
+
+slice-pagination .slice-pagination__jump:focus-visible {
+  outline: 2px solid var(--slice-pagination-accent);
+  outline-offset: 1px;
+}
+
+/* ── Narrow: numbered pages turn into "Page 5 of 20" ─────────────── */
+
+@container (max-width: 420px) {
+  slice-pagination[data-mode='pages'] .slice-pagination__pages {
+    display: none;
+  }
+
+  slice-pagination[data-mode='pages'] .slice-pagination__compact {
+    display: inline-flex;
+  }
+
+  slice-pagination .slice-pagination__text {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  slice-pagination .slice-pagination__item,
+  slice-pagination .slice-pagination__item--dot::before {
+    transition: none;
+  }
+}

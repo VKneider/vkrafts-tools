@@ -43,7 +43,9 @@ describe('SheetService', () => {
             productId: 'sticker-5',
             cellSizeMm: { w: 50, h: 50 },
             cols: [2, 1, 1],
-            rows: [1, 1, 1, 1, 1]
+            rows: [1, 1, 1, 1, 1],
+            colSizesMm: [60, 40, 40],
+            rowSizesMm: [20, 30, 40, 50, 60]
          };
          const sheet = svc.createSheet(2, current);
 
@@ -52,13 +54,19 @@ describe('SheetService', () => {
          expect(sheet.cellSizeMm).toEqual({ w: 50, h: 50 });
          expect(sheet.cols).toEqual([2, 1, 1]);
          expect(sheet.rows).toEqual([1, 1, 1, 1, 1]);
+         expect(sheet.colSizesMm).toEqual([60, 40, 40]);
+         expect(sheet.rowSizesMm).toEqual([20, 30, 40, 50, 60]);
 
          // Copia profunda: mover un splitter en la hoja nueva no puede deformar
          // la original.
          sheet.cellSizeMm.w = 40;
          sheet.cols[0] = 9;
+         sheet.colSizesMm[0] = 99;
+         sheet.rowSizesMm[0] = 99;
          expect(current.cellSizeMm.w).toBe(50);
          expect(current.cols[0]).toBe(2);
+         expect(current.colSizesMm[0]).toBe(60);
+         expect(current.rowSizesMm[0]).toBe(20);
       });
 
       it('la hoja nueva arranca sin contenido', () => {
@@ -162,6 +170,78 @@ describe('SheetService', () => {
 
       it('retorna null si no existe', () => {
          expect(svc.getSheet({ sheets: [] }, 'x')).toBeNull();
+      });
+   });
+
+   describe('setPageForAll', () => {
+      it('aplica el mismo papel a todas las hojas', () => {
+         const sheets = [{ id: 'a', pageId: 'carta' }, { id: 'b', pageId: 'a4' }];
+         const result = svc.setPageForAll(sheets, 'a4');
+         expect(result.map((s) => s.pageId)).toEqual(['a4', 'a4']);
+      });
+
+      it('limpia las medidas exactas de las hojas que cambian de papel', () => {
+         const sheets = [{
+            id: 'a',
+            pageId: 'carta',
+            colSizesMm: [20, 20],
+            rowSizesMm: [20, 20]
+         }];
+         const [changed] = svc.setPageForAll(sheets, 'a4');
+         expect(changed.colSizesMm).toBeNull();
+         expect(changed.rowSizesMm).toBeNull();
+      });
+
+      it('deja intacta la hoja que ya tiene ese papel', () => {
+         const sheet = { id: 'a', pageId: 'a4', colSizesMm: [20, 20] };
+         expect(svc.setPageForAll([sheet], 'a4')[0]).toBe(sheet);
+      });
+   });
+
+   describe('renameSheet', () => {
+      it('renombra solo la hoja indicada y recorta espacios', () => {
+         const sheets = [
+            { id: 's1', name: 'Tapa' },
+            { id: 's2' }
+         ];
+         const result = svc.renameSheet(sheets, 's2', '  Interior  ');
+         expect(result[0].name).toBe('Tapa');
+         expect(result[1].name).toBe('Interior');
+      });
+
+      it('un nombre vacío elimina la propiedad y vuelve al label por índice', () => {
+         const result = svc.renameSheet([{ id: 's1', name: 'Tapa' }], 's1', '   ');
+         expect(result[0].name).toBeUndefined();
+      });
+
+      it('no modifica las demás hojas', () => {
+         const sheets = [{ id: 's1', name: 'A' }, { id: 's2', name: 'B' }];
+         const result = svc.renameSheet(sheets, 's1', 'C');
+         expect(result[1]).toBe(sheets[1]);
+         expect(sheets[0].name).toBe('A');
+      });
+   });
+
+   describe('moveSheet', () => {
+      it('mueve una hoja hacia adelante', () => {
+         const sheets = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+         expect(svc.moveSheet(sheets, 'a', 2).map((s) => s.id)).toEqual(['b', 'c', 'a']);
+      });
+
+      it('mueve una hoja hacia atrás', () => {
+         const sheets = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+         expect(svc.moveSheet(sheets, 'c', 0).map((s) => s.id)).toEqual(['c', 'a', 'b']);
+      });
+
+      it('clampea el destino al rango válido', () => {
+         const sheets = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+         expect(svc.moveSheet(sheets, 'a', 99).map((s) => s.id)).toEqual(['b', 'c', 'a']);
+         expect(svc.moveSheet(sheets, 'c', -5).map((s) => s.id)).toEqual(['c', 'a', 'b']);
+      });
+
+      it('con un id inexistente devuelve las hojas sin cambios', () => {
+         const sheets = [{ id: 'a' }, { id: 'b' }];
+         expect(svc.moveSheet(sheets, 'x', 1)).toBe(sheets);
       });
    });
 

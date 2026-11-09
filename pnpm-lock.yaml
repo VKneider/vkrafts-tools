@@ -14,6 +14,9 @@ importers:
       fabric:
         specifier: ^7.4.0
         version: 7.4.0
+      fflate:
+        specifier: ^0.8.3
+        version: 0.8.3
       heic2any:
         specifier: ^0.0.4
         version: 0.0.4
@@ -27,12 +30,15 @@ importers:
         specifier: ^1.33.0
         version: 1.33.0
       slicejs-web-framework:
-        specifier: 4.0.2
-        version: 4.0.2
+        specifier: 4.2.0
+        version: 4.2.0
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.9.0)
+      '@playwright/test':
+        specifier: 1.64.1
+        version: 1.64.1
       eslint:
         specifier: ^10.9.0
         version: 10.9.0
@@ -40,8 +46,8 @@ importers:
         specifier: ^17.11.0
         version: 17.11.0
       slicejs-cli:
-        specifier: 4.2.0
-        version: 4.2.0
+        specifier: 4.5.0
+        version: 4.5.0(eslint@10.9.0)
       vitest:
         specifier: ^4.1.11
         version: 4.1.11(jsdom@26.1.0(canvas@3.2.3))(vite@8.2.2(esbuild@0.28.2)(terser@5.50.0))
@@ -491,6 +497,11 @@ packages:
 
   '@oxc-project/types@0.147.0':
     resolution: {integrity: sha512-IJ3s6ltHLp45S0bh7phkX+gJO7A1Wuz2EaqpAhb8WjqDwbzMiWKHhyyT42tskaWjEYXtHtVCPpnBJVT9+dcRLg==}
+
+  '@playwright/test@1.64.1':
+    resolution: {integrity: sha512-IaYGml/nSOiZWROfPtuIL7neuu9qDOZ3TNvNljUIrhDMxiGTgPjzj/g9p9RxpS2tSepPDRY+UwAaEeiKtUvIAg==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   '@rolldown/binding-android-arm-eabi@1.2.6':
     resolution: {integrity: sha512-b+jTcARdTiFLI6jB4a5XjTm0RWd6KcRfQj/I2356fxUZemiho9zQLxo0RtCuMDAyKcLo6cEltkgbQp6d1+sjjQ==}
@@ -1554,6 +1565,16 @@ packages:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
     engines: {node: '>=12'}
 
+  playwright-core@1.64.1:
+    resolution: {integrity: sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.64.1:
+    resolution: {integrity: sha512-HCrVhHr5QQuwYoswEUGTb7gGp522yflbv/ST8nF4sFWGuLjQCt17Q/EubpGGSNKYn1tsTCPZxqHhHCfVURu7UA==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   postcss@8.5.26:
     resolution: {integrity: sha512-u82N74LFzG8ca+dD8puPnplTXoGH4fTPpVGuIbt36G3qvNlkvfD0lEAZSxaly3KX8TS/L1A1gsCEmvKmBcVbkQ==}
     engines: {node: ^10 || ^12 || >=14}
@@ -1699,17 +1720,17 @@ packages:
   simple-get@4.0.1:
     resolution: {integrity: sha512-brv7p5WgH0jmQJr1ZDDfKDOSeWWg+OVypG99A/5vYGPqJ6pxiaHLy8nxtFjBA7oMa01ebA9gfh1uMCFqOuXxvA==}
 
-  slicejs-cli@4.2.0:
-    resolution: {integrity: sha512-7LTYHcC8l+xqMbExx6QitP9qqCSyUN3Qf7NvAs11icmwpsbTTlkQ1CaiQIZeN4c0VruKbkYDuYgxh7Di+qhXxQ==}
+  slicejs-cli@4.5.0:
+    resolution: {integrity: sha512-r2HGxg4B/TtZVEi87mDLMxN1EHobByUFSvZj5EVd6YqRzm+Ce5DbnYPzcyljTGKQ7P4mNAoSYK0c/4AvIjabVQ==}
     engines: {node: '>=20.0.0'}
     hasBin: true
 
-  slicejs-web-framework@3.5.4:
-    resolution: {integrity: sha512-tP9Y0R5lWOWCi+ggnzlwpJvwTMj4zZAZX59LfBZU3Vy0iLdIVArIcLQdglzurhR9iv9MeRJpxijeRmyFw13L+A==}
-    engines: {node: '>=20'}
-
   slicejs-web-framework@4.0.2:
     resolution: {integrity: sha512-homVktLSEDQMBnDShGGsD1KdGHFc1A4SrB74G9DthKneZgYaA5pit2+83fRYTbFhGXpH/cn6I/HCpiXHZibhcQ==}
+    engines: {node: '>=20'}
+
+  slicejs-web-framework@4.2.0:
+    resolution: {integrity: sha512-1uYeaFwXY5GPhOvsk+tP1E54aaHTXc/JhBjcYWyCnAo3JMJZbT8NdFek+YktXJrZam/qlCIVy3QRDDkkLprJjg==}
     engines: {node: '>=20'}
 
   source-map-js@1.2.1:
@@ -2349,6 +2370,10 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.5
 
   '@oxc-project/types@0.147.0': {}
+
+  '@playwright/test@1.64.1':
+    dependencies:
+      playwright: 1.64.1
 
   '@rolldown/binding-android-arm-eabi@1.2.6':
     optional: true
@@ -3420,6 +3445,12 @@ snapshots:
 
   picomatch@4.0.7: {}
 
+  playwright-core@1.64.1: {}
+
+  playwright@1.64.1:
+    dependencies:
+      playwright-core: 1.64.1
+
   postcss@8.5.26:
     dependencies:
       nanoid: 3.3.18
@@ -3627,10 +3658,11 @@ snapshots:
       simple-concat: 1.0.1
     optional: true
 
-  slicejs-cli@4.2.0:
+  slicejs-cli@4.5.0(eslint@10.9.0):
     dependencies:
       '@babel/parser': 7.29.8
       '@babel/traverse': 7.29.8
+      '@eslint/js': 10.0.1(eslint@10.9.0)
       chalk: 5.6.2
       chokidar: 3.6.0
       clean-css: 5.3.3
@@ -3638,23 +3670,27 @@ snapshots:
       commander: 12.1.0
       esbuild: 0.28.2
       fs-extra: 11.4.0
+      globals: 17.11.0
       html-minifier-terser: 7.2.0
       inquirer: 12.11.1
       ora: 8.2.0
-      slicejs-web-framework: 3.5.4
+      slicejs-web-framework: 4.0.2
       terser: 5.50.0
     transitivePeerDependencies:
       - '@types/node'
+      - eslint
       - supports-color
 
-  slicejs-web-framework@3.5.4:
+  slicejs-web-framework@4.0.2:
     dependencies:
       compression: 1.8.1
+      es-module-lexer: 2.3.2
+      esbuild: 0.28.2
       express: 4.22.2
     transitivePeerDependencies:
       - supports-color
 
-  slicejs-web-framework@4.0.2:
+  slicejs-web-framework@4.2.0:
     dependencies:
       compression: 1.8.1
       es-module-lexer: 2.3.2

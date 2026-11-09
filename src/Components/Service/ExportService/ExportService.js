@@ -7,6 +7,8 @@
 // la impresión sale a tamaño real sin ninguna conversión adicional, y el DPI
 // del raster lo decide únicamente el `scale` de html2canvas.
 
+import { zipSync } from 'fflate';
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // scale 3 sobre una base de 96dpi ⇒ ~288dpi, suficiente para impresión.
@@ -151,7 +153,8 @@ export default class ExportService {
    }
 
    /**
-    * Exporta todas las hojas como PNGs individuales.
+    * Exporta las hojas como PNGs individuales o, si hay más de una, como un
+    * único ZIP (evita que el navegador bloquee descargas encadenadas).
     * @param {{sheet:object, node:HTMLElement}[]} stages
     * @param {function} html2canvas — dependencia externa
     * @param {{onProgress?:function, scale?:number}} [options]
@@ -159,20 +162,73 @@ export default class ExportService {
     */
    async exportPNGs(stages, html2canvas, { onProgress = null, scale = RASTER_SCALE } = {}) {
       let count = 0;
+      const multiple = stages.length > 1;
+      const files = {};
+
       for (let i = 0; i < stages.length; i++) {
          onProgress?.(i, stages.length);
 
          const { sheet, node } = stages[i];
          const canvas = await this._rasterize(node, html2canvas, scale);
+         const fileName = `hoja-${i + 1}-${sheet.pageId}.png`;
 
-         await this._downloadCanvas(canvas, `hoja-${i + 1}-${sheet.pageId}.png`, 'image/png', 1.0);
+         if (multiple) {
+            files[fileName] = await this._canvasBytes(canvas);
+         } else {
+            await this._downloadCanvas(canvas, fileName, 'image/png', 1.0);
+         }
 
          count++;
          // Descargas encadenadas demasiado rápido se pierden en Chrome.
-         if (i < stages.length - 1) await sleep(400);
+         if (!multiple && i < stages.length - 1) await sleep(400);
       }
+
+      if (multiple) this._downloadZip(files);
+
       onProgress?.(stages.length, stages.length);
       return count;
+   }
+
+   /** Bytes PNG del canvas (toBlob o fallback a data URL). */
+   async _canvasBytes(canvas) {
+      if (typeof canvas?.toBlob === 'function') {
+         const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png', 1.0));
+         if (blob) {
+            if (typeof blob.arrayBuffer === 'function') {
+               return new Uint8Array(await blob.arrayBuffer());
+            }
+            const buffer = await new Promise((resolve, reject) => {
+               const reader = new FileReader();
+               reader.onload = () => resolve(reader.result);
+               reader.onerror = () => reject(reader.error);
+               reader.readAsArrayBuffer(blob);
+            });
+            return new Uint8Array(buffer);
+         }
+      }
+
+      const dataUrl = canvas.toDataURL('image/png', 1.0);
+      const base64 = String(dataUrl).split(',')[1] || '';
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+   }
+
+   /** Descarga el ZIP de PNGs; pasa por DownloadService cuando está. */
+   _downloadZip(files) {
+      const zip = zipSync(files);
+      const blob = new Blob([zip], { type: 'application/zip' });
+      const dl = this._dl;
+      if (dl) return dl.blob(blob, 'vkrafts-hojas.zip');
+
+      const link = document.createElement('a');
+      link.download = 'vkrafts-hojas.zip';
+      link.href = URL.createObjectURL(blob);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      return true;
    }
 
    // ── PDF a tamaño exacto ────────────────────────────────────────────────
@@ -282,6 +338,53 @@ export default class ExportService {
    }
 
    /**
+    * Renderiza la vista recortada de una imagen tal como la muestra la celda:
+    * `background-size: <cropScale>% auto` + `background-position: x% y%`.
+    * Se usa solo cuando hay zoom/encuadre manual (`cropScale > 1`), porque ahí
+    * jsPDF ya no puede recortar por sí solo.
+    */
+   _renderCropView(img, item, dpi, keepAlpha) {
+      const imgRatio = img.naturalWidth / img.naturalHeight;
+      const scale = Number(item.cropScale) > 1 ? Number(item.cropScale) : 1;
+      const cropX = Number.isFinite(Number(item.cropX)) ? Number(item.cropX) : 0.5;
+      const cropY = Number.isFinite(Number(item.cropY)) ? Number(item.cropY) : 0.5;
+
+      // Tamaño visible de la imagen en mm (CSS: ancho = scale × ancho de celda).
+      const dwMm = item.wMm * scale;
+      const dhMm = dwMm / imgRatio;
+      const offXMm = (item.wMm - dwMm) * cropX;
+      const offYMm = (item.hMm - dhMm) * cropY;
+
+      // No se sobre-muestrea: se limita a los píxeles visibles de la fuente.
+      const visibleSrcW = Math.min(img.naturalWidth, (item.wMm / dwMm) * img.naturalWidth);
+      const wantedPx = Math.round((item.wMm / 25.4) * dpi);
+      const outW = Math.max(1, Math.min(wantedPx, Math.round(visibleSrcW)));
+      const outH = Math.max(1, Math.round(outW * (item.hMm / item.wMm)));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = outW;
+      canvas.height = outH;
+      const ctx = canvas.getContext('2d');
+      if (!keepAlpha) {
+         // La hoja es blanca: los huecos de un encuadre que no cubre la celda
+         // tienen que salir blancos, no negros (JPEG no guarda transparencia).
+         ctx.fillStyle = '#ffffff';
+         ctx.fillRect(0, 0, outW, outH);
+      }
+      ctx.imageSmoothingQuality = 'high';
+      const pxPerMm = outW / item.wMm;
+      ctx.drawImage(
+         img,
+         offXMm * pxPerMm,
+         offYMm * pxPerMm,
+         dwMm * pxPerMm,
+         dhMm * pxPerMm
+      );
+      return canvas;
+   }
+
+
+   /**
     * Genera el PDF a partir de un plan ya resuelto en milímetros.
     *
     * Las imágenes se precargan **una vez por URL** y se cuenta cuántas se
@@ -292,7 +395,8 @@ export default class ExportService {
     *
     * @param {{widthMm:number, heightMm:number,
     *   items:{url:string, xMm:number, yMm:number, wMm:number, hMm:number,
-    *          crop:boolean, cellRatio:number, name?:string}[]}[]} pages
+    *          crop:boolean, cellRatio:number, cropScale?:number,
+    *          cropX?:number, cropY?:number, name?:string}[]}[]} pages
     * @param {function} jsPDF
     * @param {{onProgress?:function, fileName?:string, dpi?:number}} [options]
     * @returns {Promise<false|{ok:boolean, paginas:number, items:number,
@@ -330,10 +434,16 @@ export default class ExportService {
             pdf = new jsPDF({
                unit: 'mm',
                format: [page.widthMm, page.heightMm],
+               // jsPDF normaliza a vertical cualquier format custom si no se le
+               // dice la orientación: [297, 210] salía 210×297.
+               orientation: page.widthMm > page.heightMm ? 'landscape' : 'portrait',
                compress: true
             });
          } else {
-            pdf.addPage([page.widthMm, page.heightMm]);
+            pdf.addPage(
+               [page.widthMm, page.heightMm],
+               page.widthMm > page.heightMm ? 'landscape' : 'portrait'
+            );
          }
 
          for (const item of page.items || []) {
@@ -342,9 +452,11 @@ export default class ExportService {
             if (!img) continue;
 
             const keepAlpha = this._keepsAlpha(item.name);
-            const canvas = item.crop
-               ? this._cropToRatio(img, item.cellRatio || 1, dpi, item.wMm)
-               : null;
+            const canvas = Number(item.cropScale) > 1
+               ? this._renderCropView(img, item, dpi, keepAlpha)
+               : (item.crop
+                  ? this._cropToRatio(img, item.cellRatio || 1, dpi, item.wMm)
+                  : null);
             if (canvas && (!canvas.width || !canvas.height)) continue;
 
             const { data, format } = this._payload(img, keepAlpha, canvas);
@@ -403,10 +515,16 @@ export default class ExportService {
          if (!canvas?.width || !canvas?.height) continue;
 
          const page = this._tpl.page(sheet.pageId);
+         const orientation = page.w > page.h ? 'landscape' : 'portrait';
          if (!pdf) {
-            pdf = new jsPDF({ unit: 'mm', format: [page.w, page.h], compress: true });
+            pdf = new jsPDF({
+               unit: 'mm',
+               format: [page.w, page.h],
+               orientation,
+               compress: true
+            });
          } else {
-            pdf.addPage([page.w, page.h]);
+            pdf.addPage([page.w, page.h], orientation);
          }
          pdf.addImage(
             canvas.toDataURL('image/jpeg', 0.95),
@@ -434,7 +552,11 @@ export default class ExportService {
     */
    exportCalibrationSheet(jsPDF, pageId = 'a4') {
       const page = this._tpl.page(pageId);
-      const pdf = new jsPDF({ unit: 'mm', format: [page.w, page.h] });
+      const pdf = new jsPDF({
+         unit: 'mm',
+         format: [page.w, page.h],
+         orientation: page.w > page.h ? 'landscape' : 'portrait'
+      });
 
       const left = 20;
       let y = 30;

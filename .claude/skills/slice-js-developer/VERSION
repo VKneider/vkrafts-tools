@@ -1,9 +1,248 @@
 slice-js-developer
-version: 1.10.0
-targets: slicejs-web-framework ^4.0.x
+version: 1.32.1
+targets: slicejs-web-framework ^4.2.x
 
 CHANGELOG
 =========
+
+1.32.1
+  Compatibility target follows the 4.2.0 release.
+  - t.list/t.ref.list, t.content/t.localized and sitemap.paths ship with
+    slicejs-web-framework 4.2.0; the skill no longer claims 4.1.x.
+  Files touched: VERSION, ../manifest.json.
+
+1.32.0
+  Lists and content documents.
+  - t.list(key, params?) reads an array from the dictionary (string items formatted, records
+    as-is); t.ref.list(key, params?) is the prop marker; [] + one warning when the list is
+    missing or is not an array. showKeys renders string items as key.<index>.
+  - t.content(name) loads <translator.path>/content/<name>.json once and resolves every
+    copy: { en, es } branch for the active locale, flattening nested nodes; t.localized(value)
+    is the primitive. Missing document -> null; missing branch -> fallback -> default + warning.
+  - Per-locale files remain supported with load() + t.list(); content documents avoid
+    duplicating structure. CLI check validates list keys, content document names and copy shape;
+    the server serves locales/content and exposes readContent()/resolveContentFor().
+  Files touched: SKILL.md, VERSION, references/translator.md, ../manifest.json.
+
+1.31.3
+  translator.localePrefix replaces translator.routing.
+  - Values are explicit: false (no prefix), "always" (/es/pricing), "except-default" (default
+    unprefixed). No deprecated aliases (nothing published).
+  - useBrowserLocale applies on a first visit even under "except-default"; explicit URL prefixes
+    still win.
+  - Removed the stale "do not enable routing before the components migration" warning: the migration
+    is done.
+  Files touched: VERSION, SKILL.md, references/translator.md, ../manifest.json.
+
+1.31.2
+  Localized route titles and descriptions.
+  - metadata.titleKey / descriptionKey are the shorthand for { t }; they win over the literal, and
+    with the translator off the key is shown plus one warning per key.
+  - The product name lives once in sliceConfig.router.titlePrefix / titleSuffix (separator inside the
+    string); the server reads the same block so prerender and hydration agree.
+  - Titles compose with router.titlePrefix/titleSuffix (separator inside the string); no template.
+  Files touched: VERSION, references/translator.md, ../manifest.json.
+
+1.31.1
+  Document the library defaults helper (texts()).
+  - texts(namespace, { en, es }) registers the component's own defaults once at module load, at the
+    lowest priority, and returns a t() lookup with the English fallback.
+  - Priority: instance prop -> app dictionary -> component default -> key. Placement: the table in
+    the component file by default; a separate <Component>/texts.js only for a very large one; text
+    shared by several components stays in the shared module (slice.validation.*).
+  - Fixed the leftover key() mention in the checklist.
+  Files touched: VERSION, references/translator.md, ../manifest.json.
+
+1.31.0
+  One translation entry point: t() for text, t.ref() for props.
+  - slice.translator.key() is renamed to ref(); slice.t.ref() is the shortcut. No deprecated alias
+    (nothing published). TranslationKey -> TranslationRef.
+  - The rule: data-t/dataset.t for the DOM (templates and JS-created), t.ref() for props that must
+    follow the locale, t() for text read now, watch() only for canvas/third-party widgets.
+  - No fourth lifecycle hook and no global refreshComponents: a section that computes labels from
+    data can re-render from its own watch in init.
+  Files touched: SKILL.md, VERSION, references/translator.md, ../manifest.json.
+
+1.30.0
+  Slice shortcuts and the component-library migration.
+  - `slice.path` and `slice.href(path)` are the router shortcuts at the slice level. Components use
+    them instead of `window.location.pathname` / a per-component helper, so `slice get` copies no
+    extra module.
+  - Library built-in texts are `slice.*` keys with en/es defaults (`shared/text/texts.js`, lowest
+    priority), marked with `data-t`; instance props still win. NotFound is the reference migration;
+    dates go through `translator.format` unless a component passes an explicit locale.
+  Files touched: SKILL.md, VERSION, references/translator.md, ../manifest.json.
+
+1.29.0
+  Multilingual SEO, the translator panel and CLI checks.
+  - Native SEO prerenders one page per route and locale: { t } fields in seo.json and routes.js,
+    per-locale lang/dir/canonical/og:locale, hreflang alternates + x-default, sitemap with
+    xhtml:link, 302/301 canonicalization and a 404 for unknown prefixes.
+  - translator.ui adds the debugger panel (locale switcher, missing keys on the page, and
+    setShowKeys to render every mark as its key).
+  - slice translator init/check and the doctor Translator row; unused-key reporting is opt-in
+    because keys reached through app helpers are invisible to the scan.
+  Files touched: references/translator.md, VERSION, ../manifest.json.
+
+1.28.0
+  slice.translator: mark text, don't write it.
+  - New guidance + references/translator.md: data-t in templates (attributes are key.attribute,
+    params are data-t-*, slots with data-t-slot), key() markers for props, slice.t() for text read at
+    use, watch() only for what lives outside the DOM. No localeChanged() hook.
+  - Locale in the URL is opt-in (translator.routing); the router is the only URL reader — use
+    slice.router.path and href(). Library components that still read window.location.pathname are
+    listed, so routing is not enabled before they migrate.
+  - Dictionaries live in src/locales (copied into dist/ by the build and mounted by the server); a
+    missing key is shown as the key on purpose.
+  Files touched: SKILL.md, VERSION, references/translator.md, ../manifest.json.
+
+1.27.0
+  Lint scopes its globals; bundles live in dist.
+  - The app preset's browser/framework globals apply only to src/. api/ and scripts/ are Node-only:
+    document in a server file is no-undef. A folder that mixes both opts in with the exported
+    nodeGlobals/sliceGlobals.
+  - slice build writes bundles to dist/bundles (never src/); clean removes the compressed siblings,
+    info reads the real config, and the server keeps bundle responses no-store, including
+    precompressed builds and the /dist mirror.
+  - typecheck now covers src/App and src/routes.js, so event payloads are checked where apps emit
+    them, not only inside components. The generator writes slice-runtime.generated.d.ts so the
+    /Slice/Slice.js import resolves without checking the framework source. Lint still does not
+    type-check; it only refreshes declarations.
+  - CI order is doctor + lint + typecheck + build.
+  Files touched: SKILL.md, VERSION, references/config-theming-cli.md, ../manifest.json.
+
+1.26.0
+  typecheck checks the declarations it just refreshed.
+  - After `slice get` the generated map is stale, so installed components looked unregistered to
+    tsc. `slice typecheck` now refreshes first (`--no-types` opts out).
+  - `slice setup lint --with-types` also writes the `slice:types` script.
+  Files touched: references/config-theming-cli.md, VERSION, ../manifest.json.
+
+1.25.0
+  One setup command leaves lint and type checking ready.
+  - `slice setup lint --with-types` installs ESLint + TypeScript, writes the config and scripts, and
+    generates the declarations + jsconfig.json.
+  - `slice lint` creates the jsconfig when missing (it used to refresh only the .d.ts, leaving
+    `slice typecheck` with nothing to point tsc at).
+  Files touched: references/config-theming-cli.md, VERSION, ../manifest.json.
+
+1.24.0
+  Type checking is its own command, and the generated jsconfig can run it.
+  - `slice typecheck` runs the project tsc --noEmit with jsconfig.json (needs typescript);
+    `slice setup lint --with-types` installs it and adds the script.
+  - `slice types generate` now writes ES2022 target/lib, noEmit, skipLibCheck, excludes specs and
+    drops the old maxNodeModuleJsDepth. Without that, tsc assumed ES5 and reported hundreds of
+    false errors.
+  - Event payload fields are optional, so `emit(name, { ... })` with a subset compiles.
+  Files touched: references/config-theming-cli.md, VERSION, ../manifest.json.
+
+1.23.0
+  slice lint refreshes the generated types.
+  - Before running ESLint it regenerates src/slice-build.generated.d.ts and the event manifest when
+    the project has a slice:types script or that file, so the editor never reads stale declarations.
+    --no-types opts out. It skips repos without a component registry.
+  - ESLint still does not type-check (no tsconfig): tsc --noEmit remains the compiler step if wanted.
+  Files touched: references/config-theming-cli.md, VERSION, ../manifest.json.
+
+1.22.0
+  CSS scope and three lifecycle advisories.
+  - Doctor reports component CSS selectors not scoped under the component tag (CSS is global;
+    `:host` passes, `/* slice:unscoped */` opts out). Doctor-only: it never blocks a build.
+  - Doctor and build warn on `destroy()`/`dispose()`/`teardown()` (the controller only calls
+    `beforeDestroy()`), a `window`/`document` listener without `removeEventListener`, and an
+    `async beforeDestroy` (the framework does not await it).
+  Files touched: SKILL.md, VERSION, references/config-theming-cli.md, ../manifest.json.
+
+1.21.0
+  Prop metadata must be literal, or the generated types silently become any.
+  - `slice types generate` reads `static props` from the AST. `type: TYPE_STRING`,
+    `allowedValues: SIZES`, `schema: SHARED` or a whole `static props = SHARED` are invisible to it:
+    the prop degrades to `any`. It now warns, and build/doctor report the same finding.
+  Files touched: SKILL.md, VERSION, references/config-theming-cli.md, ../manifest.json.
+
+1.20.0
+  `slice setup lint` adds linting to an existing project.
+  - Installs eslint + slicejs-cli when missing, writes eslint.config.js only if there is none, and
+    adds lint/lint:fix scripts. Idempotent, --dry-run, never overwrites a config or a script.
+  - slice init prints it as a next step instead of installing ESLint for every project.
+  Files touched: VERSION, references/config-theming-cli.md, ../manifest.json.
+
+1.19.0
+  Linting ships with the CLI; reserved build directives block the build.
+  - `slice lint` runs the project ESLint. The shared flat config is `slicejs-cli/eslint-config.js`
+    (default = app/browser, `nodeConfig` = tooling); it does not duplicate build/doctor rules.
+  - Build and doctor block `id`/`sliceId`/`singleton` declared in `static props`: the runtime
+    strips them, so the prop is a silent no-op.
+  Files touched: SKILL.md, VERSION, references/config-theming-cli.md, ../manifest.json.
+
+1.18.0
+  The static checks grew to cover the deploy surface.
+  - Blocking: a component registered under a category with no paths.components entry or whose
+    folder is missing, and a syntax error in api/index.js (the build never runs the server).
+  - Warns: a route written ":id" instead of "${id}" (never matches), and a declared framework
+    range that rejects the installed version (or a CLI that requires another).
+  - doctor validates sliceConfig.json against the published schema, and has a Server entry row.
+  Files touched: SKILL.md, VERSION, references/config-theming-cli.md, ../manifest.json.
+
+1.17.0
+  A registered component with no file is a blocking finding.
+  - `components.js` is the source of truth for `slice.build(name)`; the runtime resolves
+    `<Category>/<Name>/<Name>.js`. A name registered without that file could never load and the
+    validator skipped it in silence. Both build and doctor report it now.
+  Files touched: SKILL.md, VERSION, references/config-theming-cli.md, ../manifest.json.
+
+1.16.0
+  routes.js is validated, and the skill says what doctor and build each prove.
+  - The shared pass now reads src/routes.js: a syntax error or an unresolved relative import
+    blocks both commands (the file is served as-is, so the router breaks at load even though the
+    bundle builds); a route whose component is not in components.js only warns.
+  - New "Doctor vs build" section: a table of what each command validates, what only build
+    proves (esbuild graph, dist) and what neither proves (the server boots, framework behavior).
+  Files touched: SKILL.md, VERSION, references/config-theming-cli.md, ../manifest.json.
+
+1.15.0
+  Build and doctor run the same validation pass.
+  - The Configuration and Components rows classify with the same helper as `slice build`:
+    config rules, unparseable/unloadable component files and prop definition errors block both.
+    Advisories (`type: "any"`, unknown `slice.build()` name, a folder without its .js) only warn.
+  - `slice doctor` exits 1 when a row fails, so `slice doctor && slice build` gates a deploy.
+  - The two component rows are now one; the folder-without-.js rule moved into the shared validator.
+  Files touched: SKILL.md, VERSION, references/config-theming-cli.md, ../manifest.json.
+
+1.14.0
+  SEO commands: slice seo images + the doctor row.
+  - `slice seo images` renders the 1200x630 card each indexable route advertises
+    from the real page (Playwright must be in the project). It writes
+    `public/og/manifest.json`, which the server merges via `seo.images`; it never
+    edits `seo.json` because that file is generated.
+  - `slice doctor` gains an SEO row: not configured warns (SEO is opt-in),
+    malformed input fails, and it uses the same validator as `slice seo check`.
+  Files touched: SKILL.md, VERSION, references/config-theming-cli.md, ../manifest.json.
+
+1.13.0
+  Server entrypoint + native SEO (slicejs-web-framework 4.1):
+  - api/index.js is composed: createSliceServer() returns the app WITHOUT listening,
+    middleware goes before start(), and start() mounts the terminal fallback and listens.
+    Middleware added after start() never runs. Never copy the framework server.
+  - The SPA fallback owns the 200-vs-404 decision, the /api JSON 404, and the dev
+    .html/.css carve-outs that keep JS-only components buildable.
+  - api/framework/seo.js consumes a seo.json manifest (per-route title, description,
+    canonical, og/twitter, jsonLd, robots, image), resolves origin once at startup and
+    prerenders every route. The sitemap is a committed file (slice seo sitemap) guarded
+    by slice seo check. Router titles come from routes.js metadata, on by default.
+  Files touched: SKILL.md, VERSION, references/config-theming-cli.md, ../manifest.json.
+
+1.12.0
+  Components repository rename:
+  - Documentation and catalog references now use `slicejs-components` (Slice.js Components).
+  - The legacy `slice.js_visual_library` name is compatibility-only.
+  - No framework behavior guidance changed; this is a naming/URL sync.
+
+1.11.0
+  Added the dual documentation-catalog workflow:
+  - Framework and Slice.js Components docs are separate catalogs for MCP and CLI access.
+  - Agents can use namespaced Components MCP tools for Visual and Service examples.
+  - `slice docs` is the CLI fallback when MCP is unavailable.
 
 1.10.0
   Staleness guard + drift-trim of references:

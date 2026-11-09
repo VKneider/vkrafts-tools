@@ -28,19 +28,33 @@ export default class Providers {
       // Persistencia de Plantillas: los binarios de las imágenes en IndexedDB
       // y la estructura de hojas en localStorage. SheetStorage une las dos.
       const poolService = await slice.build('PoolService', { singleton: true });
-      const localStore = await slice.build('LocalStorageManager', { singleton: true });
+      // StorageService reemplaza al deprecado LocalStorageManager. Con
+      // namespace 'vkrafts' + key 'sheet-layout' la clave resultante es
+      // 'vkrafts:sheet-layout': exactamente la que ya usaba la app, así que
+      // las sesiones existentes se siguen leyendo sin migración.
+      // IndexedDB sigue a cargo de los blobs (IndexedDbManager).
+      const localStore = await slice.build('StorageService', {
+         singleton: true,
+         sliceId: 'vkrafts-storage',
+         namespace: 'vkrafts'
+      });
       // Este sí lleva sliceId propio: es una instancia configurada para una base
       // y un store concretos, no el único IndexedDbManager posible de la app.
+      // La versión actual del servicio abre una sola conexión, crea/actualiza
+      // stores e índices declarados y expone store(name) + transacciones.
       const sheetDb = await slice.build('IndexedDbManager', {
          sliceId: 'vkrafts-pool-db',
          databaseName: 'vkrafts',
-         storeName: 'pool'
+         storeName: 'pool',
+         stores: {
+            pool: { keyPath: 'id' }
+         }
       });
 
       await slice.build('SheetStorage', {
          singleton: true,
          db: sheetDb,
-         local: localStore,
+         storage: localStore,
          poolService
       });
 
@@ -99,6 +113,13 @@ export default class Providers {
          });
 
          slice.events.register(confirmEvents);
+
+         slice.events.register('sheet', {
+            save: {
+               description: 'Estado del guardado de la planilla',
+               payload: { status: 'string', message: 'string' }
+            }
+         });
       }
 
       // Diálogo de confirmación: se monta una sola vez y queda escuchando

@@ -47,9 +47,14 @@ slice-layouts-section .layoutssection__topbar {
 
 slice-layouts-section .layoutssection__sheetsbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  /* El carril puede encogerse; las acciones (+ / duplicar) no. En pantallas
+     angostas el topbar entero baja de línea, pero estas dos piezas no se
+     separan. */
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 /* ---------- zoom ---------- */
@@ -62,6 +67,40 @@ slice-layouts-section .layoutssection__zoom {
   border-radius: 999px;
   border: 1.5px solid rgba(var(--primary-color-rgb), 0.25);
   background: var(--primary-background-color);
+}
+
+/* Estado de guardado: discreto; el error se queda visible. */
+slice-layouts-section .layoutssection__savestate {
+  flex: 0 0 auto;
+  min-height: 16px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--medium-color);
+  white-space: nowrap;
+}
+
+slice-layouts-section .layoutssection__savestate.is-saving {
+  opacity: 0.75;
+  animation: layouts-save-pulse 900ms ease-in-out infinite alternate;
+}
+
+slice-layouts-section .layoutssection__savestate.is-saved {
+  color: var(--secondary-color);
+}
+
+slice-layouts-section .layoutssection__savestate.is-warning {
+   color: var(--secondary-color);
+   font-weight: 600;
+}
+
+slice-layouts-section .layoutssection__savestate.is-error {
+  color: var(--danger-color);
+  font-weight: 700;
+}
+
+@keyframes layouts-save-pulse {
+  from { opacity: 0.45; }
+  to { opacity: 1; }
 }
 
 slice-layouts-section .layoutssection__zoombtn,
@@ -95,21 +134,85 @@ slice-layouts-section .layoutssection__zoomvalue:hover {
   background: rgba(var(--primary-color-rgb), 0.12);
 }
 
-/* ---------- chips de hoja ---------- */
+/* ---------- rail de hojas ---------- */
+
+/* El carril es un solo control segmentado: borde y fondo en el contenedor,
+   hojas sin borde propio, activa rellena. Con muchas hojas hace scroll en vez
+   de empujar la hoja hacia abajo (antes el bar hacía flex-wrap y crecía en
+   filas). */
+slice-layouts-section .layoutssection__sheetsrailwrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 2px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(var(--primary-color-rgb), 0.25);
+  background: var(--primary-background-color);
+  overflow: hidden;
+}
+
+slice-layouts-section .layoutssection__sheetsrail {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 1px 6px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+slice-layouts-section .layoutssection__sheetsrail::-webkit-scrollbar {
+  display: none;
+}
+
+/* Señal de que hay más hojas a los costados (solo si hay overflow real). */
+slice-layouts-section .layoutssection__sheetsrailwrap::before,
+slice-layouts-section .layoutssection__sheetsrailwrap::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 24px;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+slice-layouts-section .layoutssection__sheetsrailwrap::before {
+  left: 0;
+  background: linear-gradient(to right, var(--primary-background-color), transparent);
+}
+
+slice-layouts-section .layoutssection__sheetsrailwrap::after {
+  right: 0;
+  background: linear-gradient(to left, var(--primary-background-color), transparent);
+}
+
+slice-layouts-section .layoutssection__sheetsrailwrap.has-start-fade::before,
+slice-layouts-section .layoutssection__sheetsrailwrap.has-end-fade::after {
+  opacity: 1;
+}
 
 slice-layouts-section .layoutssection__sheetchip {
   display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
   border-radius: 999px;
-  overflow: hidden;
-  border: 1.5px solid rgba(var(--primary-color-rgb), 0.3);
-  background: var(--primary-background-color);
+  background: transparent;
+  transition: background-color 140ms ease;
+}
+
+slice-layouts-section .layoutssection__sheetchip:not(.is-active):hover {
+  background: rgba(var(--primary-color-rgb), 0.1);
 }
 
 /* La hoja activa se rellena de color plano, no se marca con un anillo: en
    Memphis el estado se comunica con bloques de color. */
 slice-layouts-section .layoutssection__sheetchip.is-active {
-  border-color: var(--primary-color);
   background: var(--primary-color);
 }
 
@@ -122,13 +225,14 @@ slice-layouts-section .layoutssection__sheetchip-main {
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
-  padding: 4px 10px 4px 12px;
+  padding: 5px 10px 5px 12px;
   font-size: 12px;
   font-weight: 600;
   border: none;
   background: transparent;
   color: var(--font-primary-color);
   cursor: pointer;
+  border-radius: 999px;
 }
 
 slice-layouts-section .layoutssection__sheetchip-count {
@@ -138,6 +242,23 @@ slice-layouts-section .layoutssection__sheetchip-count {
   color: var(--medium-color);
 }
 
+slice-layouts-section .layoutssection__sheetrename {
+  width: 112px;
+  padding: 3px 8px;
+  border: 1px solid var(--primary-color);
+  border-radius: 999px;
+  background: var(--primary-background-color);
+  color: var(--font-primary-color);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+slice-layouts-section .layoutssection__sheetrename:focus {
+  outline: 2px solid var(--secondary-color);
+  outline-offset: 1px;
+}
+
 slice-layouts-section .layoutssection__sheetchip.is-active
   .layoutssection__sheetchip-count {
   color: var(--primary-color-contrast);
@@ -145,40 +266,77 @@ slice-layouts-section .layoutssection__sheetchip.is-active
 }
 
 slice-layouts-section .layoutssection__sheetchip-del {
-  padding: 4px 8px;
+  padding: 4px 8px 4px 4px;
   border: none;
   background: transparent;
   cursor: pointer;
   font-size: 13px;
   line-height: 1;
+  border-radius: 999px;
   color: var(--danger-color);
+  opacity: 0.7;
+  transition: opacity 140ms ease;
 }
 
-slice-layouts-section .layoutssection__sheetchip-add {
+slice-layouts-section .layoutssection__sheetchip-del:hover {
+  opacity: 1;
+}
+
+slice-layouts-section .layoutssection__sheetchip.is-active
+  .layoutssection__sheetchip-del {
+  color: var(--primary-color-contrast);
+  opacity: 0.55;
+}
+
+slice-layouts-section .layoutssection__sheetchip.is-active
+  .layoutssection__sheetchip-del:hover {
+  opacity: 1;
+}
+
+/* Acciones fuera del carril: visibles aunque haya muchas hojas. */
+slice-layouts-section .layoutssection__sheetactions {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+slice-layouts-section .layoutssection__sheetaction {
   padding: 5px 14px;
   border-radius: 999px;
   border: 1.5px dashed rgba(var(--primary-color-rgb), 0.4);
   background: transparent;
   color: var(--font-secondary-color);
   font-size: 12px;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-slice-layouts-section .layoutssection__sheetchip-add:hover {
+slice-layouts-section .layoutssection__sheetaction:hover {
   border-style: solid;
   border-color: var(--primary-color);
 }
 
 /* Duplicar es una acción distinta de crear: borde sólido y acento dorado. */
-slice-layouts-section .layoutssection__sheetchip-dup {
+slice-layouts-section .layoutssection__sheetaction--dup {
   border-style: solid;
   border-color: rgba(var(--secondary-color-rgb), 0.45);
   color: var(--accent-text-color);
 }
 
-slice-layouts-section .layoutssection__sheetchip-dup:hover {
+slice-layouts-section .layoutssection__sheetaction--dup:hover {
   border-color: var(--secondary-color);
   background: rgba(var(--secondary-color-rgb), 0.12);
+}
+
+/* Menú de desborde con todas las hojas. */
+slice-layouts-section .layoutssection__sheetaction--overview {
+  border-style: solid;
+  border-color: rgba(var(--primary-color-rgb), 0.35);
+}
+
+slice-layouts-section .layoutssection__sheetaction--overview:hover {
+  background: rgba(var(--primary-color-rgb), 0.08);
 }
 
 /* ---------- hoja ---------- */
@@ -303,6 +461,7 @@ slice-layouts-section .layoutssection__splitter {
   position: absolute;
   z-index: 5;
   cursor: col-resize;
+  user-select: none;
 }
 
 slice-layouts-section .layoutssection__splitter--h { cursor: row-resize; }

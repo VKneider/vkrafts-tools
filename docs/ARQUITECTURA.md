@@ -39,7 +39,7 @@ levantan singletons. Construye, en orden:
 1. `FontsCatalog` — datos de fuentes
 2. Infraestructura: `HtmlService`, `ShareService`, `DownloadService`,
    `ToolTipProvider`, `LayoutTemplates`, `SheetGeometry`
-3. Persistencia de Plantillas: `PoolService`, `LocalStorageManager`,
+3. Persistencia de Plantillas: `PoolService`, `StorageService`,
    `IndexedDbManager` (con `sliceId` propio) y `SheetStorage`
 4. Los contextos `sheet` y `designer`
 5. `ToastProvider` + el puente de eventos
@@ -152,10 +152,10 @@ Vale tenerlas presentes porque no coinciden con React o Vue:
 ## Tests
 
 `vitest` cubre los servicios puros: `PlacementService`, `SheetService`,
-`PoolService` y `ExportService`. Son lógica sin DOM, así que se testean como
-JavaScript común.
+`PoolService`, `ExportService`, `SheetGeometry` y `LayoutTemplates`. Son lógica
+sin DOM, así que se testean como JavaScript común.
 
-Las vistas **no tienen cobertura**, que es justamente donde estaban casi todos
-los bugs históricos. Para cubrirlas hace falta un navegador real: el proyecto
-usa el runner centralizado de Playwright en
-`/datadrive/centralized_playwright/`, no una instalación local.
+Las vistas tienen E2E con **Playwright local** en [`tests/e2e`](../tests/e2e/README.md):
+levanta `slice dev --port 3101` y usa Chromium. Cubre medidas exactas, PDF/PNG,
+impresión, persistencia, hojas (rail, renombrar/mover), atajos y las features
+nuevas. Se ejecuta con `pnpm test:e2e`.

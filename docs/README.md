@@ -2,7 +2,7 @@
 
 Papelería creativa: tres herramientas de diseño que corren enteras en el
 navegador, sin backend. Construida con [Slice.js](https://slicejs.dev)
-(`slicejs-web-framework` 4.0.2).
+(`slicejs-web-framework` 4.2.0).
 
 ## Índice
 
@@ -12,6 +12,7 @@ navegador, sin backend. Construida con [Slice.js](https://slicejs.dev)
 | [VISTAS.md](./VISTAS.md) | Cada vista con sus componentes propios y los que comparte |
 | [SERVICIOS.md](./SERVICIOS.md) | Los 16 servicios, quién los consume y qué contrato tienen |
 | [DESIGN.md](./DESIGN.md) | El sistema visual: tokens, reglas y por qué de cada decisión |
+| [plantillas-reporte.md](./plantillas-reporte.md) | Cobertura E2E, bugs corregidos, features nuevas y próximos pasos del módulo Plantillas |
 
 ## Mapa rápido
 
@@ -52,10 +53,14 @@ exportación a PNG, PDF e impresión directa.
 ```bash
 pnpm install
 pnpm dev        # servidor de desarrollo (puerto 3001)
-pnpm test       # vitest
+pnpm test       # vitest (servicios)
+pnpm test:e2e   # Playwright (vistas: medidas, export, impresión, hojas)
 pnpm lint       # eslint
+pnpm build      # dist + bundles
 ```
 
-Los tests cubren los servicios puros (`PlacementService`, `SheetService`,
-`PoolService`, `ExportService`). Las vistas no tienen cobertura automatizada;
-ver la sección correspondiente en [ARQUITECTURA.md](./ARQUITECTURA.md).
+Los unitarios cubren los servicios puros (`PlacementService`, `SheetService`,
+`PoolService`, `ExportService`, `SheetGeometry`, `LayoutTemplates`). Las vistas
+tienen E2E con Playwright en [`tests/e2e`](../tests/e2e/README.md); el detalle
+de cobertura y brechas está en
+[plantillas-reporte.md](./plantillas-reporte.md).

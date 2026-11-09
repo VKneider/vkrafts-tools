@@ -15,10 +15,21 @@
   <div class="layoutspanel__group">
     <span class="layoutspanel__label">Plantilla</span>
     <div class="layoutspanel__tplpicker" data-ref="tplPicker"></div>
+    <div class="layoutspanel__customgrid">
+      <label>Columnas <input data-ref="customCols" type="number" min="1" max="12" step="1" /></label>
+      <label>Filas <input data-ref="customRows" type="number" min="1" max="12" step="1" /></label>
+      <button type="button" class="layoutspanel__mini-apply" data-ref="customGridApply">Aplicar</button>
+    </div>
+    <span class="layoutspanel__hint" data-ref="customGridHint"></span>
   </div>
   <div class="layoutspanel__group">
     <span class="layoutspanel__label">Márgenes</span>
     <div class="layoutspanel__preset" data-ref="preset"></div>
+    <div class="layoutspanel__custommargins">
+      <label>Margen (cm) <input data-ref="customMargin" type="number" min="0" max="5" step="0.1" /></label>
+      <label>Separación (cm) <input data-ref="customGap" type="number" min="0" max="5" step="0.1" /></label>
+      <button type="button" class="layoutspanel__mini-apply" data-ref="customMarginsApply">Aplicar</button>
+    </div>
   </div>
   <div class="layoutspanel__group">
     <span class="layoutspanel__label">Ajuste de imagen</span>

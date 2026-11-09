@@ -31,6 +31,35 @@ slice-cell-size-modal .csm__info em {
   word-break: break-all;
 }
 
+slice-cell-size-modal .csm__hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--medium-color);
+}
+
+slice-cell-size-modal .csm__options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+slice-cell-size-modal .csm__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--font-primary-color);
+  cursor: pointer;
+}
+
+slice-cell-size-modal .csm__option input {
+  accent-color: var(--primary-color);
+  width: 15px;
+  height: 15px;
+  margin: 0;
+}
+
 slice-cell-size-modal .csm__field {
   display: flex;
   align-items: center;

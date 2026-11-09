@@ -1,10 +1,11 @@
 // Matemática pura de la hoja: geometría por celdas, orientaciones,
-// decisiones de ajuste y conversión cm→pesos. Sin estado, sin DOM.
+// decisiones de ajuste y conversión cm→pesos/medidas exactas. Sin estado, sin DOM.
 //
 // Consumo: const geom = slice.getComponent('SheetGeometry');
 const RATIO_LOG_LIMIT = 0.25; // tolerancia del modo "smart" para usar cover
 const ORIENT_SQUARE_TOL = 0.15;
 const MIN_CELL_MM = 15;
+const EPS = 0.01;
 
 export default class SheetGeometry {
    constructor(props = {}) {
@@ -19,23 +20,50 @@ export default class SheetGeometry {
    }
 
    /**
-    * Geometría real de la hoja respetando pesos editables por columna/fila.
+    * Geometría real de la hoja.
+    *
+    * Dos modos conviven:
+    *   · **Pesos** (por defecto): `cols`/`rows` son proporciones y las celdas
+    *     se estiran para llenar la hoja.
+    *   · **Medidas exactas**: `sizes.colsMm` / `sizes.rowsMm` fijan el tamaño
+    *     físico de cada columna/fila. Ese eje NO se estira: la grilla se ancla
+    *     al margen superior izquierdo y lo que sobra queda libre. Editar una
+    *     celda no modifica a las demás, que es lo que se espera de "medidas
+    *     exactas".
+    *
+    * El modo producto (`fixedCellMm`) fija ambos ejes a una misma medida.
+    *
+    * @param {object} tpl plantilla (cols, rows)
+    * @param {object} page papel (w, h en mm)
+    * @param {object} preset márgenes y separación (mm)
+    * @param {number[]|null} [colsOverride] pesos de columnas
+    * @param {number[]|null} [rowsOverride] pesos de filas
+    * @param {{w:number,h:number}|null} [fixedCellMm] medida fija de producto
+    * @param {{colsMm?:number[]|null, rowsMm?:number[]|null}|null} [sizes]
+    *   medidas exactas por columna/fila (mm)
     * @returns {{cols:number[], rows:number[], colWmm:number[], rowHmm:number[],
-    *   cellRatio:number, innerW:number, innerH:number}}
+    *   cellRatio:number, innerW:number, innerH:number, fixed:boolean,
+    *   colFixed:boolean, rowFixed:boolean, colCentered:boolean,
+    *   rowCentered:boolean, originXMm:number, originYMm:number,
+    *   gridW:number, gridH:number}}
     */
-   geometry(tpl, page, preset, colsOverride = null, rowsOverride = null, fixedCellMm = null) {
+   geometry(tpl, page, preset, colsOverride = null, rowsOverride = null,
+      fixedCellMm = null, sizes = null) {
       const cols = Array.isArray(colsOverride) && colsOverride.length === tpl.cols
          ? colsOverride : Array(tpl.cols).fill(1);
       const rows = Array.isArray(rowsOverride) && rowsOverride.length === tpl.rows
          ? rowsOverride : Array(tpl.rows).fill(1);
 
+      const gapW = preset.gapMm * (tpl.cols - 1);
+      const gapH = preset.gapMm * (tpl.rows - 1);
+
       const innerW = Math.max(
          20,
-         page.w - preset.marginMm * 2 - preset.gapMm * (tpl.cols - 1)
+         page.w - preset.marginMm * 2 - gapW
       );
       const innerH = Math.max(
          20,
-         page.h - preset.marginMm * 2 - preset.gapMm * (tpl.rows - 1)
+         page.h - preset.marginMm * 2 - gapH
       );
 
       // Modo tamaño fijo (productos): la celda mide exactamente lo pedido y lo
@@ -44,18 +72,37 @@ export default class SheetGeometry {
       if (fixedCellMm?.w > 0 && fixedCellMm?.h > 0) {
          const colWmm = Array(tpl.cols).fill(fixedCellMm.w);
          const rowHmm = Array(tpl.rows).fill(fixedCellMm.h);
+         const gridW = fixedCellMm.w * tpl.cols + gapW;
+         const gridH = fixedCellMm.h * tpl.rows + gapH;
          return {
             cols, rows, colWmm, rowHmm,
             cellRatio: fixedCellMm.w / fixedCellMm.h,
             innerW, innerH,
-            fixed: true
+            fixed: true,
+            colFixed: true, rowFixed: true,
+            colCentered: true, rowCentered: true,
+            originXMm: (page.w - gridW) / 2,
+            originYMm: (page.h - gridH) / 2,
+            gridW, gridH
          };
       }
 
       const sumC = cols.reduce((a, b) => a + b, 0);
       const sumR = rows.reduce((a, b) => a + b, 0);
-      const colWmm = cols.map((w) => (innerW * w) / sumC);
-      const rowHmm = rows.map((h) => (innerH * h) / sumR);
+
+      const colFixed = this._validSizes(sizes?.colsMm, tpl.cols);
+      const rowFixed = this._validSizes(sizes?.rowsMm, tpl.rows);
+
+      // Pesos → mm. Solo se usan en los ejes que no tienen medidas exactas.
+      const colWmm = colFixed
+         ? this._normalizeSizes(sizes.colsMm, innerW, tpl.cols)
+         : cols.map((w) => (innerW * w) / sumC);
+      const rowHmm = rowFixed
+         ? this._normalizeSizes(sizes.rowsMm, innerH, tpl.rows)
+         : rows.map((h) => (innerH * h) / sumR);
+
+      const gridW = colWmm.reduce((a, b) => a + b, 0) + gapW;
+      const gridH = rowHmm.reduce((a, b) => a + b, 0) + gapH;
 
       return {
          cols,
@@ -65,8 +112,41 @@ export default class SheetGeometry {
          cellRatio: colWmm[0] / rowHmm[0],
          innerW,
          innerH,
-         fixed: false
+         fixed: false,
+         colFixed,
+         rowFixed,
+         // Un eje con medidas exactas deja de estirarse: sus celdas conservan
+         // el tamaño pedido y la grilla se ancla al margen superior izquierdo.
+         // Así editar una celda no mueve a las anteriores (si se centrara, al
+         // achicar una columna la primera "saltaría" de lugar).
+         colCentered: false,
+         rowCentered: false,
+         originXMm: preset.marginMm,
+         originYMm: preset.marginMm,
+         gridW,
+         gridH
       };
+   }
+
+   /** ¿El array de medidas es válido para esta cantidad de celdas? */
+   _validSizes(list, count) {
+      return Array.isArray(list)
+         && list.length === count
+         && list.every((v) => Number.isFinite(Number(v)) && Number(v) > 0);
+   }
+
+   /**
+    * Sanea medidas exactas: cada celda respeta el mínimo y, si la suma no entra
+    * en la hoja, se escala todo proporcionalmente para que no se desborde.
+    */
+   _normalizeSizes(list, innerMm, count) {
+      const out = list.slice(0, count).map((v) => Math.max(MIN_CELL_MM, Number(v)));
+      const total = out.reduce((a, b) => a + b, 0);
+      if (total > innerMm + EPS) {
+         const k = innerMm / total;
+         return out.map((v) => v * k);
+      }
+      return out;
    }
 
    /**
@@ -82,13 +162,18 @@ export default class SheetGeometry {
       const { colWmm, rowHmm } = geo;
       const gap = preset.gapMm;
 
-      const gridW = colWmm.reduce((a, b) => a + b, 0) + gap * (tpl.cols - 1);
-      const gridH = rowHmm.reduce((a, b) => a + b, 0) + gap * (tpl.rows - 1);
+      const gridW = geo.gridW ?? colWmm.reduce((a, b) => a + b, 0) + gap * (tpl.cols - 1);
+      const gridH = geo.gridH ?? rowHmm.reduce((a, b) => a + b, 0) + gap * (tpl.rows - 1);
 
-      // En modo tamaño fijo la grilla no llena la hoja: va centrada, igual que
-      // en pantalla (justify/alignContent: center).
-      const originX = geo.fixed ? (page.w - gridW) / 2 : preset.marginMm;
-      const originY = geo.fixed ? (page.h - gridH) / 2 : preset.marginMm;
+      // En modo producto la grilla no llena la hoja: va centrada, igual que en
+      // pantalla (justify/alignContent: center). Con medidas exactas se ancla
+      // al margen, también igual que en pantalla.
+      const originX = Number.isFinite(geo.originXMm)
+         ? geo.originXMm
+         : (geo.fixed ? (page.w - gridW) / 2 : preset.marginMm);
+      const originY = Number.isFinite(geo.originYMm)
+         ? geo.originYMm
+         : (geo.fixed ? (page.h - gridH) / 2 : preset.marginMm);
 
       const xs = [];
       let x = originX;
@@ -172,24 +257,19 @@ export default class SheetGeometry {
    }
 
    /**
-    * Convierte un ancho/alto objetivo (mm) para la celda `idx` en los pesos
-    * relativos que lo producen, clampeando a mínimo MIN_CELL_MM por celda.
-    * @param {number[]} weights pesos actuales del eje
-    * @param {number[]} sizesMm  tamaños actuales en mm (misma longitud)
+    * Aplica una medida exacta a UNA celda de un eje sin tocar a las demás.
+    * Devuelve el array completo de medidas del eje, tomando como base las
+    * medidas actuales (`sizesMm`) para que las otras celdas conserven su tamaño.
+    *
+    * @param {number[]} sizesMm  medidas actuales en mm del eje
     * @param {number}   idx      celda objetivo
     * @param {number}   targetMm tamaño deseado en mm
-    * @param {number}   innerMm  espacio interior total del eje (sin gaps)
+    * @returns {number[]} medidas nuevas del eje
     */
-   applyTargetSize(weights, sizesMm, idx, targetMm, innerMm) {
-      const minTotal = MIN_CELL_MM * weights.length;
-      const innerSafe = Math.max(innerMm, minTotal);
-      const T = Math.min(Math.max(targetMm, MIN_CELL_MM), innerSafe - MIN_CELL_MM * (weights.length - 1));
-
-      const sumW = weights.reduce((a, b) => a + b, 0);
-      const sumOthers = sumW - weights[idx];
-      const denom = innerSafe - T;
-      if (denom <= 0.01 || sumOthers <= 0.01) return [...weights];
-
-      return weights.map((w, i) => (i === idx ? (T * sumOthers) / denom : w));
+   applyExactSize(sizesMm, idx, targetMm) {
+      const next = sizesMm.map((v) => Number(v));
+      if (!Number.isFinite(targetMm) || targetMm <= 0) return next;
+      next[idx] = Math.max(MIN_CELL_MM, targetMm);
+      return next;
    }
 }
