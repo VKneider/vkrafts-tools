@@ -30,7 +30,7 @@ Prioridad acordada:
 | `sheets-library.spec.js` | Rail con scroll/fades/acciones fijas; paginación de a 12 con salto a la última página y vuelta a la 1 al borrar; búsqueda por nombre con estado vacío; **Vaciar** reinicia la planilla a una sola hoja en blanco; **menú de desborde** con todas las hojas; imagen en espera asignada con click. |
 | `persistence.spec.js` | Recarga con pool, hojas, medidas, zoom y hoja activa; flush sincrónico en `pagehide`; lectura de la sesión vieja (`vkrafts:sheet-layout`) tras migrar a StorageService; indicador Guardado/Error de cuota; aviso proactivo “Poco espacio” con `navigator.storage.estimate()`. |
 | `auto-assign.spec.js` | 9 copias en 3 hojas con la misma configuración + un solo undo. |
-| `shortcuts.spec.js` | `Ctrl+C/V` y `Delete` sobre la celda seleccionada; “Pegar aquí” en celda vacía; navegación por teclado; **Shift+flechas y Ctrl+A**; reemplazar imagen; rotar/voltear; selección múltiple con fit/quitar en lote; slider de zoom por celda; **click/drag del slider sin iniciar el pan**; **encuadre global compartido entre copias y persistido**. |
+| `shortcuts.spec.js` | `Ctrl+C/V` y `Delete` sobre la celda seleccionada; “Pegar aquí” en celda vacía; navegación por teclado; **Shift+flechas y Ctrl+A**; reemplazar imagen; rotar/voltear; selección múltiple con fit/quitar en lote; **zoom desde el slider del panel**, **drag & drop de celdas con zoom activo**; **encuadre global compartido entre copias y persistido**. |
 | `dnd.spec.js` | Arrastrar una imagen de la biblioteca a una celda y swap celda ↔ celda. |
 | `clipboard.spec.js` | Pegar una imagen desde el portapapeles la agrega a la biblioteca y la coloca. |
 | `heic.spec.js` | Subir y pegar un **HEIC/HEIF** real: `heic2any` lo convierte a JPEG y la imagen se agrega/coloca. |
@@ -90,14 +90,14 @@ Sin pendientes funcionales ni de cobertura dentro del alcance actual.
 7. **Exportar con selección**: modal “Exportar…” con checkboxes por hoja (las
    vacías quedan deshabilitadas), formatos PDF/PNGs/Imprimir solo sobre las
    elegidas; con varias hojas, PNGs se descarga como un único ZIP.
-8. **Zoom por celda con rueda o Slider**: cada imagen tiene un `Slider` de Slice
-   (100–300 %) superpuesto, visible al pasar el mouse o seleccionar la celda;
-   además se conserva la rueda, el arrastre para encuadrar y el doble clic para
-   resetear. El overlay tiene pista/pulgar más grandes y corta pointerdown/click
-   para que no inicie el pan ni el drag&drop de la celda. **El zoom/encuadre
-   vive en el asset**: todas las copias de la misma imagen comparten el crop en
-   todas las hojas y se persiste en IndexedDB. El PDF rasteriza la vista
-   recortada para respetar el encuadre.
+8. **Zoom por celda desde el panel**: `Slider` “Zoom de la imagen” (100–300 %)
+   que actúa sobre la celda/imagen seleccionada —también en lote si hay varias
+   seleccionadas— con botón 100 % para resetear. En la celda quedan la rueda,
+   **Alt+arrastrar** para encuadrar y el doble clic para resetear. El drag & drop
+   de celdas no se intercepta: arrastrar sin Alt intercambia celdas. **El
+   zoom/encuadre vive en el asset**: todas las copias de la misma imagen
+   comparten el crop en todas las hojas y se persiste en IndexedDB. El PDF
+   rasteriza la vista recortada para respetar el encuadre.
 9. **Tamaños estándar de producto**: además de fotos, stickers y credenciales,
    se agregaron **Carnet 3×4, Carnet 4×4, Carnet 2,5×3,5 y Pasaporte 3,5×4,5**
    (medidas reales en mm).

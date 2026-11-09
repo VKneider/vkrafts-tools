@@ -124,9 +124,10 @@ Dos detalles que conviene tener presentes antes de tocarla:
   hoja inicial arranca con **Sin margen** (0 mm) por defecto.
 - **Productos estándar**: fotos, stickers, tarjeta, credencial, etiqueta y
   tamaños de **carnet (3×4, 4×4, 2,5×3,5) / pasaporte (3,5×4,5)**.
-- **Zoom por celda**: rueda, arrastre para encuadrar, doble clic para resetear y
-  un **Slider** visible al pasar el mouse o seleccionar la imagen (100–300 %).
-  El encuadre se guarda en la imagen: todas sus copias y hojas lo comparten.
+- **Zoom por celda**: rueda sobre la imagen, **Alt+arrastrar** para encuadrar,
+  doble clic para resetear y un **Slider “Zoom de la imagen” en el panel** que
+  actúa sobre la celda/imagen seleccionada (100–300 %). El encuadre se guarda
+  en la imagen: todas sus copias y hojas lo comparten.
 - **Selección múltiple**: `Ctrl/Cmd` alterna celdas, `Shift` toma rangos;
   `Shift+flechas` extiende el rango y `Ctrl/Cmd+A` selecciona toda la hoja. El
   menú contextual ajusta (cubrir/contener) o quita en lote.

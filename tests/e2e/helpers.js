@@ -239,6 +239,20 @@ export async function setPreset(page, presetId) {
    await page.evaluate(() => window.scrollTo(0, 0));
 }
 
+/** Arrastra con pointer events reales desde el centro de un nodo a otro. */
+export async function dragTo(page, source, target) {
+   const from = await source.boundingBox();
+   const to = await target.boundingBox();
+   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+   await page.mouse.down();
+   await page.mouse.move(
+      to.x + to.width / 2,
+      to.y + to.height / 2,
+      { steps: 12 }
+   );
+   await page.mouse.up();
+}
+
 /** Ajusta la cantidad de copias de una PoolCard con sus botones reales. */
 export async function setQuantity(page, cardIndex, quantity) {
    const card = page.locator('slice-pool-card').nth(cardIndex);

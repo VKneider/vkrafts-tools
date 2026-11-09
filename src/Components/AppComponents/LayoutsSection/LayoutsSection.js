@@ -405,6 +405,10 @@ export default class LayoutsSection extends HTMLElement {
          templates: this._templates,
          onFiles: (files) => this.addFiles(files),
          actions: actionDefs,
+         cropEnabled: false,
+         cropZoom: 1,
+         cropCount: 0,
+         onCropZoomChange: (value) => this._setCropForSelected(value),
          // El papel es global: todas las hojas comparten la misma medida para
          // que el PDF y la impresión salgan homogéneos.
          onPageChange: (pageId) => {
@@ -832,6 +836,7 @@ export default class LayoutsSection extends HTMLElement {
       this._selectedSlots.clear();
       this._selectionAnchor = null;
       this._refreshCellSelection();
+      this.renderControlStates();
    }
 
    // ---------- pool ----------
@@ -1747,7 +1752,11 @@ export default class LayoutsSection extends HTMLElement {
       const sheet = this._sheet();
 
       if (this._panel) {
+         const crop = this._selectedCropState();
          this._panel.sheet = sheet;
+         this._panel.cropEnabled = crop.enabled;
+         this._panel.cropZoom = crop.value;
+         this._panel.cropCount = crop.count;
          this._panel.update({ sheet: this._prevSheet });
          this._prevSheet = { ...sheet };
       }
@@ -2025,14 +2034,73 @@ export default class LayoutsSection extends HTMLElement {
          pool: prev.pool.map((a) => (a.id === asset.id ? { ...a, ...next } : a))
       }));
 
-      clearTimeout(this._cropTimers.get(asset.id));
-      this._pendingCrops.set(asset.id, next);
-      this._cropTimers.set(asset.id, setTimeout(() => {
-         this._cropTimers.delete(asset.id);
-         const crop = this._pendingCrops.get(asset.id);
-         this._pendingCrops.delete(asset.id);
-         this._storage?.updateAssetCrop?.(asset.id, crop);
+      this._queueCropPersist(asset.id, next);
+   }
+
+   /** Debounce de escritura del crop en IndexedDB (arrastrar dispara muchas). */
+   _queueCropPersist(assetId, crop) {
+      clearTimeout(this._cropTimers.get(assetId));
+      this._pendingCrops.set(assetId, crop);
+      this._cropTimers.set(assetId, setTimeout(() => {
+         this._cropTimers.delete(assetId);
+         const pending = this._pendingCrops.get(assetId);
+         this._pendingCrops.delete(assetId);
+         this._storage?.updateAssetCrop?.(assetId, pending);
       }, 400));
+   }
+
+   /**
+    * Zoom desde el panel: aplica la misma escala a todas las celdas
+    * seleccionadas (y a sus copias, porque el crop vive en el asset).
+    */
+   _setCropForSelected(value) {
+      const scale = Math.max(1, Math.min(3, Number(value) || 1));
+      const sheet = this._sheet();
+      const refs = [...this._selectedSlots]
+         .map((slot) => sheet.placement?.[slot])
+         .filter((ref) => ref?.refId);
+      if (!refs.length) return;
+
+      const ids = new Set(refs.map((ref) => ref.refId));
+      const range = (scale - 1) / (scale * 2);
+      const crops = new Map();
+
+      this._ctx.set((prev) => ({
+         ...prev,
+         pool: prev.pool.map((asset) => {
+            if (!ids.has(asset.id)) return asset;
+            const crop = {
+               cropScale: scale,
+               cropX: scale <= 1
+                  ? 0.5
+                  : Math.max(range, Math.min(1 - range, asset.cropX ?? 0.5)),
+               cropY: scale <= 1
+                  ? 0.5
+                  : Math.max(range, Math.min(1 - range, asset.cropY ?? 0.5))
+            };
+            crops.set(asset.id, crop);
+            return { ...asset, ...crop };
+         })
+      }));
+
+      for (const [assetId, crop] of crops) this._queueCropPersist(assetId, crop);
+   }
+
+   /** Zoom/encuadre visible en el panel para la selección actual. */
+   _selectedCropState() {
+      const sheet = this._sheet();
+      const slots = [...this._selectedSlots].filter((slot) =>
+         sheet.placement?.[slot] && this._asset(sheet.placement[slot].refId));
+      if (!slots.length) return { enabled: false, value: 1, count: 0 };
+
+      const primary = this._primarySelectedSlot();
+      const slot = slots.includes(primary) ? primary : slots[0];
+      const asset = this._asset(sheet.placement[slot].refId);
+      return {
+         enabled: true,
+         value: asset?.cropScale ?? 1,
+         count: slots.length
+      };
    }
 
    /** Selección simple, Ctrl/Cmd para toggle y Shift para rango. */
@@ -2058,6 +2126,7 @@ export default class LayoutsSection extends HTMLElement {
       }
 
       this._refreshCellSelection();
+      this.renderControlStates();
    }
 
    _onCellFocus(slotIdx) {
@@ -2068,7 +2137,6 @@ export default class LayoutsSection extends HTMLElement {
    }
 
    _handleGridKey(e) {
-      if (e.target?.closest?.('.sheetcell__zoom')) return;
       const cellEl = e.target?.closest?.('slice-sheet-cell');
       if (!cellEl) return;
 

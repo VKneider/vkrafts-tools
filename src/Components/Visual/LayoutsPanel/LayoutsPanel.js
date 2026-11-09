@@ -11,6 +11,10 @@ export default class LayoutsPanel extends HTMLElement {
       onFitChange: { type: 'function', default: null },
       onScaleStart: { type: 'function', default: null },
       onScaleChange: { type: 'function', default: null },
+      cropEnabled: { type: 'boolean', default: false },
+      cropZoom: { type: 'number', default: 1 },
+      cropCount: { type: 'number', default: 0 },
+      onCropZoomChange: { type: 'function', default: null },
       onProductChange: { type: 'function', default: null },
       onFiles: { type: 'function', default: null },
       actions: { type: 'array', default: [] }
@@ -56,6 +60,7 @@ export default class LayoutsPanel extends HTMLElement {
       if ((sheet.imageScale ?? 1) !== (prevProps?.sheet?.imageScale ?? 1)) {
          this._updateScale(sheet.imageScale);
       }
+      this._syncCropControls();
    }
 
    async _buildControls() {
@@ -205,8 +210,38 @@ export default class LayoutsPanel extends HTMLElement {
       this._$scaleSlider = scaleSlider;
       this._$scaleLabel = scaleLabel;
 
+      // Zoom per-imagen: vive en el panel, no encima de la celda, para no
+      // interferir con el drag & drop ni con el pan.
+      const cropSlider = await slice.build('Slider', {
+         min: 1,
+         max: 3,
+         step: 0.05,
+         value: this.cropZoom ?? 1,
+         size: 'sm',
+         variant: 'plain',
+         showValue: true,
+         formatValue: (value) => `${Math.round(value * 100)}%`,
+         onInput: (value) => this._onCropZoomChange?.(value)
+      });
+      if (cropSlider) {
+         cropSlider.classList.add('layoutspanel__crop-slider');
+         this.$refs.crop.appendChild(cropSlider);
+         this._$cropSlider = cropSlider;
+      }
+
+      const cropReset = document.createElement('button');
+      cropReset.type = 'button';
+      cropReset.className = 'layoutspanel__crop-reset';
+      cropReset.textContent = '100%';
+      cropReset.title = 'Restablecer zoom de la imagen';
+      cropReset.setAttribute('aria-label', 'Restablecer zoom de la imagen');
+      cropReset.addEventListener('click', () => this._onCropZoomChange?.(1));
+      this.$refs.crop.appendChild(cropReset);
+      this._$cropReset = cropReset;
+
       this._built = true;
 
+      this._syncCropControls();
       this._highlightTemplate(sheet.templateId);
       this._highlightPreset(sheet.presetId);
       this._highlightFit(sheet.fitMode);
@@ -337,6 +372,32 @@ export default class LayoutsPanel extends HTMLElement {
       if (this._$scaleLabel) this._$scaleLabel.textContent = `${Math.round((val ?? 1) * 100)}%`;
    }
 
+   _syncCropControls() {
+      const enabled = this.cropEnabled === true;
+      const value = Number.isFinite(this.cropZoom) ? this.cropZoom : 1;
+
+      if (this._$cropSlider) {
+         this._$cropSlider.disabled = !enabled;
+         if (Math.abs(this._$cropSlider.value - value) > 0.001) {
+            this._$cropSlider.value = value;
+         }
+      }
+      if (this._$cropReset) this._$cropReset.disabled = !enabled;
+
+      const hint = this.$refs.cropHint;
+      if (hint) {
+         const count = this.cropCount ?? 0;
+         const text = !enabled
+            ? 'Seleccioná una celda con imagen'
+            : (count > 1
+               ? `Se aplica a ${count} celdas · Alt+arrastrar para encuadrar`
+               : 'Alt+arrastrar para encuadrar · doble clic para resetear');
+         hint.textContent = text;
+         hint.hidden = !text;
+      }
+      this.$refs.crop?.classList.toggle('is-disabled', !enabled);
+   }
+
    getGalleryHost() {
       return this.$refs.gallery;
    }
@@ -379,6 +440,18 @@ export default class LayoutsPanel extends HTMLElement {
 
    get onScaleChange() { return this._onScaleChange; }
    set onScaleChange(fn) { this._onScaleChange = typeof fn === 'function' ? fn : null; }
+
+   get cropEnabled() { return this._cropEnabled; }
+   set cropEnabled(v) { this._cropEnabled = !!v; }
+
+   get cropZoom() { return this._cropZoom; }
+   set cropZoom(v) { this._cropZoom = Number.isFinite(Number(v)) ? Number(v) : 1; }
+
+   get cropCount() { return this._cropCount; }
+   set cropCount(v) { this._cropCount = Number.isFinite(Number(v)) ? Number(v) : 0; }
+
+   get onCropZoomChange() { return this._onCropZoomChange; }
+   set onCropZoomChange(fn) { this._onCropZoomChange = typeof fn === 'function' ? fn : null; }
 
    get onProductChange() { return this._onProductChange; }
    set onProductChange(fn) { this._onProductChange = typeof fn === 'function' ? fn : null; }

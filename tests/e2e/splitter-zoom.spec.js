@@ -64,7 +64,7 @@ test.describe('Splitters y zoom', () => {
       expect(zoomed.wMm).toBeCloseTo(before.wMm, 1);
       expect(zoomed.widthPx).toBeGreaterThan(before.widthPx);
 
-      await page.getByRole('button', { name: 'Restablecer zoom' }).click();
+      await page.getByRole('button', { name: 'Restablecer zoom', exact: true }).click();
       await expect.poll(async () => (await getState(page)).zoom).toBeCloseTo(0.7, 2);
 
       // Ctrl+wheel sobre la hoja también hace zoom.

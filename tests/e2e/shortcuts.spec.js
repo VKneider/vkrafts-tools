@@ -6,6 +6,7 @@ import {
    getState,
    getExportPlan,
    selectCell,
+   dragTo,
    makePng
 } from './helpers.js';
 
@@ -219,19 +220,19 @@ test.describe('Atajos sobre la celda seleccionada', () => {
       ).toBe(0);
    });
 
-   test('el slider de zoom por celda ajusta el crop de la imagen', async ({ page }) => {
+   test('el slider del panel ajusta el zoom de la imagen seleccionada', async ({ page }) => {
       await gotoLayouts(page);
       await uploadImages(page, 1);
       await expect(page.locator('slice-sheet-cell .sheetcell--img')).toHaveCount(1);
 
+      const slider = page.locator('slice-layouts-panel .layoutspanel__crop slice-slider');
+      const input = slider.locator('.slice_slider_input--low');
+      await expect(input).toBeDisabled();
+
       const cell = page.locator('slice-layouts-section slice-sheet-cell .sheetcell').first();
       await cell.click();
-      await cell.hover();
+      await expect(input).toBeEnabled();
 
-      const slider = cell.locator('.sheetcell__zoom slice-slider');
-      await expect(slider).toBeVisible();
-
-      const input = slider.locator('.slice_slider_input--low');
       await input.evaluate((el) => {
          el.value = '1.5';
          el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -245,42 +246,44 @@ test.describe('Atajos sobre la celda seleccionada', () => {
       const backgroundSize = await cell.evaluate((el) => el.style.backgroundSize);
       expect(backgroundSize).toContain('150%');
       await expect(slider.locator('.slice_slider_value')).toHaveText('150%');
+
+      await page.getByRole('button', { name: 'Restablecer zoom de la imagen' }).click();
+      await expect.poll(async () => (await getState(page)).pool[0]?.cropScale).toBe(1);
+      expect(await cell.evaluate((el) => el.style.backgroundSize)).not.toContain('150%');
    });
 
-   test('el slider de zoom responde al click/drag sin iniciar el pan', async ({ page }) => {
+   test('el zoom de la imagen no bloquea el drag & drop de celdas', async ({ page }) => {
       await gotoLayouts(page);
-      await uploadImages(page, 1);
-      await expect(page.locator('slice-sheet-cell .sheetcell--img')).toHaveCount(1);
+      await uploadImages(page, 2);
+      await expect(page.locator('slice-sheet-cell .sheetcell--img')).toHaveCount(2);
 
-      const cell = page.locator('slice-layouts-section slice-sheet-cell .sheetcell').first();
-      await cell.click();
-      await cell.hover();
+      const cells = page.locator('slice-layouts-section slice-sheet-cell .sheetcell');
+      await cells.nth(0).click();
 
-      const slider = cell.locator('.sheetcell__zoom slice-slider');
-      await expect(slider).toBeVisible();
-      const control = await slider.locator('.slice_slider_control').boundingBox();
-      const y = control.y + control.height / 2;
-      const x = control.x + control.width * 0.7;
-
-      // Click en la pista: debe cambiar el zoom, no arrastrar la imagen.
-      await page.mouse.click(x, y);
+      const input = page.locator(
+         'slice-layouts-panel .layoutspanel__crop slice-slider .slice_slider_input--low'
+      );
+      await input.evaluate((el) => {
+         el.value = '1.5';
+         el.dispatchEvent(new Event('input', { bubbles: true }));
+         el.dispatchEvent(new Event('change', { bubbles: true }));
+      });
       await expect.poll(async () => (await getState(page)).pool[0].cropScale)
-         .toBeGreaterThan(1.4);
+         .toBeCloseTo(1.5, 2);
+
+      const before = (await getState(page)).sheets[0].placement;
+      const firstId = before[0].refId;
+      const secondId = before[1].refId;
+
+      await dragTo(page, cells.nth(0), cells.nth(1));
+
+      await expect.poll(async () => {
+         const placement = (await getState(page)).sheets[0].placement;
+         return `${placement[0]?.refId}|${placement[1]?.refId}`;
+      }).toBe(`${secondId}|${firstId}`);
+
+      // El drag no debe mover el encuadre (eso es Alt+arrastrar).
       expect((await getState(page)).pool[0].cropX).toBeCloseTo(0.5, 2);
-      expect((await getState(page)).pool[0].cropY).toBeCloseTo(0.5, 2);
-
-      const afterClick = (await getState(page)).pool[0].cropScale;
-
-      // Arrastrar el pulgar sigue ajustando el zoom, sin pan.
-      await page.mouse.move(x, y);
-      await page.mouse.down();
-      await page.mouse.move(x + 40, y, { steps: 8 });
-      await page.mouse.up();
-
-      await expect.poll(async () => (await getState(page)).pool[0].cropScale)
-         .toBeGreaterThan(afterClick);
-      expect((await getState(page)).pool[0].cropX).toBeCloseTo(0.5, 2);
-      expect((await getState(page)).pool[0].cropY).toBeCloseTo(0.5, 2);
    });
 
    test('el zoom/encuadre se comparte entre todas las copias y persiste', async ({ page }) => {
@@ -296,13 +299,13 @@ test.describe('Atajos sobre la celda seleccionada', () => {
       await page.getByRole('menuitem', { name: 'Pegar aquí' }).click();
       await expect(page.locator('slice-sheet-cell .sheetcell--img')).toHaveCount(2);
 
-      // Zoom con el slider en la primera copia.
+      // Zoom con el slider del panel sobre la primera copia.
       const first = cells.nth(0);
       await first.click();
-      await first.hover();
-      const slider = first.locator('.sheetcell__zoom slice-slider');
-      await expect(slider).toBeVisible();
-      await slider.locator('.slice_slider_input--low').evaluate((el) => {
+      const cropInput = page.locator(
+         'slice-layouts-panel .layoutspanel__crop slice-slider .slice_slider_input--low'
+      );
+      await cropInput.evaluate((el) => {
          el.value = '1.5';
          el.dispatchEvent(new Event('input', { bubbles: true }));
          el.dispatchEvent(new Event('change', { bubbles: true }));
@@ -317,8 +320,10 @@ test.describe('Atajos sobre la celda seleccionada', () => {
       expect(sizes).toHaveLength(2);
       for (const size of sizes) expect(size).toContain('150%');
 
-      // Arrastrar cambia el encuadre y también debe reflejarse en la copia.
+      // Alt+arrastrar cambia el encuadre (sin intercambiar celdas).
+      const placementBefore = (await getState(page)).sheets[0].placement;
       const box = await first.boundingBox();
+      await page.keyboard.down('Alt');
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
       await page.mouse.down();
       await page.mouse.move(
@@ -327,9 +332,11 @@ test.describe('Atajos sobre la celda seleccionada', () => {
          { steps: 8 }
       );
       await page.mouse.up();
+      await page.keyboard.up('Alt');
 
       await expect.poll(async () => (await getState(page)).pool[0].cropX)
          .not.toBeCloseTo(0.5, 2);
+      expect((await getState(page)).sheets[0].placement).toEqual(placementBefore);
 
       const positions = await filledCells.evaluateAll((els) =>
          els.map((el) => el.style.backgroundPosition));
