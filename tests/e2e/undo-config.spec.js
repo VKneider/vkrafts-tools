@@ -19,7 +19,7 @@ test.describe('Undo de configuración', () => {
       await page.locator('.layoutspanel__chip[data-preset-id="wide"]').click();
       await expect.poll(async () => (await sheetState()).presetId).toBe('wide');
       await page.keyboard.press('Control+z');
-      await expect.poll(async () => (await sheetState()).presetId).toBe('normal');
+      await expect.poll(async () => (await sheetState()).presetId).toBe('none');
 
       // Plantilla.
       await page.locator('.layoutspanel__tpl-mini[data-template-id="m2"]').click();

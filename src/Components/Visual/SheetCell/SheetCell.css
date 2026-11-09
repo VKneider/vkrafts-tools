@@ -87,13 +87,17 @@ slice-sheet-cell:hover .sheetcell__remove { opacity: 1; }
 
 slice-sheet-cell .sheetcell__zoom {
   position: absolute;
-  left: 6px;
-  right: 32px;
-  bottom: 6px;
+  left: 2px;
+  right: 30px;
+  bottom: 2px;
   z-index: 4;
+  padding: 2px 0 0;
   opacity: 0;
   pointer-events: none;
   transform: translateY(3px);
+  touch-action: none;
+  user-select: none;
+  cursor: default;
   transition: opacity 150ms ease, transform 150ms ease;
 }
 
@@ -105,12 +109,20 @@ slice-sheet-cell .sheetcell__zoom:focus-within {
   transform: translateY(0);
 }
 
+/* Pista y pulgar más grandes: la franja del overlay es chica y antes costaba
+   acertarle al thumb sin arrastrar la celda. */
+slice-sheet-cell .sheetcell__zoom slice-slider {
+  --slice-slider-thumb-size: 1.55em;
+  --slice-slider-track-height: 0.46em;
+  font-size: 15px;
+}
+
 slice-sheet-cell .sheetcell__zoom slice-slider .slice_slider_container {
   margin: 0;
-  padding: 2px 8px 4px;
+  padding: 5px 10px 7px;
   border: 0;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.55);
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.58);
   color: #fff;
   backdrop-filter: blur(2px);
 }
@@ -121,14 +133,14 @@ slice-sheet-cell .sheetcell__zoom slice-slider .slice_slider_header {
 
 slice-sheet-cell .sheetcell__zoom slice-slider .slice_slider_label {
   padding-bottom: 2px;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.82);
 }
 
 slice-sheet-cell .sheetcell__zoom slice-slider .slice_slider_value {
   padding-bottom: 2px;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   color: #fff;
 }
 

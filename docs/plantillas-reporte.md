@@ -9,7 +9,7 @@ Alcance: vista de plantilla, edición de medidas, biblioteca, hojas, exportació
 Los E2E actuales cubren el camino crítico: medidas exactas, PDF/PNG con tamaño
 real, impresión, rail de hojas, paginación y búsqueda de la biblioteca, zoom por
 celda con rueda y slider, selección múltiple y confirmaciones destructivas
-(55 tests, todos verdes).
+(57 tests, todos verdes).
 
 Prioridad acordada:
 
@@ -21,7 +21,7 @@ Prioridad acordada:
 
 ## 2. Cobertura E2E actual
 
-55 tests en 14 archivos (`pnpm test:e2e`, ~5 min).
+57 tests en 14 archivos (`pnpm test:e2e`, ~5 min).
 
 | Archivo | Qué prueba |
 | --- | --- |
@@ -30,7 +30,7 @@ Prioridad acordada:
 | `sheets-library.spec.js` | Rail con scroll/fades/acciones fijas; paginación de a 12 con salto a la última página y vuelta a la 1 al borrar; búsqueda por nombre con estado vacío; **Vaciar** reinicia la planilla a una sola hoja en blanco; **menú de desborde** con todas las hojas; imagen en espera asignada con click. |
 | `persistence.spec.js` | Recarga con pool, hojas, medidas, zoom y hoja activa; flush sincrónico en `pagehide`; lectura de la sesión vieja (`vkrafts:sheet-layout`) tras migrar a StorageService; indicador Guardado/Error de cuota; aviso proactivo “Poco espacio” con `navigator.storage.estimate()`. |
 | `auto-assign.spec.js` | 9 copias en 3 hojas con la misma configuración + un solo undo. |
-| `shortcuts.spec.js` | `Ctrl+C/V` y `Delete` sobre la celda seleccionada; “Pegar aquí” en celda vacía; navegación por teclado; **Shift+flechas y Ctrl+A**; reemplazar imagen; rotar/voltear; selección múltiple con fit/quitar en lote; slider de zoom por celda; **encuadre global compartido entre copias y persistido**. |
+| `shortcuts.spec.js` | `Ctrl+C/V` y `Delete` sobre la celda seleccionada; “Pegar aquí” en celda vacía; navegación por teclado; **Shift+flechas y Ctrl+A**; reemplazar imagen; rotar/voltear; selección múltiple con fit/quitar en lote; slider de zoom por celda; **click/drag del slider sin iniciar el pan**; **encuadre global compartido entre copias y persistido**. |
 | `dnd.spec.js` | Arrastrar una imagen de la biblioteca a una celda y swap celda ↔ celda. |
 | `clipboard.spec.js` | Pegar una imagen desde el portapapeles la agrega a la biblioteca y la coloca. |
 | `heic.spec.js` | Subir y pegar un **HEIC/HEIF** real: `heic2any` lo convierte a JPEG y la imagen se agrega/coloca. |
@@ -38,7 +38,7 @@ Prioridad acordada:
 | `splitter-zoom.spec.js` | Arrastre de splitter, doble clic de reset, zoom por botón y `Ctrl+wheel`, invariante px ≡ mm y **sin repintar rail/hoja** al hacer zoom. |
 | `settings.spec.js` | Fit, escala de imagen y papel A5/A4 vertical llegan a la exportación. |
 | `confirmations.spec.js` | Limpiar hoja y eliminar una hoja con contenido: cancelar conserva, confirmar aplica. |
-| `features.spec.js` | Renombrar/mover hojas, medidas uniformes, bloqueo de proporción, grilla/márgenes personalizados, papel horizontal global y tamaños estándar de carnet/pasaporte. |
+| `features.spec.js` | Renombrar/mover hojas, **hoja inicial sin márgenes**, medidas uniformes, bloqueo de proporción, grilla/márgenes personalizados, papel horizontal global y tamaños estándar de carnet/pasaporte. |
 
 Comando: `pnpm test:e2e` (levanta `slice dev --port 3101`). Ver `tests/e2e/README.md`.
 
@@ -80,7 +80,8 @@ Sin pendientes funcionales ni de cobertura dentro del alcance actual.
    `orientation` a jsPDF. El tamaño de hoja se elige **solo con el Select** (se
    quitaron los inputs de ancho/alto y el flujo de página personalizada).
 4. **Grilla y márgenes personalizados**: columnas/filas (1–12) y margen/separación
-   en cm; se rehidratan desde el id después de recargar.
+   en cm; se rehidratan desde el id después de recargar. La vista inicial usa
+   **Sin margen** (0 mm) por defecto.
 5. **Indicador de guardado**: `SheetStorage` emite `sheet:save`
    (`saving`/`saved`/`error`); la vista muestra Guardando/Guardado y un error
    persistente con toast si la cuota está llena.
@@ -92,10 +93,11 @@ Sin pendientes funcionales ni de cobertura dentro del alcance actual.
 8. **Zoom por celda con rueda o Slider**: cada imagen tiene un `Slider` de Slice
    (100–300 %) superpuesto, visible al pasar el mouse o seleccionar la celda;
    además se conserva la rueda, el arrastre para encuadrar y el doble clic para
-   resetear. El slider no dispara selección, menú ni atajos de la grilla.
-   **El zoom/encuadre vive en el asset**: todas las copias de la misma imagen
-   comparten el crop en todas las hojas y se persiste en IndexedDB. El PDF
-   rasteriza la vista recortada para respetar el encuadre.
+   resetear. El overlay tiene pista/pulgar más grandes y corta pointerdown/click
+   para que no inicie el pan ni el drag&drop de la celda. **El zoom/encuadre
+   vive en el asset**: todas las copias de la misma imagen comparten el crop en
+   todas las hojas y se persiste en IndexedDB. El PDF rasteriza la vista
+   recortada para respetar el encuadre.
 9. **Tamaños estándar de producto**: además de fotos, stickers y credenciales,
    se agregaron **Carnet 3×4, Carnet 4×4, Carnet 2,5×3,5 y Pasaporte 3,5×4,5**
    (medidas reales en mm).
@@ -210,4 +212,4 @@ pnpm build
 - [x] `StorageService` integrado en `SheetStorage` (namespace `vkrafts`, misma
       clave histórica) y `IndexedDbManager` con su API actual, con unit tests y
       E2E de sesión vieja.
-- [x] Suite completa en verde: **55 E2E**, **116 unitarios**, lint y build.
+- [x] Suite completa en verde: **57 E2E**, **116 unitarios**, lint y build.

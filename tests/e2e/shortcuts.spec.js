@@ -247,6 +247,42 @@ test.describe('Atajos sobre la celda seleccionada', () => {
       await expect(slider.locator('.slice_slider_value')).toHaveText('150%');
    });
 
+   test('el slider de zoom responde al click/drag sin iniciar el pan', async ({ page }) => {
+      await gotoLayouts(page);
+      await uploadImages(page, 1);
+      await expect(page.locator('slice-sheet-cell .sheetcell--img')).toHaveCount(1);
+
+      const cell = page.locator('slice-layouts-section slice-sheet-cell .sheetcell').first();
+      await cell.click();
+      await cell.hover();
+
+      const slider = cell.locator('.sheetcell__zoom slice-slider');
+      await expect(slider).toBeVisible();
+      const control = await slider.locator('.slice_slider_control').boundingBox();
+      const y = control.y + control.height / 2;
+      const x = control.x + control.width * 0.7;
+
+      // Click en la pista: debe cambiar el zoom, no arrastrar la imagen.
+      await page.mouse.click(x, y);
+      await expect.poll(async () => (await getState(page)).pool[0].cropScale)
+         .toBeGreaterThan(1.4);
+      expect((await getState(page)).pool[0].cropX).toBeCloseTo(0.5, 2);
+      expect((await getState(page)).pool[0].cropY).toBeCloseTo(0.5, 2);
+
+      const afterClick = (await getState(page)).pool[0].cropScale;
+
+      // Arrastrar el pulgar sigue ajustando el zoom, sin pan.
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      await page.mouse.move(x + 40, y, { steps: 8 });
+      await page.mouse.up();
+
+      await expect.poll(async () => (await getState(page)).pool[0].cropScale)
+         .toBeGreaterThan(afterClick);
+      expect((await getState(page)).pool[0].cropX).toBeCloseTo(0.5, 2);
+      expect((await getState(page)).pool[0].cropY).toBeCloseTo(0.5, 2);
+   });
+
    test('el zoom/encuadre se comparte entre todas las copias y persiste', async ({ page }) => {
       await gotoLayouts(page);
       await uploadImages(page, 1);

@@ -4,7 +4,8 @@ import {
    uploadImages,
    cellMetrics,
    editCellMeasures,
-   getExportPlan
+   getExportPlan,
+   setPreset
 } from './helpers.js';
 
 async function getGeometry(page) {
@@ -31,6 +32,9 @@ async function getGeometry(page) {
 test.describe('Editar medidas de celda', () => {
    test('aplica 2 cm exactos y no deforma ni mueve las otras celdas', async ({ page }) => {
       await gotoLayouts(page);
+      // La vista arranca sin márgenes; este caso mide sobre el preset Normal
+      // para conservar las medidas de referencia (95 / 126,5 mm).
+      await setPreset(page, 'normal');
       // Cuadradas: con celdas de 2 × 2 cm, el "contain" del plan de exportación
       // coincide exactamente con la celda y la aserción es sobre mm reales.
       await uploadImages(page, 2, { width: 120, height: 120 });
@@ -107,6 +111,7 @@ test.describe('Editar medidas de celda', () => {
 
    test('“Ajustar celdas a la hoja” sale del modo de medidas exactas', async ({ page }) => {
       await gotoLayouts(page);
+      await setPreset(page, 'normal');
       await uploadImages(page, 1);
       await expect(page.locator('slice-sheet-cell .sheetcell--img')).toHaveCount(1);
 
@@ -129,6 +134,7 @@ test.describe('Editar medidas de celda', () => {
 
    test('una medida que no entra se escala para no desbordar la hoja', async ({ page }) => {
       await gotoLayouts(page);
+      await setPreset(page, 'normal');
       await uploadImages(page, 1);
       await expect(page.locator('slice-sheet-cell .sheetcell--img')).toHaveCount(1);
 

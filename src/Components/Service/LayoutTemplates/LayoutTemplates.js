@@ -142,7 +142,7 @@ export default class LayoutTemplates {
          id: `sheet-${seq}-${Date.now()}`,
          pageId: 'carta',
          templateId: 'm2x2',
-         presetId: 'normal',
+         presetId: 'none',
          fitMode: 'smart',
          imageScale: 1,
          // Sin esto, toda hoja nueva llega con `placement` undefined y el primer

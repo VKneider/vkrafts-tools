@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { gotoLayouts, uploadImages, getGeometry, getState, cellMetrics } from './helpers.js';
+import { gotoLayouts, uploadImages, getGeometry, getState, cellMetrics, setPreset } from './helpers.js';
 
 test.describe('Splitters y zoom', () => {
    test('el splitter reparte mm, doble clic resetea y el zoom conserva px ≡ mm', async ({ page }) => {
       await gotoLayouts(page);
+      await setPreset(page, 'normal');
       await uploadImages(page, 1);
       await expect(page.locator('slice-sheet-cell .sheetcell--img')).toHaveCount(1);
 

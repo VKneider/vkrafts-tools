@@ -45,6 +45,14 @@ export default class SheetCell extends HTMLElement {
       this._dragStartCropX = 0;
       this._dragStartCropY = 0;
 
+      // El overlay del zoom no debe iniciar el pan de la celda ni el drag&drop:
+      // se corta en el borde antes de que llegue a los listeners del .sheetcell.
+      if (this.$zoom) {
+         for (const type of ['pointerdown', 'click', 'dblclick']) {
+            this.$zoom.addEventListener(type, (event) => event.stopPropagation());
+         }
+      }
+
       // Listeners se registran UNA sola vez; _render() solo pinta estado.
       this.$root.addEventListener('click', (e) => {
          if (e.target.closest('.sheetcell__zoom')) return;

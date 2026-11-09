@@ -63,7 +63,7 @@ export default class Providers {
          id: 'sheet-1',
          pageId: 'carta',
          templateId: 'm2x2',
-         presetId: 'normal',
+         presetId: 'none',
          fitMode: 'smart',
          imageScale: 1,
          placement: {}

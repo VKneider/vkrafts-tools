@@ -7,12 +7,24 @@ import {
    getExportPlan,
    cellMetrics,
    readDownload,
-   pdfMediaBoxes
+   pdfMediaBoxes,
+   setPreset
 } from './helpers.js';
 
 const PT_PER_MM = 72 / 25.4;
 
 test.describe('Features nuevas de plantilla', () => {
+   test('la hoja inicial no tiene márgenes', async ({ page }) => {
+      await gotoLayouts(page);
+
+      expect((await getState(page)).sheets[0].presetId).toBe('none');
+      const geo = await getGeometry(page);
+      expect(geo.originXMm).toBe(0);
+      expect(geo.originYMm).toBe(0);
+      expect(geo.colWmm).toEqual([108, 108]);
+      expect(geo.rowHmm).toEqual([139.5, 139.5]);
+   });
+
    test('renombrar y mover hojas desde el chip', async ({ page }) => {
       await gotoLayouts(page);
 
@@ -146,6 +158,7 @@ test.describe('Features nuevas de plantilla', () => {
 
    test('bloquear proporción ajusta el otro eje', async ({ page }) => {
       await gotoLayouts(page);
+      await setPreset(page, 'normal');
       await uploadImages(page, 1, { width: 120, height: 120 });
       await expect(page.locator('slice-sheet-cell .sheetcell--img')).toHaveCount(1);
 

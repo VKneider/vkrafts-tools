@@ -120,7 +120,8 @@ Dos detalles que conviene tener presentes antes de tocarla:
   Se elige **solo con el Select** (A4/Carta/A5, horizontales incluidas); el PDF
   respeta esa orientación. No hay inputs de ancho/alto.
 - **Grilla y márgenes personalizados** desde el panel: columnas/filas (1–12) y
-  margen/separación en cm; se rehidratan desde el id después de recargar.
+  margen/separación en cm; se rehidratan desde el id después de recargar. La
+  hoja inicial arranca con **Sin margen** (0 mm) por defecto.
 - **Productos estándar**: fotos, stickers, tarjeta, credencial, etiqueta y
   tamaños de **carnet (3×4, 4×4, 2,5×3,5) / pasaporte (3,5×4,5)**.
 - **Zoom por celda**: rueda, arrastre para encuadrar, doble clic para resetear y

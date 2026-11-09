@@ -22,7 +22,7 @@ Si ya hay un server en `http://127.0.0.1:3101`, Playwright lo reutiliza. En CI
 
 ## Qué cubre
 
-55 tests. Cada archivo:
+57 tests. Cada archivo:
 
 | Archivo | Verifica |
 | --- | --- |
@@ -31,7 +31,7 @@ Si ya hay un server en `http://127.0.0.1:3101`, Playwright lo reutiliza. En CI
 | `sheets-library.spec.js` | Rail de hojas con scroll/fades/acciones fijas y hoja activa visible; biblioteca paginada de a 12, vuelta a la página 1 al borrar, búsqueda por nombre y estado vacío; “Vaciar” reinicia a una hoja en blanco; menú de desborde con todas las hojas; imagen en espera asignada con click. |
 | `persistence.spec.js` | Recarga de la sesión (pool, hojas, medidas, zoom, hoja activa), flush sincrónico en `pagehide`, lectura de la sesión vieja con la clave histórica tras migrar a StorageService, e indicador Guardado/Error de cuota; aviso proactivo de poco espacio en IndexedDB. |
 | `auto-assign.spec.js` | 9 copias repartidas en 3 hojas con la misma configuración y un solo undo. |
-| `shortcuts.spec.js` | `Delete`, `Ctrl+C` y `Ctrl+V` sobre la celda seleccionada; “Pegar aquí” en una celda vacía; navegación con flechas; `Shift+flechas` y `Ctrl+A`; reemplazar, rotar y voltear imagen; selección múltiple con fit/quitar en lote; slider de zoom por celda; encuadre global compartido entre copias y persistido. |
+| `shortcuts.spec.js` | `Delete`, `Ctrl+C` y `Ctrl+V` sobre la celda seleccionada; “Pegar aquí” en una celda vacía; navegación con flechas; `Shift+flechas` y `Ctrl+A`; reemplazar, rotar y voltear imagen; selección múltiple con fit/quitar en lote; slider de zoom por celda; click/drag del slider sin iniciar el pan; encuadre global compartido entre copias y persistido. |
 | `dnd.spec.js` | Arrastrar de la biblioteca a una celda y swap celda ↔ celda. |
 | `clipboard.spec.js` | Pegar una imagen desde el portapapeles la agrega a la biblioteca y la coloca. |
 | `heic.spec.js` | Subir y pegar un HEIC/HEIF real: `heic2any` lo convierte a JPEG y la imagen se agrega/coloca. |
@@ -39,7 +39,7 @@ Si ya hay un server en `http://127.0.0.1:3101`, Playwright lo reutiliza. En CI
 | `splitter-zoom.spec.js` | Arrastre de splitter, doble clic de reset, zoom por botón y `Ctrl+wheel`, px ≡ mm y sin repintar rail/hoja al hacer zoom. |
 | `settings.spec.js` | Fit, escala de imagen y papel A5/A4 vertical llegan a la exportación. |
 | `confirmations.spec.js` | Limpiar hoja y eliminar una hoja con contenido: cancelar conserva, confirmar aplica. |
-| `features.spec.js` | Renombrar/mover hojas, medidas uniformes, bloqueo de proporción, grilla/márgenes personalizados, papel horizontal global y tamaños estándar de carnet/pasaporte. |
+| `features.spec.js` | Renombrar/mover hojas, hoja inicial sin márgenes, medidas uniformes, bloqueo de proporción, grilla/márgenes personalizados, papel horizontal global y tamaños estándar de carnet/pasaporte. |
 
 ## Notas
 

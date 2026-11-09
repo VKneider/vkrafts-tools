@@ -227,6 +227,18 @@ export async function selectCell(page, slot) {
    await expect(cell).toHaveClass(/sheetcell--selected/);
 }
 
+/** Cambia el preset de márgenes de la hoja activa. */
+export async function setPreset(page, presetId) {
+   await page.locator(`slice-layouts-panel .layoutspanel__chip[data-preset-id="${presetId}"]`)
+      .click();
+   await expect.poll(async () => (await getState(page)).sheets[0].presetId)
+      .toBe(presetId);
+   // El chip puede estar debajo del fold: Playwright scrollea la página para
+   // clickearlo. Se vuelve arriba para que las coordenadas de la hoja sigan
+   // siendo las del viewport en los tests que arrastran splitters.
+   await page.evaluate(() => window.scrollTo(0, 0));
+}
+
 /** Ajusta la cantidad de copias de una PoolCard con sus botones reales. */
 export async function setQuantity(page, cardIndex, quantity) {
    const card = page.locator('slice-pool-card').nth(cardIndex);
