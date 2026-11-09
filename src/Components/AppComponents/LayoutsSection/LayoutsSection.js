@@ -394,10 +394,10 @@ export default class LayoutsSection extends HTMLElement {
       const actionDefs = [
          { key: 'auto', label: 'Auto acomodar', icon: 'star', variant: 'filled', tip: 'Reparte todas las imágenes en la hoja actual y, si no entran, en hojas nuevas con la misma configuración', handler: () => this.smartAssign(true) },
          { key: 'clear', label: 'Limpiar hoja', icon: 'minus', variant: 'outlined', tip: 'Quita las imágenes de la hoja (quedan en la biblioteca)', handler: () => this.clearPlacements() },
-         { key: 'pngs', label: 'PNGs', icon: 'image', variant: 'outlined', tip: 'Descarga como imágenes (para uso digital)', handler: () => this.exportPNGs() },
-         { key: 'pdf', label: 'PDF', icon: 'download', variant: 'outlined', tip: 'Descarga con medidas exactas (recomendado para imprimir)', handler: () => this.exportPDF() },
-         { key: 'print', label: 'Imprimir', icon: 'printer', variant: 'soft', tip: 'Imprimir todas las hojas a tamaño real', handler: () => this.printSheets() },
-         { key: 'export', label: 'Exportar…', icon: 'layers', variant: 'outlined', tip: 'Elegir qué hojas y en qué formato exportar', handler: () => this._openExportModal() }
+         { key: 'pngs', label: 'PNGs', group: 'export', icon: 'image', variant: 'outlined', tip: 'Descarga como imágenes (para uso digital)', handler: () => this.exportPNGs() },
+         { key: 'pdf', label: 'PDF', group: 'export', icon: 'download', variant: 'outlined', tip: 'Descarga con medidas exactas (recomendado para imprimir)', handler: () => this.exportPDF() },
+         { key: 'print', label: 'Imprimir', group: 'export', icon: 'printer', variant: 'soft', tip: 'Imprimir todas las hojas a tamaño real', handler: () => this.printSheets() },
+         { key: 'export', label: 'Exportar…', group: 'export', icon: 'layers', variant: 'outlined', tip: 'Elegir qué hojas y en qué formato exportar', handler: () => this._openExportModal() }
       ];
 
       this._panel = await slice.build('LayoutsPanel', {

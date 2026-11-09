@@ -170,11 +170,51 @@ slice-layouts-panel .layoutspanel__scale-label {
 
 slice-layouts-panel .layoutspanel__actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
 }
-slice-layouts-panel .layoutspanel__actions slice-button { min-width: 0; }
-slice-layouts-panel .layoutspanel__actions .slice_button { box-sizing: border-box; justify-content: center; }
+
+slice-layouts-panel .layoutspanel__actions-row {
+  display: grid;
+  gap: 8px;
+  align-items: stretch;
+}
+
+/* Acción principal más ancha que la destructiva. */
+slice-layouts-panel .layoutspanel__actions-row--primary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Exportación en una grilla 2 × 2, separada del resto. */
+slice-layouts-panel .layoutspanel__actions-row--export {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-top: 10px;
+  border-top: 1px solid rgba(var(--primary-color-rgb), 0.12);
+}
+
+slice-layouts-panel .layoutspanel__actions-row slice-button {
+  min-width: 0;
+  width: 100%;
+}
+
+slice-layouts-panel .layoutspanel__actions-row slice-button .slice_button_container {
+  padding: 0;
+}
+
+slice-layouts-panel .layoutspanel__actions-row .slice_button {
+  box-sizing: border-box;
+  justify-content: center;
+  width: 100%;
+}
+
+slice-layouts-panel .layoutspanel__actions-row .slice_button--sm {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+slice-layouts-panel .layoutspanel__actions-row .slice_button_value {
+  white-space: nowrap;
+}
 
 /* ---------- pool / biblioteca ---------- */
 

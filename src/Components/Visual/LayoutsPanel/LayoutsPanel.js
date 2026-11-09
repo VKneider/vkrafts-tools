@@ -68,17 +68,29 @@ export default class LayoutsPanel extends HTMLElement {
       if (dropzone) this.$refs.drop.appendChild(dropzone);
 
       if (this.actions?.length) {
+         const primaryRow = document.createElement('div');
+         primaryRow.className = 'layoutspanel__actions-row layoutspanel__actions-row--primary';
+         primaryRow.setAttribute('role', 'group');
+         primaryRow.setAttribute('aria-label', 'Acciones de la hoja');
+         const exportRow = document.createElement('div');
+         exportRow.className = 'layoutspanel__actions-row layoutspanel__actions-row--export';
+         exportRow.setAttribute('role', 'group');
+         exportRow.setAttribute('aria-label', 'Exportar');
+
          for (const d of this.actions) {
             const btn = await slice.build('Button', {
                value: d.label, icon: { name: d.icon }, variant: d.variant, size: 'sm',
                onClick: d.handler
             });
-            if (btn) {
-               btn.setAttribute('data-tooltip', d.tip);
-               btn.setAttribute('data-tooltip-placement', 'bottom');
-               this.$refs.actions.appendChild(btn);
-            }
+            if (!btn) continue;
+            btn.setAttribute('data-tooltip', d.tip);
+            btn.setAttribute('data-tooltip-placement', 'bottom');
+            btn.dataset.actionKey = d.key;
+            (d.group === 'export' ? exportRow : primaryRow).appendChild(btn);
          }
+
+         if (primaryRow.children.length) this.$refs.actions.appendChild(primaryRow);
+         if (exportRow.children.length) this.$refs.actions.appendChild(exportRow);
       }
 
       const pageOptions = templates.pages().map((p) => ({ ...p, text: p.label }));
